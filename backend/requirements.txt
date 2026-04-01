@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+celery
+redis
+sqlalchemy
+psycopg2-binary
+clickhouse-connect
+python-jose
+slack_sdk
+requests
