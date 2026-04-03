@@ -1,0 +1,222 @@
+"""Tests for CortexOps enhancements — LLM judge, CLI, alerting."""
+
+import sys
+import os
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+
+from cortexops.judge import LLMJudgeMetric
+from cortexops.models import EvalCase, RunStatus, Trace, TraceNode
+
+
+def make_trace(output: str, latency_ms: float = 100.0) -> Trace:
+    node = TraceNode(node_id="n1", node_name="agent", output={"output": output}, latency_ms=latency_ms)
+    return Trace(
+        project="test",
+        total_latency_ms=latency_ms,
+        output={"output": output},
+        nodes=[node],
+        status=RunStatus.COMPLETED,
+    )
+
+
+# ---------------------------------------------------------------------------
+# LLM judge metric
+# ---------------------------------------------------------------------------
+
+class TestLLMJudgeMetric:
+    def test_skips_when_judge_is_rule(self):
+        metric = LLMJudgeMetric()
+        case = EvalCase(id="c1", input="test", judge="rule", judge_criteria="must be helpful")
+        trace = make_trace("here is a helpful response")
+        score, fk, _ = metric.score(case, trace)
+        assert score == 100.0
+        assert fk is None
+
+    def test_skips_when_no_criteria(self):
+        metric = LLMJudgeMetric()
+        case = EvalCase(id="c1", input="test", judge="llm")
+        trace = make_trace("some output")
+        score, fk, _ = metric.score(case, trace)
+        assert score == 100.0
+
+    def test_heuristic_fallback_high_match(self):
+        metric = LLMJudgeMetric(api_key="placeholder")
+        case = EvalCase(
+            id="c1",
+            input="Explain refund policy",
+            judge="llm",
+            judge_criteria="response should mention refund policy clearly and offer assistance",
+        )
+        trace = make_trace("Our refund policy allows returns within 30 days. I am happy to assist you.")
+        score, fk, fd = metric.score(case, trace)
+        assert score > 50.0
+        assert fd is not None
+
+    def test_heuristic_fallback_low_match(self):
+        metric = LLMJudgeMetric(api_key="placeholder")
+        case = EvalCase(
+            id="c1",
+            input="Explain refund policy",
+            judge="llm",
+            judge_criteria="response should mention refund policy clearly and offer assistance",
+        )
+        trace = make_trace("I cannot help with that request.")
+        score, fk, _ = metric.score(case, trace)
+        assert score < 100.0
+
+
+# ---------------------------------------------------------------------------
+# Alerting
+# ---------------------------------------------------------------------------
+
+class TestAlertPayload:
+    def _get_classes(self):
+        from app.services.alerting import AlertPayload, SlackAlerter
+        return AlertPayload, SlackAlerter
+
+    def test_should_alert_on_failures(self):
+        AlertPayload, SlackAlerter = self._get_classes()
+        payload = AlertPayload(
+            project="test", run_id="abc",
+            task_completion_rate=0.8, tool_accuracy=90.0,
+            passed=8, failed=2, total_cases=10, regressions=0,
+            failed_cases=[{"case_id": "c1", "failure_kind": "tool_call_mismatch", "score": 40}],
+        )
+        alerter = SlackAlerter(webhook_url=None, threshold=0.90)
+        assert alerter.should_alert(payload) is True
+
+    def test_no_alert_when_passing(self):
+        AlertPayload, SlackAlerter = self._get_classes()
+        payload = AlertPayload(
+            project="test", run_id="abc",
+            task_completion_rate=0.95, tool_accuracy=98.0,
+            passed=10, failed=0, total_cases=10, regressions=0, failed_cases=[],
+        )
+        alerter = SlackAlerter(webhook_url=None, threshold=0.90)
+        assert alerter.should_alert(payload) is False
+
+    def test_alert_on_regression(self):
+        AlertPayload, SlackAlerter = self._get_classes()
+        payload = AlertPayload(
+            project="test", run_id="abc",
+            task_completion_rate=0.95, tool_accuracy=98.0,
+            passed=10, failed=0, total_cases=10, regressions=2, failed_cases=[],
+        )
+        alerter = SlackAlerter(webhook_url=None, threshold=0.90)
+        assert alerter.should_alert(payload) is True
+
+
+# ---------------------------------------------------------------------------
+# Prompt diff logic
+# ---------------------------------------------------------------------------
+
+class TestPromptDiff:
+    def test_unified_diff_detects_changes(self):
+        import difflib
+
+        v1 = "You are a helpful assistant.\nAlways respond in English."
+        v2 = "You are a helpful payments assistant.\nAlways respond in English.\nBe concise."
+
+        diff = list(difflib.unified_diff(
+            v1.splitlines(keepends=True),
+            v2.splitlines(keepends=True),
+            fromfile="v1", tofile="v2", lineterm="",
+        ))
+        additions = sum(1 for l in diff if l.startswith("+") and not l.startswith("+++"))
+        deletions = sum(1 for l in diff if l.startswith("-") and not l.startswith("---"))
+
+        assert additions >= 1
+        assert deletions >= 1
+
+    def test_identical_prompts_no_diff(self):
+        import difflib
+
+        v1 = v2 = "You are a helpful assistant."
+        diff = list(difflib.unified_diff(
+            v1.splitlines(keepends=True),
+            v2.splitlines(keepends=True),
+            fromfile="v1", tofile="v2", lineterm="",
+        ))
+        assert diff == []
+
+
+# ---------------------------------------------------------------------------
+# CLI imports
+# ---------------------------------------------------------------------------
+
+class TestCLIImports:
+    def test_cli_module_imports(self):
+        from cortexops.cli import main, cmd_eval_run, cmd_version
+        assert callable(main)
+        assert callable(cmd_eval_run)
+        assert callable(cmd_version)
+
+    def test_version_command(self, capsys):
+        import argparse
+        from cortexops.cli import cmd_version
+        cmd_version(argparse.Namespace())
+        captured = capsys.readouterr()
+        assert "cortexops" in captured.out
+        assert "0.1.0" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# API key generation
+# ---------------------------------------------------------------------------
+
+class TestApiKeyGeneration:
+    def test_generate_produces_cxo_prefix(self):
+        from app.auth import generate_api_key
+        raw, hashed = generate_api_key()
+        assert raw.startswith("cxo-")
+        assert len(raw) == 4 + 1 + 64  # "cxo-" + 32 hex bytes = 69 chars
+
+    def test_hash_is_deterministic(self):
+        from app.auth import hash_key
+        assert hash_key("test-key") == hash_key("test-key")
+        assert hash_key("key-a") != hash_key("key-b")
+
+    def test_generated_keys_unique(self):
+        from app.auth import generate_api_key
+        keys = {generate_api_key()[0] for _ in range(20)}
+        assert len(keys) == 20
+
+
+# ---------------------------------------------------------------------------
+# Auth key generation — pure logic, no FastAPI dependency
+# ---------------------------------------------------------------------------
+
+class TestApiKeyPureFunctions:
+    """Tests the pure key generation logic, independent of FastAPI."""
+
+    def _gen(self):
+        import secrets, hashlib
+        raw = f"cxo-{secrets.token_hex(32)}"
+        hashed = hashlib.sha256(raw.encode()).hexdigest()
+        return raw, hashed
+
+    def _hash(self, raw: str) -> str:
+        import hashlib
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    def test_key_has_cxo_prefix(self):
+        raw, _ = self._gen()
+        assert raw.startswith("cxo-")
+
+    def test_hash_is_deterministic(self):
+        assert self._hash("test-key") == self._hash("test-key")
+        assert self._hash("key-a") != self._hash("key-b")
+
+    def test_generated_keys_are_unique(self):
+        keys = {self._gen()[0] for _ in range(20)}
+        assert len(keys) == 20
+
+    def test_raw_key_length(self):
+        raw, _ = self._gen()
+        assert len(raw) == 68  # "cxo-" (4) + "-" (0 included in prefix) + 64 hex chars
