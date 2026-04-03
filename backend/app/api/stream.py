@@ -12,5 +12,5 @@ async def ws_traces(ws: WebSocket):
     try:
         while True:
             await ws.receive_text()
-    except:
+    except Exception:
         connections.remove(ws)

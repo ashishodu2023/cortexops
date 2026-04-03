@@ -140,8 +140,8 @@ async def diff_prompt_versions(
         lineterm="",
     ))
 
-    additions = sum(1 for l in diff if l.startswith("+") and not l.startswith("+++"))
-    deletions = sum(1 for l in diff if l.startswith("-") and not l.startswith("---"))
+    additions = sum(1 for line in diff if line.startswith("+") and not line.startswith("+++"))
+    deletions = sum(1 for line in diff if line.startswith("-") and not line.startswith("---"))
 
     return PromptDiffResponse(
         prompt_name=prompt_name,

@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import statistics
 from datetime import datetime, timezone
-from typing import Any
 
 from .celery_app import celery
 
@@ -50,7 +48,6 @@ async def _run_eval_async(
 
     try:
         from cortexops import EvalSuite
-        from cortexops.models import EvalDataset
 
         if "path" in dataset:
             ds = EvalSuite._load_dataset(dataset["path"])

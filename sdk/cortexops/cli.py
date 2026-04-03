@@ -76,7 +76,9 @@ def cmd_eval_diff(args: argparse.Namespace) -> int:
     regressions = diff.get("regressions", [])
     improvements = diff.get("improvements", [])
 
-    sign = lambda v: f"+{v:.1%}" if v >= 0 else f"{v:.1%}"
+    def sign(v):
+        return f"+{v:.1%}" if v >= 0 else f"{v:.1%}"
+
     print(f"Diff: {args.run_a[:8]} → {args.run_b[:8]}")
     print(f"  Task completion : {sign(delta_tc)}")
     print(f"  Tool accuracy   : {sign(delta_tool / 100)}")

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any
 
 from .models import CaseResult, EvalCase, FailureKind, Trace
 
@@ -139,7 +138,7 @@ class HallucinationMetric(Metric):
         return 100.0, None, None
 
 
-def compute_case_result(case: EvalCase, trace: Trace, extra_metrics: "list[Metric] | None" = None) -> CaseResult:
+def compute_case_result(case: EvalCase, trace: Trace, extra_metrics: list[Metric] | None = None) -> CaseResult:
     metrics: list[Metric] = [
         TaskCompletionMetric(),
         ToolAccuracyMetric(),

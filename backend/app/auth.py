@@ -65,7 +65,7 @@ async def get_current_project(
     ApiKey = _get_model()
     hashed = hash_key(raw_key)
     result = await db.execute(
-        select(ApiKey).where(ApiKey.key_hash == hashed, ApiKey.is_active == True)
+        select(ApiKey).where(ApiKey.key_hash == hashed, ApiKey.is_active)
     )
     key_record = result.scalar_one_or_none()
 

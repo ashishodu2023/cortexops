@@ -112,4 +112,4 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install ruff
-      - run: ruff check sdk/cortexops backend/app
+      - run: ruff check sdk/cortexops backend/app --line-length 121

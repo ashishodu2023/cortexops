@@ -22,7 +22,6 @@ from typing import Any
 from .metrics import Metric
 from .models import EvalCase, FailureKind, Trace
 
-
 JUDGE_SYSTEM_PROMPT = """You are a strict but fair evaluator of AI agent outputs.
 You will be given:
   - The user's input to the agent

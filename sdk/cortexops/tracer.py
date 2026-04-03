@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Any, Callable
+from typing import Any
 
-from .models import FailureKind, RunStatus, Trace, TraceNode, ToolCall, ToolCallStatus
+from .models import FailureKind, RunStatus, ToolCall, ToolCallStatus, Trace, TraceNode
 
 
 class CortexTracer:

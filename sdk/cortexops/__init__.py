@@ -27,9 +27,9 @@ from .models import (
     EvalSummary,
     FailureKind,
     RunStatus,
+    ToolCall,
     Trace,
     TraceNode,
-    ToolCall,
 )
 from .tracer import CortexTracer
 

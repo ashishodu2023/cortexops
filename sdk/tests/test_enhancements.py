@@ -128,8 +128,8 @@ class TestPromptDiff:
             v2.splitlines(keepends=True),
             fromfile="v1", tofile="v2", lineterm="",
         ))
-        additions = sum(1 for l in diff if l.startswith("+") and not l.startswith("+++"))
-        deletions = sum(1 for l in diff if l.startswith("-") and not l.startswith("---"))
+        additions = sum(1 for line in diff if line.startswith("+") and not line.startswith("+++"))
+        deletions = sum(1 for line in diff if line.startswith("-") and not line.startswith("---"))
 
         assert additions >= 1
         assert deletions >= 1
