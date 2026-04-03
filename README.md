@@ -8,6 +8,7 @@ Evaluate · Observe · Operate — for LangGraph, CrewAI, and AutoGen.
 [![CI](https://github.com/ashishodu2023/cortexops/actions/workflows/eval.yml/badge.svg)](https://github.com/ashishodu2023/cortexops/actions/workflows/eval.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+[Website](https://getcortexops.com) · [PyPI](https://pypi.org/project/cortexops) · [Docs](https://github.com/ashishodu2023/cortexops)
 ---
 
 ## The problem
