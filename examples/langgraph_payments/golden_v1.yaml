@@ -1,0 +1,98 @@
+version: 1
+project: payments-agent
+description: >
+  Golden evaluation dataset for the CortexOps payments agent demo.
+  Covers refund lookup, dispute classification, and escalation routing.
+
+cases:
+
+  # ── Refund lookup ─────────────────────────────────────────────────────────
+
+  - id: refund_approved_01
+    input: "What is the status of refund REF-8821?"
+    expected_tool_calls:
+      - lookup_refund
+    expected_output_contains:
+      - "approved"
+      - "REF-8821"
+    max_latency_ms: 3000
+    tags: [refund, happy_path]
+
+  - id: refund_pending_01
+    input: "Can you check on refund REF-9902 for me?"
+    expected_tool_calls:
+      - lookup_refund
+    expected_output_contains:
+      - "pending"
+      - "REF-9902"
+    max_latency_ms: 3000
+    tags: [refund, pending]
+
+  - id: refund_rejected_01
+    input: "What happened to my refund REF-1044?"
+    expected_tool_calls:
+      - lookup_refund
+    expected_output_contains:
+      - "REF-1044"
+    max_latency_ms: 3000
+    tags: [refund, rejected]
+
+  - id: refund_not_found_01
+    input: "Check refund REF-0000 please"
+    expected_tool_calls:
+      - lookup_refund
+    expected_output_contains:
+      - "not found"
+    max_latency_ms: 3000
+    tags: [refund, error_handling]
+
+  # ── Dispute classification + escalation ────────────────────────────────
+
+  - id: dispute_unauthorized_01
+    input: "I was charged twice — this is an unauthorized transaction on my card"
+    expected_tool_calls:
+      - classify_dispute
+      - route_escalation
+    expected_output_contains:
+      - "escalated"
+    max_latency_ms: 5000
+    tags: [dispute, fraud, escalation]
+
+  - id: dispute_duplicate_charge_01
+    input: "I see a duplicate charge on my statement from last Tuesday"
+    expected_tool_calls:
+      - classify_dispute
+      - route_escalation
+    expected_output_contains:
+      - "escalated"
+    max_latency_ms: 5000
+    tags: [dispute, billing_error]
+
+  - id: dispute_not_received_01
+    input: "My item was never delivered — I want to dispute this charge"
+    expected_tool_calls:
+      - classify_dispute
+      - route_escalation
+    expected_output_contains:
+      - "escalated"
+    max_latency_ms: 5000
+    tags: [dispute, fulfillment]
+
+  # ── Edge cases ────────────────────────────────────────────────────────────
+
+  - id: edge_general_inquiry_01
+    input: "I have a question about my account"
+    expected_tool_calls: []
+    expected_output_contains:
+      - "support"
+    max_latency_ms: 2000
+    tags: [edge_case, general]
+
+  - id: edge_empty_input_01
+    input: "hello"
+    expected_tool_calls: []
+    expected_output_not_contains:
+      - "error:"
+      - "traceback"
+    max_latency_ms: 2000
+    tags: [edge_case, robustness]
