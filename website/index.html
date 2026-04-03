@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CortexOps — Reliability infrastructure for AI agents</title>
+<meta name="description" content="Evaluate, observe, and operate LangGraph, CrewAI, and AutoGen agents in production. Catch regressions before they reach your users.">
+<meta property="og:title" content="CortexOps — Reliability infrastructure for AI agents">
+<meta property="og:description" content="Evaluate, observe, and operate LangGraph, CrewAI, and AutoGen agents in production.">
+<meta property="og:url" content="https://cortexops.ai">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple: #534AB7;
+    --purple-dark: #3C3489;
+    --purple-light: #EEEDFE;
+    --purple-mid: #AFA9EC;
+    --teal: #1D9E75;
+    --teal-light: #E1F5EE;
+    --red: #E24B4A;
+    --amber: #EF9F27;
+    --gray-900: #0F0D1A;
+    --gray-800: #1A1830;
+    --gray-700: #252340;
+    --gray-600: #3A3756;
+    --gray-400: #6B6A9A;
+    --gray-200: #C4C3E0;
+    --gray-100: #EEEDF8;
+    --white: #FFFFFF;
+    --code-bg: #13112B;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--gray-900);
+    color: var(--white);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    height: 60px;
+    background: rgba(15, 13, 26, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(83, 74, 183, 0.2);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo-mark {
+    width: 30px;
+    height: 30px;
+    background: var(--purple);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--white);
+    letter-spacing: -0.02em;
+  }
+
+  .logo-text span { color: var(--purple-mid); font-weight: 300; }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 14px;
+    color: var(--gray-200);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .nav-links a:hover { color: var(--white); }
+
+  .nav-cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-ghost {
+    font-size: 13px;
+    color: var(--gray-200);
+    text-decoration: none;
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    transition: all 0.15s;
+    font-family: var(--sans);
+    cursor: pointer;
+    background: none;
+  }
+
+  .btn-ghost:hover {
+    border-color: rgba(83, 74, 183, 0.6);
+    color: var(--white);
+    background: rgba(83, 74, 183, 0.1);
+  }
+
+  .btn-primary {
+    font-size: 13px;
+    color: var(--purple-light);
+    background: var(--purple);
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary:hover { background: var(--purple-dark); }
+
+  /* HERO */
+  .hero {
+    padding: 100px 40px 80px;
+    text-align: center;
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse at center, rgba(83, 74, 183, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(83, 74, 183, 0.15);
+    border: 1px solid rgba(83, 74, 183, 0.35);
+    color: var(--purple-mid);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 99px;
+    margin-bottom: 28px;
+    letter-spacing: 0.02em;
+  }
+
+  .badge-dot {
+    width: 6px; height: 6px;
+    background: var(--purple);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .hero h1 {
+    font-size: clamp(38px, 6vw, 64px);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--white);
+    margin-bottom: 20px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--purple-mid);
+  }
+
+  .hero h1 strong {
+    font-weight: 600;
+    color: var(--white);
+  }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--gray-400);
+    max-width: 520px;
+    margin: 0 auto 40px;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .hero-btns {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 60px;
+  }
+
+  .btn-hero-primary {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--purple-light);
+    background: var(--purple);
+    border: none;
+    padding: 13px 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-hero-primary:hover { background: var(--purple-dark); transform: translateY(-1px); }
+
+  .btn-hero-ghost {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--gray-200);
+    background: none;
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 13px 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-hero-ghost:hover {
+    border-color: rgba(83,74,183,0.5);
+    color: var(--white);
+    background: rgba(83,74,183,0.08);
+  }
+
+  /* CODE BLOCK */
+  .code-window {
+    background: var(--code-bg);
+    border: 1px solid rgba(83, 74, 183, 0.25);
+    border-radius: 14px;
+    overflow: hidden;
+    max-width: 660px;
+    margin: 0 auto;
+    text-align: left;
+  }
+
+  .code-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(83,74,183,0.15);
+    background: rgba(83,74,183,0.06);
+  }
+
+  .dot-r { width: 10px; height: 10px; border-radius: 50%; background: #E24B4A; }
+  .dot-y { width: 10px; height: 10px; border-radius: 50%; background: #EF9F27; }
+  .dot-g { width: 10px; height: 10px; border-radius: 50%; background: #1D9E75; }
+
+  .code-filename {
+    margin-left: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+
+  .code-body {
+    padding: 22px 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 2;
+  }
+
+  .c-comment { color: #4A4870; }
+  .c-keyword { color: #AFA9EC; }
+  .c-fn { color: #5DCAA5; }
+  .c-str { color: #F0997B; }
+  .c-var { color: #C4C3E0; }
+  .c-dim { color: #4A4870; }
+
+  /* PROOF BAR */
+  .proof {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 40px;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .proof-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .proof-label { font-size: 12px; color: var(--gray-400); }
+
+  .proof-co {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-200);
+    padding: 4px 14px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    letter-spacing: 0.01em;
+  }
+
+  /* SECTIONS */
+  .section {
+    padding: 90px 40px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .section-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--purple);
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .section-h2 {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 300;
+    letter-spacing: -0.025em;
+    text-align: center;
+    margin-bottom: 12px;
+    color: var(--white);
+  }
+
+  .section-sub {
+    font-size: 16px;
+    color: var(--gray-400);
+    text-align: center;
+    margin-bottom: 56px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    font-weight: 300;
+  }
+
+  /* FEATURE CARDS */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 720px) {
+    .features-grid { grid-template-columns: 1fr; }
+    nav { padding: 0 20px; }
+    .nav-links { display: none; }
+    .hero { padding: 60px 20px 60px; }
+    .section { padding: 60px 20px; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 36px; }
+  }
+
+  .feat-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 24px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .feat-card:hover {
+    border-color: rgba(83,74,183,0.4);
+    background: rgba(83,74,183,0.05);
+  }
+
+  .feat-icon {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .feat-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .feat-desc {
+    font-size: 13px;
+    color: var(--gray-400);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* DASHBOARD SECTION */
+  .dash-section {
+    padding: 0 40px 90px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .dash-window {
+    background: var(--gray-800);
+    border: 1px solid rgba(83,74,183,0.2);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(83,74,183,0.06);
+  }
+
+  .dash-title { font-size: 13px; font-weight: 500; color: var(--white); }
+  .dash-subtitle { font-size: 11px; color: var(--gray-400); font-family: var(--mono); }
+
+  .status-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .status-warn { background: rgba(239,159,39,0.15); color: #EF9F27; }
+  .status-pass { background: rgba(29,158,117,0.15); color: #1D9E75; }
+  .status-fail { background: rgba(226,75,74,0.15); color: #E24B4A; }
+
+  .dash-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  @media (max-width: 600px) {
+    .dash-metrics { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .metric {
+    padding: 16px 20px;
+    background: var(--gray-800);
+  }
+
+  .metric-val {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--white);
+    letter-spacing: -0.02em;
+  }
+
+  .metric-lbl { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+  .metric-delta {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .delta-up { color: var(--teal); }
+  .delta-down { color: var(--red); }
+
+  .trace-list { padding: 12px 16px; }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: background 0.1s;
+  }
+
+  .trace-row:hover { background: rgba(255,255,255,0.03); }
+
+  .trace-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--gray-200);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .trace-bar-wrap {
+    flex: 2;
+    height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .trace-bar { height: 100%; border-radius: 3px; }
+
+  .trace-score {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  /* PRICING */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .price-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .price-card.featured {
+    border-color: var(--purple);
+    background: rgba(83,74,183,0.08);
+    position: relative;
+  }
+
+  .popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--purple);
+    color: var(--purple-light);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 12px;
+    border-radius: 99px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .price-tier { font-size: 12px; font-weight: 500; color: var(--gray-400); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .price-val { font-size: 36px; font-weight: 300; color: var(--white); letter-spacing: -0.03em; }
+  .price-val span { font-size: 14px; color: var(--gray-400); font-weight: 300; }
+  .price-desc { font-size: 13px; color: var(--gray-400); margin: 12px 0 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.07); font-weight: 300; line-height: 1.6; }
+
+  .price-features { flex: 1; }
+
+  .price-feature {
+    font-size: 13px;
+    color: var(--gray-200);
+    padding: 6px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-weight: 300;
+  }
+
+  .check { color: var(--teal); flex-shrink: 0; }
+
+  .price-btn {
+    margin-top: 24px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--sans);
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    transition: all 0.15s;
+  }
+
+  .price-btn-outline {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--gray-200);
+  }
+
+  .price-btn-outline:hover {
+    border-color: rgba(83,74,183,0.5);
+    color: var(--white);
+    background: rgba(83,74,183,0.08);
+  }
+
+  .price-btn-filled {
+    background: var(--purple);
+    border: none;
+    color: var(--purple-light);
+  }
+
+  .price-btn-filled:hover { background: var(--purple-dark); }
+
+  /* HOW IT WORKS */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    position: relative;
+  }
+
+  @media (max-width: 720px) {
+    .steps { grid-template-columns: 1fr; gap: 32px; }
+    .features-grid { grid-template-columns: 1fr; }
+  }
+
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(83,74,183,0.2);
+    border: 1px solid rgba(83,74,183,0.4);
+    color: var(--purple-mid);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .step-title { font-size: 16px; font-weight: 500; color: var(--white); margin-bottom: 8px; }
+  .step-desc { font-size: 13px; color: var(--gray-400); line-height: 1.7; font-weight: 300; }
+
+  /* FOOTER CTA */
+  .footer-cta {
+    padding: 90px 40px;
+    text-align: center;
+    background: rgba(83,74,183,0.06);
+    border-top: 1px solid rgba(83,74,183,0.15);
+  }
+
+  .footer-cta h2 {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 300;
+    letter-spacing: -0.025em;
+    margin-bottom: 14px;
+  }
+
+  .footer-cta p {
+    font-size: 16px;
+    color: var(--gray-400);
+    margin-bottom: 36px;
+    font-weight: 300;
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 40px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    font-size: 13px;
+    color: var(--gray-400);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .footer-links a:hover { color: var(--white); }
+
+  .footer-copy { font-size: 13px; color: var(--gray-400); }
+
+  /* YAML BLOCK */
+  .yaml-block {
+    background: var(--code-bg);
+    border: 1px solid rgba(83,74,183,0.2);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  .y-key { color: #AFA9EC; }
+  .y-val { color: #F0997B; }
+  .y-num { color: #5DCAA5; }
+  .y-cmt { color: #3A3756; }
+  .y-list { color: #C4C3E0; }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(83,74,183,0.3), transparent);
+    margin: 0 40px;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero > * { animation: fadeUp 0.6s ease both; }
+  .hero .badge { animation-delay: 0s; }
+  .hero h1 { animation-delay: 0.08s; }
+  .hero-sub { animation-delay: 0.16s; }
+  .hero-btns { animation-delay: 0.22s; }
+  .code-window { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="logo-mark">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M9 2 Q13.5 9 9 16" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M5.5 2 Q10.5 9 5.5 16" stroke="white" stroke-width="1.6" stroke-linecap="round" opacity=".4"/>
+        <circle cx="9" cy="2" r="1.6" fill="white"/>
+        <circle cx="9" cy="16" r="1.6" fill="white"/>
+        <circle cx="13" cy="9" r="1.4" fill="white" opacity=".7"/>
+      </svg>
+    </div>
+    <span class="logo-text">Cortex<span>Ops</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="https://github.com/ashishodu2023/cortexops" target="_blank">GitHub</a></li>
+    <li><a href="https://pypi.org/project/cortexops" target="_blank">PyPI</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="https://github.com/ashishodu2023/cortexops" class="btn-ghost" target="_blank">Docs</a>
+    <a href="#pricing" class="btn-primary">Get started free</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="badge">
+    <div class="badge-dot"></div>
+    v0.1.0 now on PyPI
+  </div>
+  <h1>Ship agents<br>you can <em>actually</em> <strong>trust.</strong></h1>
+  <p class="hero-sub">Evaluation, observability, and regression testing for LangGraph, CrewAI, and AutoGen agents — in production.</p>
+  <div class="hero-btns">
+    <a href="https://pypi.org/project/cortexops" class="btn-hero-primary" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M3.5 5.5L7 9l3.5-3.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 11h12" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+      pip install cortexops
+    </a>
+    <a href="https://github.com/ashishodu2023/cortexops" class="btn-hero-ghost" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1C3.69 1 1 3.69 1 7c0 2.65 1.72 4.9 4.1 5.69.3.06.41-.13.41-.29v-1.02c-1.67.36-2.02-.8-2.02-.8-.27-.69-.67-.87-.67-.87-.55-.37.04-.36.04-.36.61.04.93.62.93.62.54.92 1.41.65 1.76.5.05-.39.21-.65.38-.8-1.33-.15-2.73-.67-2.73-2.97 0-.66.23-1.19.62-1.62-.06-.15-.27-.77.06-1.6 0 0 .51-.16 1.67.62A5.8 5.8 0 017 4.82c.52 0 1.04.07 1.52.2 1.16-.78 1.67-.62 1.67-.62.33.83.12 1.45.06 1.6.39.43.62.96.62 1.62 0 2.31-1.41 2.82-2.75 2.97.22.19.41.56.41 1.13v1.67c0 .16.11.35.41.29C11.28 11.9 13 9.65 13 7c0-3.31-2.69-6-6-6z" fill="currentColor"/></svg>
+      View on GitHub
+    </a>
+  </div>
+
+  <div class="code-window">
+    <div class="code-titlebar">
+      <div class="dot-r"></div>
+      <div class="dot-y"></div>
+      <div class="dot-g"></div>
+      <span class="code-filename">quickstart.py</span>
+    </div>
+    <div class="code-body">
+      <div><span class="c-keyword">from</span> <span class="c-var">cortexops</span> <span class="c-keyword">import</span> <span class="c-fn">CortexTracer</span><span class="c-dim">, </span><span class="c-fn">EvalSuite</span></div>
+      <div>&nbsp;</div>
+      <div><span class="c-comment"># instrument in one line — no refactor required</span></div>
+      <div><span class="c-var">tracer</span> <span class="c-dim">=</span> <span class="c-fn">CortexTracer</span><span class="c-dim">(</span><span class="c-var">project</span><span class="c-dim">=</span><span class="c-str">"payments-agent"</span><span class="c-dim">)</span></div>
+      <div><span class="c-var">graph</span>  <span class="c-dim">=</span> <span class="c-var">tracer</span><span class="c-dim">.</span><span class="c-fn">wrap</span><span class="c-dim">(</span><span class="c-var">your_langgraph_app</span><span class="c-dim">)</span></div>
+      <div>&nbsp;</div>
+      <div><span class="c-comment"># run golden dataset evals</span></div>
+      <div><span class="c-var">results</span> <span class="c-dim">=</span> <span class="c-fn">EvalSuite</span><span class="c-dim">.</span><span class="c-fn">run</span><span class="c-dim">(</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">dataset</span><span class="c-dim">=</span><span class="c-str">"golden_v1.yaml"</span><span class="c-dim">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">agent</span><span class="c-dim">=</span><span class="c-var">graph</span><span class="c-dim">,</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">fail_on</span><span class="c-dim">=</span><span class="c-str">"task_completion &lt; 0.90"</span></div>
+      <div><span class="c-dim">)</span></div>
+      <div><span class="c-fn">print</span><span class="c-dim">(</span><span class="c-var">results</span><span class="c-dim">.</span><span class="c-fn">summary</span><span class="c-dim">())</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="proof">
+  <div class="proof-inner">
+    <span class="proof-label">Designed for engineers at</span>
+    <span class="proof-co">Fintech</span>
+    <span class="proof-co">Payments</span>
+    <span class="proof-co">Enterprise SaaS</span>
+    <span class="proof-co">AI Labs</span>
+    <span class="proof-co">LegalTech</span>
+  </div>
+</div>
+
+<div class="divider" style="margin-top:0"></div>
+
+<section class="section" id="features">
+  <div class="section-eyebrow">Platform</div>
+  <h2 class="section-h2">Everything your agent needs in production</h2>
+  <p class="section-sub">One SDK. Zero refactoring. Catches the failures you didn't know you had.</p>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(83,74,183,0.15)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.5" fill="#AFA9EC"/><rect x="10" y="2" width="6" height="6" rx="1.5" fill="#AFA9EC" opacity=".4"/><rect x="2" y="10" width="6" height="6" rx="1.5" fill="#AFA9EC" opacity=".4"/><rect x="10" y="10" width="6" height="6" rx="1.5" fill="#AFA9EC" opacity=".7"/></svg>
+      </div>
+      <div class="feat-title">Golden dataset evals</div>
+      <div class="feat-desc">Define test cases in YAML with expected tool calls, output keywords, and latency budgets. Rule-based and LLM-as-judge scoring.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(29,158,117,0.15)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6.5" stroke="#1D9E75" stroke-width="1.5"/><circle cx="9" cy="9" r="2.5" fill="#1D9E75"/><line x1="9" y1="2" x2="9" y2="5.5" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="feat-title">Full trace observability</div>
+      <div class="feat-desc">Every node, tool call, and LLM turn captured. Replay any failure, diff two runs, and get root cause in seconds.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(239,159,39,0.15)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L16 6V12L9 16L2 12V6L9 2Z" stroke="#EF9F27" stroke-width="1.5" stroke-linejoin="round"/><circle cx="9" cy="9" r="2" fill="#EF9F27"/></svg>
+      </div>
+      <div class="feat-title">CI eval gate</div>
+      <div class="feat-desc">GitHub Actions integration. Block PRs when task_completion drops below your threshold. No silent regressions.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(83,74,183,0.15)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9h3l2-5 3 10 2-5h3" stroke="#AFA9EC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="feat-title">LLM-as-judge scoring</div>
+      <div class="feat-desc">GPT-4o scores open-ended outputs against natural language criteria. Falls back to heuristics if the API is unavailable.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(29,158,117,0.15)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M14 4L8 10M8 10L5 7M8 10V14" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="2" width="14" height="14" rx="3" stroke="#1D9E75" stroke-width="1.5" fill="none" opacity=".4"/></svg>
+      </div>
+      <div class="feat-title">Slack + webhook alerts</div>
+      <div class="feat-desc">Get notified the moment task completion drops or regressions appear. Integrates with PagerDuty and any webhook endpoint.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(83,74,183,0.15)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M9 4v10" stroke="#AFA9EC" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="4" r="1.5" fill="#AFA9EC"/><circle cx="9" cy="14" r="1.5" fill="#AFA9EC"/></svg>
+      </div>
+      <div class="feat-title">Prompt versioning</div>
+      <div class="feat-desc">Git-style prompt version history with unified diff. Know exactly what changed between an eval passing and failing.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="dash-section" id="dashboard" style="padding-top:90px">
+  <div class="section-eyebrow">Live dashboard</div>
+  <h2 class="section-h2">See exactly why your agent failed</h2>
+  <p class="section-sub" style="margin-bottom:40px">Trace-level scoring with actionable root cause — not just a pass/fail.</p>
+
+  <div class="dash-window">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title">payments-agent — eval run #47</div>
+        <div class="dash-subtitle">run_id: f028a2ba • 9 cases • 8 passed</div>
+      </div>
+      <div class="status-badge status-warn">
+        <div style="width:6px;height:6px;border-radius:50%;background:#EF9F27"></div>
+        1 regression
+      </div>
+    </div>
+
+    <div class="dash-metrics">
+      <div class="metric">
+        <div class="metric-val">91.4%</div>
+        <div class="metric-lbl">Task completion</div>
+        <div class="metric-delta delta-up">+2.1% vs last run</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">97</div>
+        <div class="metric-lbl">Tool accuracy</div>
+        <div class="metric-delta delta-up">+5 pts</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">1.8s</div>
+        <div class="metric-lbl">Latency p95</div>
+        <div class="metric-delta delta-down">+0.3s</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">1</div>
+        <div class="metric-lbl">Regressions</div>
+        <div class="metric-delta delta-down">vs baseline</div>
+      </div>
+    </div>
+
+    <div class="trace-list">
+      <div class="trace-row">
+        <span class="trace-name">refund_lookup_v2</span>
+        <div class="trace-bar-wrap"><div class="trace-bar" style="width:96%;background:#1D9E75"></div></div>
+        <span class="trace-score" style="color:#1D9E75">96</span>
+        <span class="status-badge status-pass" style="font-size:10px;padding:2px 8px">pass</span>
+      </div>
+      <div class="trace-row">
+        <span class="trace-name">dispute_classify</span>
+        <div class="trace-bar-wrap"><div class="trace-bar" style="width:78%;background:#EF9F27"></div></div>
+        <span class="trace-score" style="color:#EF9F27">78</span>
+        <span class="status-badge status-warn" style="font-size:10px;padding:2px 8px">warn</span>
+      </div>
+      <div class="trace-row">
+        <span class="trace-name">escalation_router</span>
+        <div class="trace-bar-wrap"><div class="trace-bar" style="width:41%;background:#E24B4A"></div></div>
+        <span class="trace-score" style="color:#E24B4A">41</span>
+        <span class="status-badge status-fail" style="font-size:10px;padding:2px 8px">fail</span>
+      </div>
+      <div class="trace-row">
+        <span class="trace-name">balance_check</span>
+        <div class="trace-bar-wrap"><div class="trace-bar" style="width:99%;background:#1D9E75"></div></div>
+        <span class="trace-score" style="color:#1D9E75">99</span>
+        <span class="status-badge status-pass" style="font-size:10px;padding:2px 8px">pass</span>
+      </div>
+      <div style="padding:10px 12px;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px">
+        <div style="font-size:11px;color:#6B6A9A">Root cause detected on escalation_router</div>
+        <div style="font-family:var(--mono);font-size:11px;color:#E24B4A;margin-top:3px">tool_call_mismatch → route_escalation returned null</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="how-it-works">
+  <div class="section-eyebrow">How it works</div>
+  <h2 class="section-h2">From zero to eval gate in minutes</h2>
+  <p class="section-sub">No refactoring. No new infrastructure. Just wrap and run.</p>
+
+  <div class="steps">
+    <div>
+      <div class="step-num">01</div>
+      <div class="step-title">Instrument your agent</div>
+      <div class="step-desc">Wrap your existing LangGraph or CrewAI app with one line. CortexTracer auto-detects the framework and captures every node, tool call, and LLM turn.</div>
+      <div class="yaml-block" style="margin-top:16px">
+        <div><span class="c-keyword">from</span> cortexops <span class="c-keyword">import</span> CortexTracer</div>
+        <div>tracer = CortexTracer(<span class="c-str">"my-agent"</span>)</div>
+        <div>graph = tracer.wrap(your_graph)</div>
+      </div>
+    </div>
+    <div>
+      <div class="step-num">02</div>
+      <div class="step-title">Define golden cases</div>
+      <div class="step-desc">Write test cases in YAML. Specify expected tool calls, output keywords, and latency budgets per case. Use LLM judge for open-ended quality checks.</div>
+      <div class="yaml-block" style="margin-top:16px">
+        <div><span class="y-key">cases</span>:</div>
+        <div>&nbsp;&nbsp;- <span class="y-key">id</span>: <span class="y-val">refund_lookup_01</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="y-key">expected_tool_calls</span>:</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="y-list">lookup_refund</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="y-key">max_latency_ms</span>: <span class="y-num">3000</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="step-num">03</div>
+      <div class="step-title">Gate your deploys</div>
+      <div class="step-desc">Add the eval gate to GitHub Actions. PRs are blocked if task completion drops below your threshold. No more silent regressions reaching production.</div>
+      <div class="yaml-block" style="margin-top:16px">
+        <div><span class="y-key">- name</span>: <span class="y-val">Eval gate</span></div>
+        <div>&nbsp;&nbsp;<span class="y-key">run</span>: <span class="y-val">cortexops eval run \</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="y-val">--fail-on</span> <span class="y-str">"tc &lt; 0.90"</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="pricing">
+  <div class="section-eyebrow">Pricing</div>
+  <h2 class="section-h2">Start free. Scale with your agents.</h2>
+  <p class="section-sub">No credit card required. Free tier is generous on purpose.</p>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-tier">Free</div>
+      <div class="price-val">$0</div>
+      <div class="price-desc">For solo engineers and side projects. Full SDK, unlimited local evals.</div>
+      <div class="price-features">
+        <div class="price-feature"><span class="check">+</span> Full SDK — pip install cortexops</div>
+        <div class="price-feature"><span class="check">+</span> Unlimited local eval runs</div>
+        <div class="price-feature"><span class="check">+</span> Golden dataset YAML format</div>
+        <div class="price-feature"><span class="check">+</span> GitHub Actions CI gate</div>
+        <div class="price-feature"><span class="check">+</span> CLI tool</div>
+      </div>
+      <a href="https://github.com/ashishodu2023/cortexops" class="price-btn price-btn-outline" target="_blank">Get started</a>
+    </div>
+
+    <div class="price-card featured">
+      <div class="popular-badge">Most popular</div>
+      <div class="price-tier">Pro</div>
+      <div class="price-val">$49<span> / seat / mo</span></div>
+      <div class="price-desc">For teams shipping agents to production. Hosted traces, alerting, versioning.</div>
+      <div class="price-features">
+        <div class="price-feature"><span class="check">+</span> Everything in Free</div>
+        <div class="price-feature"><span class="check">+</span> Hosted trace storage — 90 days</div>
+        <div class="price-feature"><span class="check">+</span> Slack + webhook alerts</div>
+        <div class="price-feature"><span class="check">+</span> Prompt version diffs</div>
+        <div class="price-feature"><span class="check">+</span> LLM-as-judge scoring</div>
+        <div class="price-feature"><span class="check">+</span> Dashboard + run history</div>
+      </div>
+      <a href="mailto:ashish@cortexops.ai" class="price-btn price-btn-filled">Start Pro trial</a>
+    </div>
+
+    <div class="price-card">
+      <div class="price-tier">Enterprise</div>
+      <div class="price-val">Custom</div>
+      <div class="price-desc">For compliance-driven teams. VPC deployment, SSO, custom SLA.</div>
+      <div class="price-features">
+        <div class="price-feature"><span class="check">+</span> Everything in Pro</div>
+        <div class="price-feature"><span class="check">+</span> VPC / on-prem deployment</div>
+        <div class="price-feature"><span class="check">+</span> SSO / SAML</div>
+        <div class="price-feature"><span class="check">+</span> Custom data retention</div>
+        <div class="price-feature"><span class="check">+</span> Dedicated Slack support</div>
+        <div class="price-feature"><span class="check">+</span> SLA guarantee</div>
+      </div>
+      <a href="mailto:ashish@cortexops.ai" class="price-btn price-btn-outline">Talk to us</a>
+    </div>
+  </div>
+</section>
+
+<div class="footer-cta">
+  <h2>Ready to trust your agents?</h2>
+  <p>Join engineers who eval before they ship.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="https://pypi.org/project/cortexops" class="btn-hero-primary" target="_blank">
+      pip install cortexops
+    </a>
+    <a href="https://github.com/ashishodu2023/cortexops" class="btn-hero-ghost" target="_blank">
+      View on GitHub
+    </a>
+  </div>
+</div>
+
+<footer>
+  <a href="/" class="nav-logo" style="gap:8px">
+    <div class="logo-mark" style="width:24px;height:24px;border-radius:6px">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <path d="M6.5 1.5 Q10 6.5 6.5 11.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M3.5 1.5 Q7.5 6.5 3.5 11.5" stroke="white" stroke-width="1.4" stroke-linecap="round" opacity=".4"/>
+        <circle cx="6.5" cy="1.5" r="1.2" fill="white"/>
+        <circle cx="6.5" cy="11.5" r="1.2" fill="white"/>
+      </svg>
+    </div>
+    <span class="logo-text" style="font-size:14px">Cortex<span>Ops</span></span>
+  </a>
+  <ul class="footer-links">
+    <li><a href="https://github.com/ashishodu2023/cortexops" target="_blank">GitHub</a></li>
+    <li><a href="https://pypi.org/project/cortexops" target="_blank">PyPI</a></li>
+    <li><a href="mailto:ashish@cortexops.ai">Contact</a></li>
+    <li><a href="https://github.com/ashishodu2023/cortexops/blob/main/LICENSE" target="_blank">MIT License</a></li>
+  </ul>
+  <span class="footer-copy">© 2025 CortexOps</span>
+</footer>
+
+</body>
+</html>
