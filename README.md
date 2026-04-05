@@ -51,6 +51,41 @@ print(results.summary())
 
 ---
 
+## Hosted API (Pro)
+
+The free tier runs evals locally. The Pro tier adds hosted trace storage,
+a live dashboard, Slack alerts, and LLM-as-judge scoring.
+
+**Get an API key at [getcortexops.com](https://getcortexops.com)**
+
+Then point the SDK at the hosted API:
+```python
+from cortexops import CortexTracer, EvalSuite
+
+tracer = CortexTracer(
+    project="my-agent",
+    api_key="cxo-your-key-here",
+    api_url="https://api.getcortexops.com"
+)
+
+graph = tracer.wrap(your_langgraph_app)
+```
+
+Traces are stored for 90 days. View them at
+[api.getcortexops.com/docs](https://api.getcortexops.com/docs).
+
+### Pricing
+
+| Tier | Price | What you get |
+|---|---|---|
+| Free | $0 | Local evals, CLI, GitHub Actions gate |
+| Pro | $49/seat/mo | Hosted traces, Slack alerts, dashboard, LLM judge |
+| Enterprise | Custom | VPC, SSO, SLA |
+
+Start a Pro trial: [getcortexops.com/#pricing](https://getcortexops.com/#pricing)
+
+
+
 ## Golden dataset format
 
 Define test cases in YAML. Run them locally or in CI.
