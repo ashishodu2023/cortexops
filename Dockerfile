@@ -21,7 +21,8 @@ RUN pip install --no-deps /sdk/
 
 # Copy backend app code
 COPY backend/ ./
+COPY start.py ./start.py
 
 EXPOSE 8000
 
-CMD ["/bin/sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+CMD ["python", "start.py"]
