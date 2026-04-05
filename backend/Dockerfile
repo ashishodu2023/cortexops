@@ -7,19 +7,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# ── deps layer (cached unless requirements change) ─────────────────────────
-FROM base AS deps
-COPY requirements.txt .
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# ── SDK layer (local package) ──────────────────────────────────────────────
-FROM deps AS sdk
-COPY ../sdk /sdk
-RUN pip install --no-deps /sdk
+COPY sdk/ /sdk/
+RUN pip install --no-deps /sdk/
 
-# ── final image ───────────────────────────────────────────────────────────
-FROM sdk AS final
-COPY . .
+COPY backend/ .
 
 EXPOSE 8000
 

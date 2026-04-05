@@ -77,7 +77,6 @@ class TestLLMJudgeMetric:
 
 class TestAlertPayload:
     def _get_classes(self):
-        pytest.importorskip("app.services.alerting", reason="backend not installed")
         from app.services.alerting import AlertPayload, SlackAlerter
         return AlertPayload, SlackAlerter
 
@@ -129,8 +128,8 @@ class TestPromptDiff:
             v2.splitlines(keepends=True),
             fromfile="v1", tofile="v2", lineterm="",
         ))
-        additions = sum(1 for line in diff if line.startswith("+") and not line.startswith("+++"))
-        deletions = sum(1 for line in diff if line.startswith("-") and not line.startswith("---"))
+        additions = sum(1 for l in diff if l.startswith("+") and not l.startswith("+++"))
+        deletions = sum(1 for l in diff if l.startswith("-") and not l.startswith("---"))
 
         assert additions >= 1
         assert deletions >= 1
@@ -175,7 +174,7 @@ class TestApiKeyGeneration:
     def test_generate_produces_cxo_prefix(self):
         pytest.importorskip("app.auth", reason="backend not installed")
         from app.auth import generate_api_key
-        raw, _ = generate_api_key()
+        raw, hashed = generate_api_key()
         assert raw.startswith("cxo-")
 
     def test_hash_is_deterministic(self):
