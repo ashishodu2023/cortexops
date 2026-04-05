@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import time
 import uuid
-from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Callable
 
-from .models import FailureKind, RunStatus, ToolCall, ToolCallStatus, Trace, TraceNode
+from .models import FailureKind, RunStatus, Trace, TraceNode, ToolCall, ToolCallStatus
 
 
 class CortexTracer:
@@ -26,12 +25,14 @@ class CortexTracer:
         self,
         project: str,
         api_key: str | None = None,
+        api_url: str = "https://api.getcortexops.com",
         environment: str = "development",
         sample_rate: float = 1.0,
         local_store: bool = True,
     ) -> None:
         self.project = project
         self.api_key = api_key
+        self.api_url = api_url.rstrip("/")
         self.environment = environment
         self.sample_rate = sample_rate
         self.local_store = local_store
@@ -202,9 +203,9 @@ class CortexTracer:
         try:
             import httpx
             httpx.post(
-                "https://api.cortexops.ai/v1/traces",
+                f"{self.api_url}/v1/traces",
                 json=trace.model_dump(mode="json"),
-                headers={"Authorization": f"Bearer {self.api_key}"},
+                headers={"X-API-Key": self.api_key},
                 timeout=2.0,
             )
         except Exception:

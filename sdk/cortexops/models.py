@@ -139,3 +139,6 @@ class EvalSummary(BaseModel):
             for r in failing:
                 lines.append(f"    - {r.case_id}: {r.failure_kind or 'unknown'} (score {r.score:.0f})")
         return "\n".join(lines)
+
+    def __str__(self) -> str:
+        return self.summary()
