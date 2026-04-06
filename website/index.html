@@ -276,6 +276,256 @@ results = <span class="cf">EvalSuite</span>.run(
   <div class="stat"><div class="stat-val">14d</div><div class="stat-label">Free trial — no card needed</div></div>
 </div>
 
+<!-- DASHBOARD PREVIEW -->
+<section id="observe" style="padding:100px 40px;max-width:1200px;margin:0 auto">
+  <div style="font-family:'DM Mono',monospace;font-size:11px;color:#7B6FFF;text-transform:uppercase;letter-spacing:.14em;margin-bottom:16px">Live observability</div>
+  <h2 style="font-family:'Fraunces',Georgia,serif;font-size:clamp(32px,5vw,52px);font-weight:300;line-height:1.1;letter-spacing:-.02em;margin-bottom:16px">See inside every agent run.<br><em style="font-style:italic;color:#7B6FFF">In real time.</em></h2>
+  <p style="font-size:17px;color:#7070A0;max-width:600px;line-height:1.7;font-weight:300;margin-bottom:60px">Click any trace row to see the node waterfall — exactly which step took how long, which tools were called, and what the output was. This is how you debug a 2am incident in 30 seconds.</p>
+
+  <!-- Dashboard shell -->
+  <div style="background:#0E0E1C;border:1px solid #1E1E3C;border-radius:16px;overflow:hidden;position:relative">
+    <div style="content:'';position:absolute;top:0;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,#7B6FFF,transparent)"></div>
+
+    <!-- Topbar -->
+    <div style="display:flex;align-items:center;padding:0 16px;height:44px;background:#141426;border-bottom:1px solid #1E1E3C;gap:12px;flex-shrink:0">
+      <div style="width:18px;height:18px;background:#6C63FF;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1.2 Q7.5 5 5 8.8" stroke="white" stroke-width="1.1" stroke-linecap="round"/><path d="M2.5 1.2 Q5.5 5 2.5 8.8" stroke="white" stroke-width="1.1" stroke-linecap="round" opacity=".35"/><circle cx="5" cy="1.2" r=".9" fill="white"/><circle cx="5" cy="8.8" r=".9" fill="white"/></svg>
+      </div>
+      <span style="font-size:12px;font-weight:700;color:#E8E8F0">CortexOps</span>
+      <span style="font-size:9px;color:#3A3A5C">Observability</span>
+      <div style="width:1px;height:14px;background:#1E1E3C"></div>
+      <span style="font-size:9px;color:#6B6B8A">project</span>
+      <span style="background:#161628;border:1px solid #1E1E3C;border-radius:4px;color:#E8E8F0;font-size:10px;padding:2px 8px;font-family:'DM Mono',monospace">payments-agent</span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+        <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;animation:livepulse 1.5s infinite"></div>
+        <span style="font-size:10px;color:#00D4A8">Live · 5s</span>
+      </div>
+    </div>
+
+    <!-- Metric tiles — 5 col grid, fully inline -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:10px 14px">
+
+      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#00D4A8;opacity:.5"></div>
+        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Task completion</div>
+        <div style="font-size:20px;font-weight:700;color:#00D4A8;letter-spacing:-.03em;line-height:1;margin-bottom:3px">94.2<span style="font-size:9px;font-weight:400;color:#6B6B8A">%</span></div>
+        <div style="font-size:9px;color:#00D4A8;margin-bottom:3px">↑ 2.1%</div>
+        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,16 18,12 36,14 54,8 72,10 90,5 100,4" fill="none" stroke="#00D4A8" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="4" r="2" fill="#00D4A8"/></svg>
+      </div>
+
+      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#00D4A8;opacity:.5"></div>
+        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Error rate</div>
+        <div style="font-size:20px;font-weight:700;color:#00D4A8;letter-spacing:-.03em;line-height:1;margin-bottom:3px">2.3<span style="font-size:9px;font-weight:400;color:#6B6B8A">%</span></div>
+        <div style="font-size:9px;color:#00D4A8;margin-bottom:3px">↓ 0.8%</div>
+        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,8 20,12 40,6 60,14 80,8 100,6" fill="none" stroke="#00D4A8" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="6" r="2" fill="#00D4A8"/></svg>
+      </div>
+
+      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#FFB547;opacity:.5"></div>
+        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Avg latency</div>
+        <div style="font-size:20px;font-weight:700;color:#FFB547;letter-spacing:-.03em;line-height:1;margin-bottom:3px">487<span style="font-size:9px;font-weight:400;color:#6B6B8A">ms</span></div>
+        <div style="height:9px;margin-bottom:3px"></div>
+        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,10 20,7 40,13 60,9 80,14 100,9" fill="none" stroke="#FFB547" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="9" r="2" fill="#FFB547"/></svg>
+      </div>
+
+      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#4D9FFF;opacity:.5"></div>
+        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">P95 latency</div>
+        <div style="font-size:20px;font-weight:700;color:#4D9FFF;letter-spacing:-.03em;line-height:1;margin-bottom:3px">1,240<span style="font-size:9px;font-weight:400;color:#6B6B8A">ms</span></div>
+        <div style="height:9px;margin-bottom:3px"></div>
+        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,12 25,9 50,14 75,8 100,11" fill="none" stroke="#4D9FFF" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="11" r="2" fill="#4D9FFF"/></svg>
+      </div>
+
+      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#6C63FF;opacity:.5"></div>
+        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Total traces</div>
+        <div style="font-size:20px;font-weight:700;color:#6C63FF;letter-spacing:-.03em;line-height:1;margin-bottom:3px">1,847</div>
+        <div style="height:9px;margin-bottom:3px"></div>
+        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,16 20,14 40,12 60,10 80,7 100,5" fill="none" stroke="#6C63FF" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="5" r="2" fill="#6C63FF"/></svg>
+      </div>
+
+    </div>
+
+    <!-- Body: trace list + right panel + waterfall -->
+    <div style="display:flex;height:310px;border-top:1px solid #1E1E3C">
+
+      <!-- Main trace list -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+
+        <!-- Tabs -->
+        <div style="display:flex;align-items:center;padding:0 12px;height:34px;border-bottom:1px solid #1E1E3C;gap:3px;flex-shrink:0">
+          <div style="background:#2A2650;color:#6C63FF;border:1px solid rgba(108,99,255,.3);border-radius:4px;font-size:10px;padding:2px 10px;font-weight:600">Traces</div>
+          <div style="color:#6B6B8A;border:1px solid transparent;border-radius:4px;font-size:10px;padding:2px 10px">Evals</div>
+          <div style="color:#6B6B8A;border:1px solid transparent;border-radius:4px;font-size:10px;padding:2px 10px">Errors<span style="margin-left:3px;background:#FF4D6A;color:white;border-radius:99px;font-size:7px;padding:1px 4px">3</span></div>
+          <div style="margin-left:auto;display:flex;gap:3px">
+            <div style="background:#161628;border:1px solid #1E1E3C;border-radius:4px;color:#E8E8F0;font-size:9px;padding:2px 7px">all</div>
+            <div style="color:#6B6B8A;border:1px solid transparent;border-radius:4px;font-size:9px;padding:2px 7px">completed</div>
+            <div style="color:#6B6B8A;border:1px solid transparent;border-radius:4px;font-size:9px;padding:2px 7px">failed</div>
+          </div>
+        </div>
+
+        <!-- Column headers -->
+        <div style="display:flex;align-items:center;gap:10px;padding:4px 12px;border-bottom:.5px solid #1E1E3C;flex-shrink:0;font-size:8px;color:#3A3A5C;text-transform:uppercase;letter-spacing:.07em">
+          <div style="min-width:5px"></div>
+          <div style="min-width:52px">ID</div>
+          <div style="flex:1">Case</div>
+          <div style="min-width:44px;text-align:right">Latency</div>
+          <div style="min-width:80px">Failure</div>
+          <div style="min-width:60px;text-align:right">Time</div>
+        </div>
+
+        <!-- Trace rows -->
+        <div style="flex:1;overflow-y:auto">
+
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;background:rgba(22,22,40,.6);font-size:10px">
+            <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;flex-shrink:0"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">4398c8e8</span>
+            <span style="flex:1;color:#E8E8F0">refund_approved</span>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#00D4A8;min-width:44px;text-align:right">342ms</span>
+            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
+            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:24:11</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
+            <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;flex-shrink:0"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">b21fa3c2</span>
+            <span style="flex:1;color:#E8E8F0">balance_check</span>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#00D4A8;min-width:44px;text-align:right">198ms</span>
+            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
+            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:24:08</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
+            <div style="width:5px;height:5px;border-radius:50%;background:#FF4D6A;flex-shrink:0"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">9f3e1d77</span>
+            <span style="flex:1;color:#E8E8F0">dispute_escalation</span>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#FF4D6A;min-width:44px;text-align:right">3,240ms</span>
+            <span style="min-width:80px;font-size:8px"><span style="background:rgba(255,77,106,.15);color:#FF4D6A;padding:1px 5px;border-radius:2px;font-family:'DM Mono',monospace">TIMEOUT</span></span>
+            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:55</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
+            <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;flex-shrink:0"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">c84ab910</span>
+            <span style="flex:1;color:#E8E8F0">refund_approved</span>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#00D4A8;min-width:44px;text-align:right">287ms</span>
+            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
+            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:41</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
+            <div style="width:5px;height:5px;border-radius:50%;background:#FFB547;flex-shrink:0"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">e12cd456</span>
+            <span style="flex:1;color:#E8E8F0">kyc_verification</span>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#FFB547;min-width:44px;text-align:right">743ms</span>
+            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
+            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:30</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
+            <div style="width:5px;height:5px;border-radius:50%;background:#FF4D6A;flex-shrink:0"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">a77bf219</span>
+            <span style="flex:1;color:#E8E8F0">fraud_detection</span>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#FF4D6A;min-width:44px;text-align:right">1,820ms</span>
+            <span style="min-width:80px;font-size:8px"><span style="background:rgba(255,77,106,.15);color:#FF4D6A;padding:1px 5px;border-radius:2px;font-family:'DM Mono',monospace">HALLUCI...</span></span>
+            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:18</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
+            <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;flex-shrink:0"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">3d9e2f88</span>
+            <span style="flex:1;color:#E8E8F0">payment_routing</span>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#00D4A8;min-width:44px;text-align:right">412ms</span>
+            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
+            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:05</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right health panel -->
+      <div style="width:175px;border-left:1px solid #1E1E3C;background:#141426;padding:10px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;overflow:auto">
+
+        <div>
+          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Health</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:.5px solid #1E1E3C"><span style="font-size:9px;color:#6B6B8A">Success rate</span><span style="font-size:10px;font-family:'DM Mono',monospace;color:#00D4A8;font-weight:500">97.7%</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:.5px solid #1E1E3C"><span style="font-size:9px;color:#6B6B8A">Eval gate</span><span style="font-size:10px;font-family:'DM Mono',monospace;color:#00D4A8;font-weight:500">Passing</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0"><span style="font-size:9px;color:#6B6B8A">Regressions</span><span style="font-size:10px;font-family:'DM Mono',monospace;color:#00D4A8;font-weight:500">0</span></div>
+        </div>
+
+        <div>
+          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Failures</div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:.5px solid #1E1E3C"><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">TIMEOUT</span><span style="font-size:10px;color:#FF4D6A;font-weight:600">2</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">HALLUCIN...</span><span style="font-size:10px;color:#FF4D6A;font-weight:600">1</span></div>
+        </div>
+
+        <div>
+          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Latency dist.</div>
+          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:8px;color:#6B6B8A">&lt;200ms</span><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">312</span></div><div style="height:3px;background:#1E1E3C;border-radius:2px"><div style="width:42%;height:100%;background:#00D4A8;border-radius:2px"></div></div></div>
+          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:8px;color:#6B6B8A">200–500ms</span><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">498</span></div><div style="height:3px;background:#1E1E3C;border-radius:2px"><div style="width:68%;height:100%;background:#00D4A8;border-radius:2px"></div></div></div>
+          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:8px;color:#6B6B8A">500ms–1s</span><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">87</span></div><div style="height:3px;background:#1E1E3C;border-radius:2px"><div style="width:22%;height:100%;background:#FFB547;border-radius:2px"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:8px;color:#6B6B8A">&gt;1s</span><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">23</span></div><div style="height:3px;background:#1E1E3C;border-radius:2px"><div style="width:8%;height:100%;background:#FF4D6A;border-radius:2px"></div></div></div>
+        </div>
+
+        <div style="margin-top:auto;padding-top:8px;border-top:.5px solid #1E1E3C">
+          <div style="font-size:8px;color:#3A3A5C;font-family:'DM Mono',monospace">api.getcortexops.com</div>
+          <div style="font-size:8px;color:#3A3A5C;margin-top:2px">payments-agent</div>
+        </div>
+      </div>
+
+      <!-- Waterfall panel -->
+      <div style="width:270px;border-left:1px solid #1E1E3C;background:#161628;display:flex;flex-direction:column;flex-shrink:0">
+        <div style="padding:10px 12px;border-bottom:1px solid #1E1E3C;display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#E8E8F0">Trace detail</div>
+            <div style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace;margin-top:1px">4398c8e8-b1e1-4012...</div>
+          </div>
+          <span style="color:#6B6B8A;font-size:14px">×</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:10px 12px">
+          <div style="background:#11111F;border-radius:5px;padding:7px 8px;border:.5px solid #1E1E3C"><div style="font-size:7px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Status</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:#00D4A8">completed</div></div>
+          <div style="background:#11111F;border-radius:5px;padding:7px 8px;border:.5px solid #1E1E3C"><div style="font-size:7px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Latency</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:#FFB547">342ms</div></div>
+          <div style="background:#11111F;border-radius:5px;padding:7px 8px;border:.5px solid #1E1E3C"><div style="font-size:7px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Environment</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:#4D9FFF">production</div></div>
+          <div style="background:#11111F;border-radius:5px;padding:7px 8px;border:.5px solid #1E1E3C"><div style="font-size:7px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Failure</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:#6B6B8A">none</div></div>
+        </div>
+        <div style="padding:0 12px 10px">
+          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Node waterfall</div>
+          <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:.5px solid #1E1E3C">
+            <div style="width:80px;font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">lookup_refund</div>
+            <div style="flex:1;height:12px;background:#11111F;border-radius:2px;overflow:hidden"><div style="width:35%;height:100%;background:#00D4A8;border-radius:2px;opacity:.8"></div></div>
+            <div style="width:36px;font-size:8px;font-family:'DM Mono',monospace;color:#00D4A8;text-align:right">120ms</div>
+            <span style="font-size:7px;background:#00342A;color:#00D4A8;padding:1px 3px;border-radius:2px;font-family:'DM Mono',monospace">✓</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:.5px solid #1E1E3C">
+            <div style="width:80px;font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">validate_policy</div>
+            <div style="flex:1;height:12px;background:#11111F;border-radius:2px;overflow:hidden"><div style="width:20%;height:100%;background:#00D4A8;border-radius:2px;opacity:.8"></div></div>
+            <div style="width:36px;font-size:8px;font-family:'DM Mono',monospace;color:#00D4A8;text-align:right">68ms</div>
+            <span style="font-size:7px;background:#00342A;color:#00D4A8;padding:1px 3px;border-radius:2px;font-family:'DM Mono',monospace">✓</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:3px 0">
+            <div style="width:80px;font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">generate_response</div>
+            <div style="flex:1;height:12px;background:#11111F;border-radius:2px;overflow:hidden"><div style="width:45%;height:100%;background:#FFB547;border-radius:2px;opacity:.8"></div></div>
+            <div style="width:36px;font-size:8px;font-family:'DM Mono',monospace;color:#FFB547;text-align:right">154ms</div>
+            <span style="font-size:7px;background:#3A2800;color:#FFB547;padding:1px 3px;border-radius:2px;font-family:'DM Mono',monospace">llm</span>
+          </div>
+        </div>
+        <div style="padding:0 12px 10px">
+          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Output</div>
+          <div style="background:#0A0A12;border-radius:6px;padding:8px;border:.5px solid #1E1E3C;font-family:'DM Mono',monospace;font-size:8px;color:#00D4A8;white-space:pre-wrap">{"result": "refund approved",
+ "order_id": "ORD-8821",
+ "amount": "$124.99",
+ "confidence": 0.97}</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <style>@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+</section>
+
+
 <!-- HOW IT WORKS -->
 <section id="how">
   <div class="section-label">How it works</div>
@@ -362,219 +612,7 @@ agent = tracer.wrap(your_agent)</div>
 </section>
 
 
-<!-- DASHBOARD PREVIEW -->
-<section id="observe">
-  <div class="section-label">Live observability</div>
-  <h2>See inside every agent run.<br><em>In real time.</em></h2>
-  <p class="section-sub">Click any trace row to see the node waterfall — exactly which step took how long, which tools were called, and what the output was. This is how you debug a 2am incident in 30 seconds.</p>
 
-  <div class="dash-wrap">
-    <!-- Topbar -->
-    <div class="dash-topbar">
-      <div class="dash-logo">
-        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-          <path d="M5.5 1.5 Q8 5.5 5.5 9.5" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
-          <path d="M3 1.5 Q6 5.5 3 9.5" stroke="white" stroke-width="1.1" stroke-linecap="round" opacity=".35"/>
-          <circle cx="5.5" cy="1.5" r="1" fill="white"/>
-          <circle cx="5.5" cy="9.5" r="1" fill="white"/>
-        </svg>
-      </div>
-      <span class="dash-title">CortexOps</span>
-      <span class="dash-sub">Observability</span>
-      <div class="dash-divider"></div>
-      <span style="font-size:9px;color:var(--m)">project</span>
-      <span class="dash-proj">payments-agent</span>
-      <div class="dash-live"><div class="dash-live-dot"></div>Live · 5s</div>
-    </div>
-
-    <!-- Metric tiles -->
-    <div class="dash-tiles">
-      <div class="dash-tile">
-        <div class="dash-tile-bar" style="background:#00D4A8"></div>
-        <div class="dash-tile-lbl">Task completion</div>
-        <div class="dash-tile-val" style="color:#00D4A8">94.2<span class="dash-tile-unit">%</span></div>
-        <div class="dash-tile-delta" style="color:#00D4A8">↑ 2.1%</div>
-        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,16 18,12 36,14 54,8 72,10 90,5 100,4" fill="none" stroke="#00D4A8" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="4" r="2" fill="#00D4A8"/></svg>
-      </div>
-      <div class="dash-tile">
-        <div class="dash-tile-bar" style="background:#00D4A8"></div>
-        <div class="dash-tile-lbl">Error rate</div>
-        <div class="dash-tile-val" style="color:#00D4A8">2.3<span class="dash-tile-unit">%</span></div>
-        <div class="dash-tile-delta" style="color:#00D4A8">↓ 0.8%</div>
-        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,8 20,12 40,6 60,14 80,8 100,6" fill="none" stroke="#00D4A8" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="6" r="2" fill="#00D4A8"/></svg>
-      </div>
-      <div class="dash-tile">
-        <div class="dash-tile-bar" style="background:#FFB547"></div>
-        <div class="dash-tile-lbl">Avg latency</div>
-        <div class="dash-tile-val" style="color:#FFB547">487<span class="dash-tile-unit">ms</span></div>
-        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,10 20,7 40,13 60,9 80,14 100,9" fill="none" stroke="#FFB547" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="9" r="2" fill="#FFB547"/></svg>
-      </div>
-      <div class="dash-tile">
-        <div class="dash-tile-bar" style="background:#4D9FFF"></div>
-        <div class="dash-tile-lbl">P95 latency</div>
-        <div class="dash-tile-val" style="color:#4D9FFF">1,240<span class="dash-tile-unit">ms</span></div>
-        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,12 25,9 50,14 75,8 100,11" fill="none" stroke="#4D9FFF" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="11" r="2" fill="#4D9FFF"/></svg>
-      </div>
-      <div class="dash-tile">
-        <div class="dash-tile-bar" style="background:#6C63FF"></div>
-        <div class="dash-tile-lbl">Total traces</div>
-        <div class="dash-tile-val" style="color:#6C63FF">1,847</div>
-        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,16 20,14 40,12 60,10 80,7 100,5" fill="none" stroke="#6C63FF" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="5" r="2" fill="#6C63FF"/></svg>
-      </div>
-    </div>
-
-    <!-- Body: trace list + right panel + waterfall -->
-    <div class="dash-body">
-      <div class="dash-main">
-        <div class="dash-tabs">
-          <div class="dash-tab on">Traces</div>
-          <div class="dash-tab">Evals</div>
-          <div class="dash-tab">Errors<span class="ebadge">3</span></div>
-          <div style="margin-left:auto;display:flex;gap:3px">
-            <div class="dash-tab on" style="font-size:9px;padding:2px 7px">all</div>
-            <div class="dash-tab" style="font-size:9px;padding:2px 7px">completed</div>
-            <div class="dash-tab" style="font-size:9px;padding:2px 7px">failed</div>
-          </div>
-        </div>
-        <div class="dash-col-heads">
-          <div style="min-width:5px"></div>
-          <div style="min-width:52px">ID</div>
-          <div style="flex:1">Case</div>
-          <div style="min-width:44px">Latency</div>
-          <div style="min-width:80px">Failure</div>
-          <div style="min-width:60px;text-align:right">Time</div>
-        </div>
-        <div class="dash-rows">
-          <div class="dash-row" style="background:rgba(22,22,40,.6)">
-            <div class="sdot" style="background:#00D4A8"></div>
-            <span class="smonoid">4398c8e8</span>
-            <span class="scase">refund_approved</span>
-            <span class="slat" style="color:#00D4A8">342ms</span>
-            <span class="sfail"><span style="color:var(--d)">—</span></span>
-            <span class="stime">09:24:11</span>
-          </div>
-          <div class="dash-row">
-            <div class="sdot" style="background:#00D4A8"></div>
-            <span class="smonoid">b21fa3c2</span>
-            <span class="scase">balance_check</span>
-            <span class="slat" style="color:#00D4A8">198ms</span>
-            <span class="sfail"><span style="color:var(--d)">—</span></span>
-            <span class="stime">09:24:08</span>
-          </div>
-          <div class="dash-row">
-            <div class="sdot" style="background:#FF4D6A"></div>
-            <span class="smonoid">9f3e1d77</span>
-            <span class="scase">dispute_escalation</span>
-            <span class="slat" style="color:#FF4D6A">3,240ms</span>
-            <span class="sfail"><span class="sfail-badge">TIMEOUT</span></span>
-            <span class="stime">09:23:55</span>
-          </div>
-          <div class="dash-row">
-            <div class="sdot" style="background:#00D4A8"></div>
-            <span class="smonoid">c84ab910</span>
-            <span class="scase">refund_approved</span>
-            <span class="slat" style="color:#00D4A8">287ms</span>
-            <span class="sfail"><span style="color:var(--d)">—</span></span>
-            <span class="stime">09:23:41</span>
-          </div>
-          <div class="dash-row">
-            <div class="sdot" style="background:#FFB547"></div>
-            <span class="smonoid">e12cd456</span>
-            <span class="scase">kyc_verification</span>
-            <span class="slat" style="color:#FFB547">743ms</span>
-            <span class="sfail"><span style="color:var(--d)">—</span></span>
-            <span class="stime">09:23:30</span>
-          </div>
-          <div class="dash-row">
-            <div class="sdot" style="background:#FF4D6A"></div>
-            <span class="smonoid">a77bf219</span>
-            <span class="scase">fraud_detection</span>
-            <span class="slat" style="color:#FF4D6A">1,820ms</span>
-            <span class="sfail"><span class="sfail-badge">HALLUCI...</span></span>
-            <span class="stime">09:23:18</span>
-          </div>
-          <div class="dash-row">
-            <div class="sdot" style="background:#00D4A8"></div>
-            <span class="smonoid">3d9e2f88</span>
-            <span class="scase">payment_routing</span>
-            <span class="slat" style="color:#00D4A8">412ms</span>
-            <span class="sfail"><span style="color:var(--d)">—</span></span>
-            <span class="stime">09:23:05</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right health panel -->
-      <div class="dash-right">
-        <div>
-          <div class="dr-label">Health</div>
-          <div class="dr-row"><span class="dr-key">Success rate</span><span class="dr-val" style="color:#00D4A8">97.7%</span></div>
-          <div class="dr-row"><span class="dr-key">Eval gate</span><span class="dr-val" style="color:#00D4A8">Passing</span></div>
-          <div class="dr-row"><span class="dr-key">Regressions</span><span class="dr-val" style="color:#00D4A8">0</span></div>
-        </div>
-        <div>
-          <div class="dr-label">Failures</div>
-          <div class="dr-row"><span class="dr-key" style="font-family:var(--mono);font-size:8px">TIMEOUT</span><span class="dr-val" style="color:#FF4D6A">2</span></div>
-          <div class="dr-row"><span class="dr-key" style="font-family:var(--mono);font-size:8px">HALLUCIN...</span><span class="dr-val" style="color:#FF4D6A">1</span></div>
-        </div>
-        <div>
-          <div class="dr-label">Latency dist.</div>
-          <div class="dr-bar-row"><div class="dr-bar-lbls"><span>&lt;200ms</span><span>312</span></div><div class="dr-track"><div class="dr-fill" style="width:42%;background:#00D4A8"></div></div></div>
-          <div class="dr-bar-row"><div class="dr-bar-lbls"><span>200–500ms</span><span>498</span></div><div class="dr-track"><div class="dr-fill" style="width:68%;background:#00D4A8"></div></div></div>
-          <div class="dr-bar-row"><div class="dr-bar-lbls"><span>500ms–1s</span><span>87</span></div><div class="dr-track"><div class="dr-fill" style="width:22%;background:#FFB547"></div></div></div>
-          <div class="dr-bar-row"><div class="dr-bar-lbls"><span>&gt;1s</span><span>23</span></div><div class="dr-track"><div class="dr-fill" style="width:8%;background:#FF4D6A"></div></div></div>
-        </div>
-        <div style="margin-top:auto;padding-top:8px;border-top:.5px solid var(--border)">
-          <div style="font-size:8px;color:var(--d);font-family:var(--mono)">api.getcortexops.com</div>
-          <div style="font-size:8px;color:var(--d);margin-top:2px">payments-agent</div>
-        </div>
-      </div>
-
-      <!-- Waterfall slide-in -->
-      <div class="wf-overlay">
-        <div class="wf-hdr">
-          <div>
-            <div class="wf-t">Trace detail</div>
-            <div class="wf-id">4398c8e8-b1e1-4012-ae12...</div>
-          </div>
-          <span style="color:var(--m);font-size:14px;cursor:default">×</span>
-        </div>
-        <div class="wf-meta">
-          <div class="wf-mc"><div class="wf-ml">Status</div><div class="wf-mv" style="color:#00D4A8">completed</div></div>
-          <div class="wf-mc"><div class="wf-ml">Latency</div><div class="wf-mv" style="color:#FFB547">342ms</div></div>
-          <div class="wf-mc"><div class="wf-ml">Environment</div><div class="wf-mv" style="color:#4D9FFF">production</div></div>
-          <div class="wf-mc"><div class="wf-ml">Failure</div><div class="wf-mv" style="color:var(--m)">none</div></div>
-        </div>
-        <div class="wf-nodes">
-          <div class="wf-nl">Node waterfall</div>
-          <div class="wf-node">
-            <div class="wf-nn">lookup_refund</div>
-            <div class="wf-nt"><div class="wf-nf" style="width:35%;background:#00D4A8"></div></div>
-            <div class="wf-nm" style="color:#00D4A8">120ms</div>
-            <span class="ttag" style="background:var(--t-dim);color:#00D4A8">lookup</span>
-          </div>
-          <div class="wf-node">
-            <div class="wf-nn">validate_policy</div>
-            <div class="wf-nt"><div class="wf-nf" style="width:20%;background:#00D4A8"></div></div>
-            <div class="wf-nm" style="color:#00D4A8">68ms</div>
-          </div>
-          <div class="wf-node">
-            <div class="wf-nn">generate_response</div>
-            <div class="wf-nt"><div class="wf-nf" style="width:45%;background:#FFB547"></div></div>
-            <div class="wf-nm" style="color:#FFB547">154ms</div>
-          </div>
-        </div>
-        <div class="wf-out">
-          <div class="wf-ol">Output</div>
-          <div class="wf-ob">{"result": "refund approved",
- "order_id": "ORD-8821",
- "amount": "$124.99",
- "confidence": 0.97}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
 
 <!-- VS LANGSMITH -->
