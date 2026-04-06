@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from .config import get_settings
 from .db import init_db
 from .models.schemas import HealthResponse
-from .routers import evals, keys, prompts, traces
+from .routers import billing, evals, keys, prompts, traces
 
 settings = get_settings()
 
@@ -37,6 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(billing.router)
 app.include_router(evals.router)
 app.include_router(traces.router)
 app.include_router(prompts.router)
