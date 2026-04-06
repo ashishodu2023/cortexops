@@ -228,6 +228,7 @@ code{font-family:var(--mono);font-size:.85em;background:var(--s2);color:var(--t)
   </a>
   <div class="nav-links">
     <a href="#features" class="nav-link-hide">Features</a>
+    <a href="#observe" class="nav-link-hide">Dashboard</a>
     <a href="#compare" class="nav-link-hide">vs LangSmith</a>
     <a href="#pricing">Pricing</a>
     <a href="https://docs.getcortexops.com" target="_blank" class="nav-link-hide">Docs</a>
@@ -359,6 +360,222 @@ agent = tracer.wrap(your_agent)</div>
     </div>
   </div>
 </section>
+
+
+<!-- DASHBOARD PREVIEW -->
+<section id="observe">
+  <div class="section-label">Live observability</div>
+  <h2>See inside every agent run.<br><em>In real time.</em></h2>
+  <p class="section-sub">Click any trace row to see the node waterfall — exactly which step took how long, which tools were called, and what the output was. This is how you debug a 2am incident in 30 seconds.</p>
+
+  <div class="dash-wrap">
+    <!-- Topbar -->
+    <div class="dash-topbar">
+      <div class="dash-logo">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+          <path d="M5.5 1.5 Q8 5.5 5.5 9.5" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+          <path d="M3 1.5 Q6 5.5 3 9.5" stroke="white" stroke-width="1.1" stroke-linecap="round" opacity=".35"/>
+          <circle cx="5.5" cy="1.5" r="1" fill="white"/>
+          <circle cx="5.5" cy="9.5" r="1" fill="white"/>
+        </svg>
+      </div>
+      <span class="dash-title">CortexOps</span>
+      <span class="dash-sub">Observability</span>
+      <div class="dash-divider"></div>
+      <span style="font-size:9px;color:var(--m)">project</span>
+      <span class="dash-proj">payments-agent</span>
+      <div class="dash-live"><div class="dash-live-dot"></div>Live · 5s</div>
+    </div>
+
+    <!-- Metric tiles -->
+    <div class="dash-tiles">
+      <div class="dash-tile">
+        <div class="dash-tile-bar" style="background:#00D4A8"></div>
+        <div class="dash-tile-lbl">Task completion</div>
+        <div class="dash-tile-val" style="color:#00D4A8">94.2<span class="dash-tile-unit">%</span></div>
+        <div class="dash-tile-delta" style="color:#00D4A8">↑ 2.1%</div>
+        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,16 18,12 36,14 54,8 72,10 90,5 100,4" fill="none" stroke="#00D4A8" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="4" r="2" fill="#00D4A8"/></svg>
+      </div>
+      <div class="dash-tile">
+        <div class="dash-tile-bar" style="background:#00D4A8"></div>
+        <div class="dash-tile-lbl">Error rate</div>
+        <div class="dash-tile-val" style="color:#00D4A8">2.3<span class="dash-tile-unit">%</span></div>
+        <div class="dash-tile-delta" style="color:#00D4A8">↓ 0.8%</div>
+        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,8 20,12 40,6 60,14 80,8 100,6" fill="none" stroke="#00D4A8" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="6" r="2" fill="#00D4A8"/></svg>
+      </div>
+      <div class="dash-tile">
+        <div class="dash-tile-bar" style="background:#FFB547"></div>
+        <div class="dash-tile-lbl">Avg latency</div>
+        <div class="dash-tile-val" style="color:#FFB547">487<span class="dash-tile-unit">ms</span></div>
+        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,10 20,7 40,13 60,9 80,14 100,9" fill="none" stroke="#FFB547" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="9" r="2" fill="#FFB547"/></svg>
+      </div>
+      <div class="dash-tile">
+        <div class="dash-tile-bar" style="background:#4D9FFF"></div>
+        <div class="dash-tile-lbl">P95 latency</div>
+        <div class="dash-tile-val" style="color:#4D9FFF">1,240<span class="dash-tile-unit">ms</span></div>
+        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,12 25,9 50,14 75,8 100,11" fill="none" stroke="#4D9FFF" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="11" r="2" fill="#4D9FFF"/></svg>
+      </div>
+      <div class="dash-tile">
+        <div class="dash-tile-bar" style="background:#6C63FF"></div>
+        <div class="dash-tile-lbl">Total traces</div>
+        <div class="dash-tile-val" style="color:#6C63FF">1,847</div>
+        <svg width="100" height="20" viewBox="0 0 100 20"><polyline points="0,16 20,14 40,12 60,10 80,7 100,5" fill="none" stroke="#6C63FF" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="5" r="2" fill="#6C63FF"/></svg>
+      </div>
+    </div>
+
+    <!-- Body: trace list + right panel + waterfall -->
+    <div class="dash-body">
+      <div class="dash-main">
+        <div class="dash-tabs">
+          <div class="dash-tab on">Traces</div>
+          <div class="dash-tab">Evals</div>
+          <div class="dash-tab">Errors<span class="ebadge">3</span></div>
+          <div style="margin-left:auto;display:flex;gap:3px">
+            <div class="dash-tab on" style="font-size:9px;padding:2px 7px">all</div>
+            <div class="dash-tab" style="font-size:9px;padding:2px 7px">completed</div>
+            <div class="dash-tab" style="font-size:9px;padding:2px 7px">failed</div>
+          </div>
+        </div>
+        <div class="dash-col-heads">
+          <div style="min-width:5px"></div>
+          <div style="min-width:52px">ID</div>
+          <div style="flex:1">Case</div>
+          <div style="min-width:44px">Latency</div>
+          <div style="min-width:80px">Failure</div>
+          <div style="min-width:60px;text-align:right">Time</div>
+        </div>
+        <div class="dash-rows">
+          <div class="dash-row" style="background:rgba(22,22,40,.6)">
+            <div class="sdot" style="background:#00D4A8"></div>
+            <span class="smonoid">4398c8e8</span>
+            <span class="scase">refund_approved</span>
+            <span class="slat" style="color:#00D4A8">342ms</span>
+            <span class="sfail"><span style="color:var(--d)">—</span></span>
+            <span class="stime">09:24:11</span>
+          </div>
+          <div class="dash-row">
+            <div class="sdot" style="background:#00D4A8"></div>
+            <span class="smonoid">b21fa3c2</span>
+            <span class="scase">balance_check</span>
+            <span class="slat" style="color:#00D4A8">198ms</span>
+            <span class="sfail"><span style="color:var(--d)">—</span></span>
+            <span class="stime">09:24:08</span>
+          </div>
+          <div class="dash-row">
+            <div class="sdot" style="background:#FF4D6A"></div>
+            <span class="smonoid">9f3e1d77</span>
+            <span class="scase">dispute_escalation</span>
+            <span class="slat" style="color:#FF4D6A">3,240ms</span>
+            <span class="sfail"><span class="sfail-badge">TIMEOUT</span></span>
+            <span class="stime">09:23:55</span>
+          </div>
+          <div class="dash-row">
+            <div class="sdot" style="background:#00D4A8"></div>
+            <span class="smonoid">c84ab910</span>
+            <span class="scase">refund_approved</span>
+            <span class="slat" style="color:#00D4A8">287ms</span>
+            <span class="sfail"><span style="color:var(--d)">—</span></span>
+            <span class="stime">09:23:41</span>
+          </div>
+          <div class="dash-row">
+            <div class="sdot" style="background:#FFB547"></div>
+            <span class="smonoid">e12cd456</span>
+            <span class="scase">kyc_verification</span>
+            <span class="slat" style="color:#FFB547">743ms</span>
+            <span class="sfail"><span style="color:var(--d)">—</span></span>
+            <span class="stime">09:23:30</span>
+          </div>
+          <div class="dash-row">
+            <div class="sdot" style="background:#FF4D6A"></div>
+            <span class="smonoid">a77bf219</span>
+            <span class="scase">fraud_detection</span>
+            <span class="slat" style="color:#FF4D6A">1,820ms</span>
+            <span class="sfail"><span class="sfail-badge">HALLUCI...</span></span>
+            <span class="stime">09:23:18</span>
+          </div>
+          <div class="dash-row">
+            <div class="sdot" style="background:#00D4A8"></div>
+            <span class="smonoid">3d9e2f88</span>
+            <span class="scase">payment_routing</span>
+            <span class="slat" style="color:#00D4A8">412ms</span>
+            <span class="sfail"><span style="color:var(--d)">—</span></span>
+            <span class="stime">09:23:05</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right health panel -->
+      <div class="dash-right">
+        <div>
+          <div class="dr-label">Health</div>
+          <div class="dr-row"><span class="dr-key">Success rate</span><span class="dr-val" style="color:#00D4A8">97.7%</span></div>
+          <div class="dr-row"><span class="dr-key">Eval gate</span><span class="dr-val" style="color:#00D4A8">Passing</span></div>
+          <div class="dr-row"><span class="dr-key">Regressions</span><span class="dr-val" style="color:#00D4A8">0</span></div>
+        </div>
+        <div>
+          <div class="dr-label">Failures</div>
+          <div class="dr-row"><span class="dr-key" style="font-family:var(--mono);font-size:8px">TIMEOUT</span><span class="dr-val" style="color:#FF4D6A">2</span></div>
+          <div class="dr-row"><span class="dr-key" style="font-family:var(--mono);font-size:8px">HALLUCIN...</span><span class="dr-val" style="color:#FF4D6A">1</span></div>
+        </div>
+        <div>
+          <div class="dr-label">Latency dist.</div>
+          <div class="dr-bar-row"><div class="dr-bar-lbls"><span>&lt;200ms</span><span>312</span></div><div class="dr-track"><div class="dr-fill" style="width:42%;background:#00D4A8"></div></div></div>
+          <div class="dr-bar-row"><div class="dr-bar-lbls"><span>200–500ms</span><span>498</span></div><div class="dr-track"><div class="dr-fill" style="width:68%;background:#00D4A8"></div></div></div>
+          <div class="dr-bar-row"><div class="dr-bar-lbls"><span>500ms–1s</span><span>87</span></div><div class="dr-track"><div class="dr-fill" style="width:22%;background:#FFB547"></div></div></div>
+          <div class="dr-bar-row"><div class="dr-bar-lbls"><span>&gt;1s</span><span>23</span></div><div class="dr-track"><div class="dr-fill" style="width:8%;background:#FF4D6A"></div></div></div>
+        </div>
+        <div style="margin-top:auto;padding-top:8px;border-top:.5px solid var(--border)">
+          <div style="font-size:8px;color:var(--d);font-family:var(--mono)">api.getcortexops.com</div>
+          <div style="font-size:8px;color:var(--d);margin-top:2px">payments-agent</div>
+        </div>
+      </div>
+
+      <!-- Waterfall slide-in -->
+      <div class="wf-overlay">
+        <div class="wf-hdr">
+          <div>
+            <div class="wf-t">Trace detail</div>
+            <div class="wf-id">4398c8e8-b1e1-4012-ae12...</div>
+          </div>
+          <span style="color:var(--m);font-size:14px;cursor:default">×</span>
+        </div>
+        <div class="wf-meta">
+          <div class="wf-mc"><div class="wf-ml">Status</div><div class="wf-mv" style="color:#00D4A8">completed</div></div>
+          <div class="wf-mc"><div class="wf-ml">Latency</div><div class="wf-mv" style="color:#FFB547">342ms</div></div>
+          <div class="wf-mc"><div class="wf-ml">Environment</div><div class="wf-mv" style="color:#4D9FFF">production</div></div>
+          <div class="wf-mc"><div class="wf-ml">Failure</div><div class="wf-mv" style="color:var(--m)">none</div></div>
+        </div>
+        <div class="wf-nodes">
+          <div class="wf-nl">Node waterfall</div>
+          <div class="wf-node">
+            <div class="wf-nn">lookup_refund</div>
+            <div class="wf-nt"><div class="wf-nf" style="width:35%;background:#00D4A8"></div></div>
+            <div class="wf-nm" style="color:#00D4A8">120ms</div>
+            <span class="ttag" style="background:var(--t-dim);color:#00D4A8">lookup</span>
+          </div>
+          <div class="wf-node">
+            <div class="wf-nn">validate_policy</div>
+            <div class="wf-nt"><div class="wf-nf" style="width:20%;background:#00D4A8"></div></div>
+            <div class="wf-nm" style="color:#00D4A8">68ms</div>
+          </div>
+          <div class="wf-node">
+            <div class="wf-nn">generate_response</div>
+            <div class="wf-nt"><div class="wf-nf" style="width:45%;background:#FFB547"></div></div>
+            <div class="wf-nm" style="color:#FFB547">154ms</div>
+          </div>
+        </div>
+        <div class="wf-out">
+          <div class="wf-ol">Output</div>
+          <div class="wf-ob">{"result": "refund approved",
+ "order_id": "ORD-8821",
+ "amount": "$124.99",
+ "confidence": 0.97}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 
 <!-- VS LANGSMITH -->
 <section id="compare">
@@ -508,6 +725,7 @@ results = <span class="cf">EvalSuite</span>.run(
     <div class="footer-col">
       <h4>Product</h4>
       <a href="#how">How it works</a>
+      <a href="#observe">Dashboard</a>
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
       <a href="#compare">vs LangSmith</a>
