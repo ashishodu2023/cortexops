@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from .config import get_settings
 from .db import init_db, get_db
-from .models.schemas import HealthResponse
+
 from .observability import configure_logging, health_aggregator
 from .resilience import stripe_circuit, slack_circuit, openai_circuit
 from .security import RequestIDMiddleware, RateLimitMiddleware
