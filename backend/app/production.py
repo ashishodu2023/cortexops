@@ -9,7 +9,6 @@ from __future__ import annotations
 import statistics
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
 
 
 # ── Run metadata for reproducibility (checklist item 9) ───────────────────
