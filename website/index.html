@@ -58,11 +58,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;background:var(-
 .btn-primary:hover{box-shadow:var(--shadow-2);background:var(--blue-dark);color:white;text-decoration:none}
 .btn-outline{background:white;color:var(--blue);font-family:var(--sans);font-size:15px;font-weight:500;padding:13px 28px;border-radius:4px;border:1px solid var(--gray-300);cursor:pointer;transition:box-shadow .15s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
 .btn-outline:hover{box-shadow:var(--shadow-1);text-decoration:none}
-.hero-code{background:#202124;border-radius:8px;padding:20px 24px;text-align:left;max-width:600px;margin:48px auto 0;box-shadow:var(--shadow-2)}
-.code-dots{display:flex;gap:6px;margin-bottom:14px}
-.code-dots span{width:12px;height:12px;border-radius:50%}
-pre{font-family:var(--mono);font-size:13px;line-height:1.8;overflow-x:auto}
-.ck{color:#8AB4F8}.cf{color:#81C995}.cs{color:#F28B82}.cm{color:#9AA0A6}.cv{color:#E8EAED}
+.hero-code{background:#F8F9FA;border-radius:8px;padding:20px 24px;text-align:left;max-width:600px;margin:48px auto 0;box-shadow:var(--shadow-2);border:1px solid var(--gray-200);border-left:4px solid var(--blue)}
+.code-label{font-size:11px;font-family:var(--mono);color:var(--gray-500);margin-bottom:12px;font-weight:500}
+pre{font-family:var(--mono);font-size:13px;line-height:1.8;overflow-x:auto;color:var(--gray-900)}
+.ck{color:#1557B0}.cf{color:#137333}.cs{color:#C5221F}.cm{color:#80868B}.cv{color:#3C4043}
 
 /* CHIPS BAR */
 .chips-bar{background:white;padding:16px 24px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;border-bottom:1px solid var(--gray-200)}
@@ -97,26 +96,26 @@ h2 strong{color:var(--blue);font-weight:600}
 .step-code{margin-top:12px;background:var(--gray-100);border-radius:4px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--gray-800);line-height:1.7;border:1px solid var(--gray-200)}
 
 /* DASHBOARD PREVIEW */
-.dash-shell{background:#202124;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-3);margin-top:48px}
-.dash-topbar{background:#2D2D2D;padding:0 16px;height:44px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #3D3D3D}
+.dash-shell{background:white;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-2);border:1px solid var(--gray-200);margin-top:48px}
+.dash-topbar{background:var(--gray-100);padding:0 16px;height:44px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--gray-200)}
 .dash-dot-r{width:12px;height:12px;border-radius:50%;background:#EA4335}
 .dash-dot-y{width:12px;height:12px;border-radius:50%;background:#FBBC04}
 .dash-dot-g{width:12px;height:12px;border-radius:50%;background:#34A853}
-.dash-bar{background:#1565C0;padding:0 14px;height:42px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1557B0}
+.dash-bar{background:#1565C0;padding:0 14px;height:42px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--blue-dark)}
 .dash-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:10px 12px}
-.dash-tile{background:#2D2D2D;border-radius:6px;padding:10px 12px;border-left:3px solid transparent}
-.dash-tile-lbl{font-size:8px;color:#9AA0A6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-family:var(--sans)}
+.dash-tile{background:white;border-radius:6px;padding:10px 12px;border-left:3px solid transparent;border:1px solid var(--gray-200);border-left-width:3px}
+.dash-tile-lbl{font-size:8px;color:var(--gray-600);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-family:var(--sans)}
 .dash-tile-val{font-size:18px;font-weight:600;font-family:var(--sans);letter-spacing:-.02em;line-height:1}
 .dash-tile-delta{font-size:9px;margin-top:2px}
 .dash-body{display:flex;height:260px}
 .dash-list{flex:1;overflow:hidden}
-.dash-thead{display:flex;gap:10px;padding:5px 12px;font-size:8px;color:#5F6368;text-transform:uppercase;letter-spacing:.07em;font-family:var(--sans);border-bottom:1px solid #3D3D3D}
-.dash-row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid #2D2D2D;font-size:10px}
-.dash-row:hover{background:#2A2A2A}
+.dash-thead{display:flex;gap:10px;padding:5px 12px;font-size:8px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.07em;font-family:var(--sans);border-bottom:1px solid var(--gray-200)}
+.dash-row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--gray-200);font-size:10px}
+.dash-row:hover{background:var(--gray-50)}
 .sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.dash-right{width:160px;border-left:1px solid #3D3D3D;padding:10px;background:#252525}
-.dr-lbl{font-size:8px;color:#9AA0A6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:var(--sans)}
-.dr-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #3D3D3D;font-size:9px}
+.dash-right{width:160px;border-left:1px solid var(--gray-200);padding:10px;background:var(--gray-50)}
+.dr-lbl{font-size:8px;color:var(--gray-600);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:var(--sans)}
+.dr-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gray-200);font-size:9px}
 
 /* VS TABLE */
 .vs-table{background:white;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-2);margin-top:48px}
@@ -159,7 +158,7 @@ h2 strong{color:var(--blue);font-weight:600}
 .docs-content{padding:28px 32px}
 .docs-content h3{font-family:var(--sans);font-size:22px;font-weight:400;color:var(--gray-900);margin-bottom:10px}
 .docs-content p{font-size:14px;color:var(--gray-700);line-height:1.7;margin-bottom:14px}
-.docs-content pre{background:var(--gray-900);border-radius:6px;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.8;color:#9AA0A6;overflow-x:auto}
+.docs-content pre{background:#F8F9FA;border-radius:6px;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--gray-900);overflow-x:auto;border:1px solid var(--gray-200);border-left:3px solid var(--blue)}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(60,64,67,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
@@ -188,16 +187,16 @@ h2 strong{color:var(--blue);font-weight:600}
 #success-banner{display:none;background:var(--green-light);border-bottom:1px solid rgba(19,115,51,.3);padding:12px 24px;text-align:center;font-size:14px;color:var(--green);font-family:var(--sans);margin-top:64px}
 
 /* FOOTER */
-footer{background:var(--gray-900);color:rgba(255,255,255,.7);padding:48px 24px 24px}
+footer{background:var(--gray-100);color:var(--gray-700);padding:48px 24px 24px;border-top:1px solid var(--gray-200)}
 .footer-inner{max-width:1100px;margin:0 auto}
 .footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:48px;margin-bottom:40px}
-.footer-brand-name{font-family:var(--sans);font-size:18px;font-weight:500;color:white;margin-bottom:8px}
-.footer-brand-desc{font-size:13px;line-height:1.6;color:rgba(255,255,255,.6)}
-.footer-col h4{font-family:var(--sans);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.6);margin-bottom:14px}
-.footer-col a{display:block;font-size:13px;color:rgba(255,255,255,.7);margin-bottom:8px;transition:color .15s;text-decoration:none}
-.footer-col a:hover{color:white;text-decoration:none}
-.footer-divider{height:1px;background:rgba(255,255,255,.1);margin-bottom:20px}
-.footer-bottom{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.4);flex-wrap:wrap;gap:8px}
+.footer-brand-name{font-family:var(--sans);font-size:18px;font-weight:500;color:var(--gray-900);margin-bottom:8px}
+.footer-brand-desc{font-size:13px;line-height:1.6;color:var(--gray-600)}
+.footer-col h4{font-family:var(--sans);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-500);margin-bottom:14px}
+.footer-col a{display:block;font-size:13px;color:var(--gray-700);margin-bottom:8px;transition:color .15s;text-decoration:none}
+.footer-col a:hover{color:var(--blue);text-decoration:none}
+.footer-divider{height:1px;background:var(--gray-300);margin-bottom:20px}
+.footer-bottom{display:flex;justify-content:space-between;font-size:12px;color:var(--gray-500);flex-wrap:wrap;gap:8px}
 
 @media(max-width:900px){
   nav{padding:0 12px}
@@ -266,11 +265,7 @@ footer{background:var(--gray-900);color:rgba(255,255,255,.7);padding:48px 24px 2
     </a>
   </div>
   <div class="hero-code">
-    <div class="code-dots">
-      <span style="background:#EA4335"></span>
-      <span style="background:#FBBC04"></span>
-      <span style="background:#34A853"></span>
-    </div>
+    <div class="code-label">Python</div>
     <pre><span class="ck">from</span> <span class="cv">cortexops</span> <span class="ck">import</span> <span class="cf">CortexTracer</span><span class="cv">, </span><span class="cf">EvalSuite</span>
 
 tracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"payments-agent"</span>, api_key=<span class="cs">"cxo-..."</span>)
@@ -305,7 +300,7 @@ results = <span class="cf">EvalSuite</span>.run(
   <div class="dash-shell">
     <div class="dash-topbar">
       <div class="dash-dot-r"></div><div class="dash-dot-y"></div><div class="dash-dot-g"></div>
-      <span style="flex:1;text-align:center;font-size:11px;color:#9AA0A6;font-family:var(--sans)">app.getcortexops.com</span>
+      <span style="flex:1;text-align:center;font-size:11px;color:var(--gray-600);font-family:var(--sans)">app.getcortexops.com</span>
     </div>
     <div class="dash-bar">
       <div style="width:18px;height:18px;background:white;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -363,25 +358,25 @@ results = <span class="cf">EvalSuite</span>.run(
           <div style="min-width:80px">Failure</div>
           <div style="min-width:60px;text-align:right">Time</div>
         </div>
-        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">4398c8e8</span><span style="flex:1;color:#E8EAED">refund_approved</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">342ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:24:11</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">b21fa3c2</span><span style="flex:1;color:#E8EAED">balance_check</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">198ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:24:08</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#EA4335"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">9f3e1d77</span><span style="flex:1;color:#E8EAED">dispute_escalation</span><span style="font-family:var(--mono);font-size:9px;color:#EA4335;min-width:50px;text-align:right">3,240ms</span><span style="min-width:80px;font-size:8px"><span style="background:rgba(234,67,53,.15);color:#EA4335;padding:1px 5px;border-radius:3px;font-family:var(--mono)">TIMEOUT</span></span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:55</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">c84ab910</span><span style="flex:1;color:#E8EAED">refund_approved</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">287ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:41</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#FBBC04"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">e12cd456</span><span style="flex:1;color:#E8EAED">kyc_verification</span><span style="font-family:var(--mono);font-size:9px;color:#FBBC04;min-width:50px;text-align:right">743ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:30</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#EA4335"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">a77bf219</span><span style="flex:1;color:#E8EAED">fraud_detection</span><span style="font-family:var(--mono);font-size:9px;color:#EA4335;min-width:50px;text-align:right">1,820ms</span><span style="min-width:80px;font-size:8px"><span style="background:rgba(234,67,53,.15);color:#EA4335;padding:1px 5px;border-radius:3px;font-family:var(--mono)">HALLUCI...</span></span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:18</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">4398c8e8</span><span style="flex:1;color:var(--gray-900)">refund_approved</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">342ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:24:11</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">b21fa3c2</span><span style="flex:1;color:var(--gray-900)">balance_check</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">198ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:24:08</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#EA4335"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">9f3e1d77</span><span style="flex:1;color:var(--gray-900)">dispute_escalation</span><span style="font-family:var(--mono);font-size:9px;color:#EA4335;min-width:50px;text-align:right">3,240ms</span><span style="min-width:80px;font-size:8px"><span style="background:rgba(234,67,53,.15);color:#EA4335;padding:1px 5px;border-radius:3px;font-family:var(--mono)">TIMEOUT</span></span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:55</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">c84ab910</span><span style="flex:1;color:var(--gray-900)">refund_approved</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">287ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:41</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#FBBC04"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">e12cd456</span><span style="flex:1;color:var(--gray-900)">kyc_verification</span><span style="font-family:var(--mono);font-size:9px;color:#FBBC04;min-width:50px;text-align:right">743ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:30</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#EA4335"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">a77bf219</span><span style="flex:1;color:var(--gray-900)">fraud_detection</span><span style="font-family:var(--mono);font-size:9px;color:#EA4335;min-width:50px;text-align:right">1,820ms</span><span style="min-width:80px;font-size:8px"><span style="background:rgba(234,67,53,.15);color:#EA4335;padding:1px 5px;border-radius:3px;font-family:var(--mono)">HALLUCI...</span></span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:18</span></div>
       </div>
       <div class="dash-right">
         <div class="dr-lbl">Health</div>
-        <div class="dr-row"><span style="color:#9AA0A6">Success</span><span style="color:#34A853;font-weight:600">97.7%</span></div>
-        <div class="dr-row"><span style="color:#9AA0A6">Eval gate</span><span style="color:#34A853;font-weight:600">Passing</span></div>
-        <div class="dr-row" style="border:none"><span style="color:#9AA0A6">Regressions</span><span style="color:#34A853;font-weight:600">0</span></div>
+        <div class="dr-row"><span style="color:var(--gray-700)">Success</span><span style="color:#34A853;font-weight:600">97.7%</span></div>
+        <div class="dr-row"><span style="color:var(--gray-700)">Eval gate</span><span style="color:#34A853;font-weight:600">Passing</span></div>
+        <div class="dr-row" style="border:none"><span style="color:var(--gray-700)">Regressions</span><span style="color:#34A853;font-weight:600">0</span></div>
         <div class="dr-lbl" style="margin-top:12px">Failures</div>
         <div class="dr-row"><span style="font-family:var(--mono);font-size:8px;color:#9AA0A6">TIMEOUT</span><span style="color:#EA4335;font-weight:600">2</span></div>
         <div class="dr-row" style="border:none"><span style="font-family:var(--mono);font-size:8px;color:#9AA0A6">HALLUCI...</span><span style="color:#EA4335;font-weight:600">1</span></div>
         <div class="dr-lbl" style="margin-top:12px">Latency</div>
-        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:8px;color:#9AA0A6;margin-bottom:2px"><span>&lt;200ms</span><span>312</span></div><div style="height:3px;background:#3D3D3D;border-radius:2px"><div style="width:42%;height:100%;background:#34A853;border-radius:2px"></div></div></div>
-        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:8px;color:#9AA0A6;margin-bottom:2px"><span>200–500</span><span>498</span></div><div style="height:3px;background:#3D3D3D;border-radius:2px"><div style="width:68%;height:100%;background:#34A853;border-radius:2px"></div></div></div>
-        <div><div style="display:flex;justify-content:space-between;font-size:8px;color:#9AA0A6;margin-bottom:2px"><span>&gt;1s</span><span>23</span></div><div style="height:3px;background:#3D3D3D;border-radius:2px"><div style="width:8%;height:100%;background:#EA4335;border-radius:2px"></div></div></div>
+        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-500);margin-bottom:2px"><span>&lt;200ms</span><span>312</span></div><div style="height:3px;background:var(--gray-200);border-radius:2px"><div style="width:42%;height:100%;background:#34A853;border-radius:2px"></div></div></div>
+        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-500);margin-bottom:2px"><span>200–500</span><span>498</span></div><div style="height:3px;background:var(--gray-200);border-radius:2px"><div style="width:68%;height:100%;background:#34A853;border-radius:2px"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-500);margin-bottom:2px"><span>&gt;1s</span><span>23</span></div><div style="height:3px;background:var(--gray-200);border-radius:2px"><div style="width:8%;height:100%;background:#EA4335;border-radius:2px"></div></div></div>
       </div>
     </div>
   </div>
