@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 import uuid
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -11,13 +12,14 @@ from ..db import get_db
 from ..models.records import TraceRecord, Project
 from ..models.schemas import TraceDetailResponse, TraceIngest, TraceResponse
 from ..security import redact_pii, idempotency_store
-from ..observability import timed
+
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/traces", tags=["traces"])
 
 
 @router.post("", response_model=TraceResponse, status_code=201)
-@timed("ingest_trace")
 async def ingest_trace(
     body: TraceIngest,
     db: AsyncSession = Depends(get_db),
@@ -29,6 +31,8 @@ async def ingest_trace(
     Idempotency: pass Idempotency-Key header to prevent duplicate traces on retry.
     PII redaction: output, nodes, and failure_detail are scrubbed before storage.
     """
+    t0 = time.perf_counter()
+
     # Idempotency check (checklist item 6)
     if idempotency_key:
         cached = idempotency_store.get(idempotency_key, "POST:/v1/traces")
@@ -50,8 +54,6 @@ async def ingest_trace(
     if safe_payload.get("failure_detail"):
         safe_payload["failure_detail"] = redact_pii(safe_payload["failure_detail"])
 
-    safe_failure_detail = safe_payload.get("failure_detail")
-
     trace = TraceRecord(
         id=str(uuid.uuid4()),
         project=body.project,
@@ -59,7 +61,7 @@ async def ingest_trace(
         status=body.status,
         total_latency_ms=body.total_latency_ms,
         failure_kind=body.failure_kind,
-        failure_detail=safe_failure_detail,
+        failure_detail=safe_payload.get("failure_detail"),
         environment=body.environment,
         raw_trace=json.dumps(safe_payload),
     )
@@ -83,11 +85,11 @@ async def ingest_trace(
     if idempotency_key:
         idempotency_store.set(idempotency_key, "POST:/v1/traces", response)
 
+    logger.debug("op=ingest_trace duration_ms=%.2f project=%s", (time.perf_counter() - t0) * 1000, body.project)
     return response
 
 
 @router.get("", response_model=list[TraceResponse])
-@timed("list_traces")
 async def list_traces(
     project: str = Query(...),
     limit: int = Query(50, le=500),
@@ -121,7 +123,6 @@ async def list_traces(
 
 
 @router.get("/{trace_id}", response_model=TraceDetailResponse)
-@timed("get_trace")
 async def get_trace(trace_id: str, db: AsyncSession = Depends(get_db)):
     """Get a single trace with full node waterfall."""
     result = await db.execute(select(TraceRecord).where(TraceRecord.id == trace_id))
