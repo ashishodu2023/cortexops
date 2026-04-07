@@ -95,11 +95,11 @@ def cmd_login(api_key: str | None = None, project: str | None = None,
 
     save_credentials(api_key, project, api_url)
     masked = api_key[:8] + "..." + api_key[-4:]
-    print(f"\n✓ Logged in")
+    print("\n✓ Logged in")
     print(f"  Key:     {masked}")
     print(f"  Project: {project}")
-    print(f"  Stored:  ~/.cortexops/credentials")
-    print(f"\nYou can now use CortexTracer without passing api_key:")
+    print("  Stored:  ~/.cortexops/credentials")
+    print("\nYou can now use CortexTracer without passing api_key:")
     print(f"  tracer = CortexTracer(project=\"{project}\")")
     return 0
 
@@ -126,20 +126,20 @@ def cmd_whoami(api_url: str | None = None) -> int:
         return 1
 
     if env_key:
-        print(f"API key source : CORTEXOPS_API_KEY (env)")
+        print("API key source : CORTEXOPS_API_KEY (env)")
         masked = env_key[:8] + "..." + env_key[-4:]
         print(f"Key            : {masked}")
         url = api_url or os.getenv("CORTEXOPS_API_URL", _DEFAULT_API_URL)
     else:
         masked = file_creds["api_key"][:8] + "..." + file_creds["api_key"][-4:]
-        print(f"API key source : ~/.cortexops/credentials")
+        print("API key source : ~/.cortexops/credentials")
         print(f"Key            : {masked}")
         print(f"Project        : {file_creds.get('project', '—')}")
         url = api_url or file_creds.get("api_url", _DEFAULT_API_URL)
         env_key = file_creds["api_key"]
 
     print(f"API URL        : {url}")
-    print(f"\nVerifying...")
+    print("\nVerifying...")
     info = verify_key(env_key, url)
     if info:
         print(f"✓ Key is valid  (API status: {info.get('status', 'ok')})")

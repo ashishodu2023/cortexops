@@ -1,14 +1,19 @@
+from __future__ import annotations
+
+import json as _json
+import statistics
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path as _Path
+from typing import Any
+
 """
 Versioning, reproducibility, and batch execution — checklist items 9, 12.
 - Run metadata: model, prompt version, dataset version, SDK version
 - Batch eval result aggregator
 - Statistical regression detection
 """
-from __future__ import annotations
 
-import statistics
-from dataclasses import dataclass, field
-from datetime import datetime
 
 
 # ── Run metadata for reproducibility (checklist item 9) ───────────────────
@@ -107,10 +112,6 @@ def detect_regressions(
 
 
 # ── Local JSONL trace store — offline / local mode (checklist item 3) ─────
-import json as _json
-import os as _os
-from pathlib import Path as _Path
-
 
 class LocalTraceStore:
     """
@@ -137,7 +138,7 @@ class LocalTraceStore:
         if not self.path.exists():
             return []
         lines = self.path.read_text(encoding="utf-8").strip().splitlines()
-        return [_json.loads(l) for l in lines[-limit:]]
+        return [_json.loads(line) for line in lines[-limit:]]
 
     def count(self) -> int:
         if not self.path.exists():
