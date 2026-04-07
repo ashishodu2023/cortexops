@@ -967,7 +967,7 @@ results = <span class="cf">EvalSuite</span>.run(
 )</pre></div>
 
 <h2>6 — Retry, idempotency, and fault tolerance</h2>
-<p>Exponential backoff for trace uploads. Idempotency keys on POST /v1/traces to prevent duplicates on retry. One failing eval case never aborts the full run.</p>
+<p>Exponential backoff for trace uploads. Idempotency keys on POST /v1/traces to prevent duplicates on retry. Partial failure handling — one failing eval case never aborts the full run. Results are collected with partial failure collectors before the summary is computed.</p>
 
 <h2>7 — Security hardening</h2>
 <ul>
@@ -986,10 +986,10 @@ results = <span class="cf">EvalSuite</span>.run(
   --fail-on "task_completion &lt; 0.90"</pre></div>
 
 <h2>9 — Versioning and reproducibility</h2>
-<p>Every eval run stores model name, prompt version, dataset version, and SDK version. Replay any historical run with identical inputs. Compare two runs side by side in the dashboard.</p>
+<p>Every eval run stores model name, prompt version, dataset version, SDK version, and git commit SHA. Replay any historical run with identical inputs. Compare two runs side by side in the dashboard.</p>
 
 <h2>10 — Plugin architecture</h2>
-<p>Register custom tracers, metrics, and storage backends via Python entry points. Teams publish cortexops-* plugins to PyPI without forking the core SDK.</p>
+<p>Register custom tracers, metrics, and storage backends via Python entry points. Teams publish cortexops-* plugins to PyPI without forking the core SDK. The extensibility model follows the standard Python packaging plugin pattern — any package that registers a cortexops entry point is automatically discovered.</p>
 
 <h2>11 — Cost and token monitoring</h2>
 <p>Track tokens in/out per run. Calculate cost using provider pricing tables for GPT-4o, Claude 3, and Gemini. Alert when cost per eval run exceeds a threshold.</p>

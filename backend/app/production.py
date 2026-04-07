@@ -30,6 +30,8 @@ class RunMetadata:
     triggered_by: str = "manual"  # manual | ci | scheduled
     started_at: datetime = field(default_factory=datetime.utcnow)
     tags: dict[str, str] = field(default_factory=dict)
+    storage: str = "hosted"      # "hosted" | "local"
+    local_path: str = "./traces"  # used when storage="local"
 
     def to_dict(self) -> dict:
         return {
@@ -101,6 +103,50 @@ def detect_regressions(
             f"(delta {delta:+.1%}, SNR {signal_to_noise:.1f})"
         ),
     }
+
+
+
+# ── Local JSONL trace store — offline / local mode (checklist item 3) ─────
+import json as _json
+import os as _os
+from pathlib import Path as _Path
+
+
+class LocalTraceStore:
+    """
+    Store traces locally as JSONL when no hosted API is configured.
+    Each line is a JSON-serialized trace. Compatible with standard JSONL readers.
+
+    Usage:
+        store = LocalTraceStore(path="./traces/payments-agent.jsonl")
+        store.write(trace_dict)
+        for trace in store.read(): print(trace)
+    """
+
+    def __init__(self, path: str = "./traces/cortexops.jsonl") -> None:
+        self.path = _Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+    def write(self, trace: dict) -> None:
+        """Append a trace to the JSONL file."""
+        with self.path.open("a", encoding="utf-8") as f:
+            f.write(_json.dumps(trace) + "\n")
+
+    def read(self, limit: int = 100) -> list[dict]:
+        """Read the last N traces from the JSONL file."""
+        if not self.path.exists():
+            return []
+        lines = self.path.read_text(encoding="utf-8").strip().splitlines()
+        return [_json.loads(l) for l in lines[-limit:]]
+
+    def count(self) -> int:
+        if not self.path.exists():
+            return 0
+        return sum(1 for _ in self.path.open())
+
+    def clear(self) -> None:
+        if self.path.exists():
+            self.path.unlink()
 
 
 # ── Batch eval aggregator (checklist item 12) ─────────────────────────────
