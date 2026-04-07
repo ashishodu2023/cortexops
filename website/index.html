@@ -716,6 +716,11 @@ function switchDoc(id,el){
 // Stripe success banner
 (function(){
   const p=new URLSearchParams(window.location.search);
+  // Auto-open trial modal when coming from docs or any ?trial=1 link
+  if(p.get('trial')==='1'){
+    history.replaceState(null,'','/');
+    setTimeout(openModal, 300);
+  }
   if(p.get('checkout')==='success'){
     const b=document.getElementById('success-banner');
     b.style.display='block';
