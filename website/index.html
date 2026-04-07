@@ -6,254 +6,272 @@
 <title>CortexOps — Reliability infrastructure for AI agents</title>
 <meta name="description" content="Evaluate, observe, and gate your LangGraph and CrewAI agents before they reach production. Built by a PayPal AI engineer.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
-<script src="https://js.stripe.com/v3/"></script>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- Favicon — inline SVG as data URI -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A73E8'/%3E%3Cpath d='M16 5 Q22 16 16 27' stroke='white' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M10 5 Q17 16 10 27' stroke='white' stroke-width='2.2' stroke-linecap='round' fill='none' opacity='.4'/%3E%3Ccircle cx='16' cy='5' r='2.5' fill='white'/%3E%3Ccircle cx='16' cy='27' r='2.5' fill='white'/%3E%3C/svg%3E">
+<link rel="shortcut icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A73E8'/%3E%3Cpath d='M16 5 Q22 16 16 27' stroke='white' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M10 5 Q17 16 10 27' stroke='white' stroke-width='2.2' stroke-linecap='round' fill='none' opacity='.4'/%3E%3Ccircle cx='16' cy='5' r='2.5' fill='white'/%3E%3Ccircle cx='16' cy='27' r='2.5' fill='white'/%3E%3C/svg%3E">
 <style>
 :root{
-  --bg:#080810;--s1:#0E0E1C;--s2:#141426;--s3:#1A1A32;
-  --border:#1E1E3C;--border2:#2A2A50;
-  --p:#7B6FFF;--p2:#5A50E0;--p-dim:#16143A;
-  --t:#00E5B8;--t-dim:#003D30;
-  --r:#FF4F6B;--r-dim:#3A0F1A;
-  --a:#FFB84D;--a-dim:#3A2A00;
-  --txt:#EEEEF8;--m:#7070A0;--d:#2A2A50;
-  --mono:'DM Mono',monospace;
-  --serif:'Fraunces',Georgia,serif;
-  --sans:'DM Sans',sans-serif;
+  --blue:#1A73E8;--blue-dark:#1557B0;--blue-light:#E8F0FE;
+  --green:#137333;--green-light:#E6F4EA;
+  --red:#C5221F;--red-light:#FCE8E6;
+  --amber:#B06000;--amber-light:#FEF3CD;
+  --gray-50:#FAFAFA;--gray-100:#F1F3F4;--gray-200:#E8EAED;
+  --gray-300:#DADCE0;--gray-500:#9AA0A6;--gray-600:#80868B;
+  --gray-700:#5F6368;--gray-800:#3C4043;--gray-900:#202124;
+  --white:#FFFFFF;
+  --sans:'Google Sans','Segoe UI',Roboto,sans-serif;
+  --body:'Roboto',sans-serif;
+  --mono:'Roboto Mono','Courier New',monospace;
+  --shadow-1:0 1px 2px rgba(60,64,67,.3),0 1px 3px rgba(60,64,67,.15);
+  --shadow-2:0 1px 2px rgba(60,64,67,.3),0 2px 6px rgba(60,64,67,.15);
+  --shadow-3:0 4px 8px rgba(60,64,67,.3),0 8px 16px rgba(60,64,67,.15);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{font-family:var(--sans);background:var(--bg);color:var(--txt);overflow-x:hidden;-webkit-font-smoothing:antialiased}
-a{color:var(--p);text-decoration:none}
-::selection{background:var(--p);color:#fff}
-
-/* NOISE GRAIN OVERLAY */
-body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");opacity:.4;pointer-events:none;z-index:0}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{font-family:var(--body);background:var(--gray-50);color:var(--gray-900);-webkit-font-smoothing:antialiased}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.875em;background:var(--gray-100);color:var(--gray-900);padding:2px 6px;border-radius:4px;border:1px solid var(--gray-200)}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,8,16,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
-.nav-logo{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:18px;font-weight:500;color:var(--txt)}
-.nav-logo svg{flex-shrink:0}
-.nav-links{display:flex;align-items:center;gap:28px}
-.nav-links a{font-size:13px;color:var(--m);transition:color .15s}
-.nav-links a:hover{color:var(--txt)}
-.nav-cta{background:var(--p);color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:500;transition:background .15s}
-.nav-cta:hover{background:var(--p2);color:#fff}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;background:var(--blue);display:flex;align-items:center;padding:0 24px;justify-content:space-between;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo-mark{width:32px;height:32px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-logo-text{font-family:var(--sans);font-size:20px;font-weight:500;color:white;letter-spacing:.15px}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-links a{font-family:var(--sans);font-size:14px;font-weight:500;color:rgba(255,255,255,.87);padding:8px 12px;border-radius:4px;transition:background .15s;text-decoration:none}
+.nav-links a:hover{background:rgba(255,255,255,.15);text-decoration:none}
+.nav-cta{background:white;color:var(--blue);font-family:var(--sans);font-size:14px;font-weight:600;padding:8px 20px;border-radius:4px;border:none;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow-1)}
+.nav-cta:hover{box-shadow:var(--shadow-2)}
 
 /* HERO */
-.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden}
-.hero-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse at center,rgba(123,111,255,.15) 0%,transparent 70%);pointer-events:none}
-.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:.3;mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black,transparent)}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--p-dim);border:1px solid var(--p)40;border-radius:99px;padding:6px 14px;font-size:12px;color:var(--p);margin-bottom:28px;font-family:var(--mono)}
-.eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--t);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-h1{font-family:var(--serif);font-size:clamp(42px,7vw,84px);font-weight:300;line-height:1.05;letter-spacing:-.03em;max-width:900px;margin-bottom:20px}
-h1 em{font-style:italic;color:var(--p)}
-.hero-sub{font-size:clamp(15px,2vw,18px);color:var(--m);max-width:560px;line-height:1.7;margin-bottom:40px;font-weight:300}
-.hero-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-.btn-primary{background:var(--p);color:#fff;padding:13px 28px;border-radius:10px;font-size:15px;font-weight:500;transition:all .2s;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-.btn-primary:hover{background:var(--p2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(123,111,255,.3)}
-.btn-outline{background:transparent;color:var(--txt);padding:13px 28px;border-radius:10px;font-size:15px;border:1px solid var(--border2);transition:all .2s;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
-.btn-outline:hover{border-color:var(--p);color:var(--p)}
-.hero-code{margin-top:60px;background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;text-align:left;max-width:620px;width:100%;position:relative}
-.hero-code::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,var(--p),transparent)}
-.code-dots{display:flex;gap:6px;margin-bottom:16px}
-.code-dots span{width:10px;height:10px;border-radius:50%}
-.code-dots span:nth-child(1){background:#FF5F56}
-.code-dots span:nth-child(2){background:#FFBD2E}
-.code-dots span:nth-child(3){background:#27C93F}
-pre{font-family:var(--mono);font-size:13px;line-height:1.9;color:#C8C5F0;overflow-x:auto}
-.ck{color:#AFA9EC}.cf{color:#00E5B8}.cs{color:#F0997B}.cm{color:#4A4880}.cn{color:#FFB84D}
+.hero{background:white;padding:80px 24px 64px;text-align:center;border-bottom:1px solid var(--gray-200);margin-top:64px}
+.hero-chip{display:inline-flex;align-items:center;gap:8px;background:var(--blue-light);border-radius:99px;padding:6px 16px;margin-bottom:28px}
+.hero-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--blue)}
+.hero-chip-text{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--blue)}
+.hero h1{font-family:var(--sans);font-size:clamp(36px,6vw,56px);font-weight:400;color:var(--gray-900);line-height:1.1;letter-spacing:-.5px;max-width:780px;margin:0 auto 16px}
+.hero h1 strong{color:var(--blue);font-weight:600}
+.hero-sub{font-size:18px;color:var(--gray-700);max-width:560px;margin:0 auto 36px;line-height:1.6;font-weight:400}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-primary{background:var(--blue);color:white;font-family:var(--sans);font-size:15px;font-weight:500;padding:13px 28px;border-radius:4px;border:none;cursor:pointer;box-shadow:var(--shadow-1);transition:box-shadow .15s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn-primary:hover{box-shadow:var(--shadow-2);background:var(--blue-dark);color:white;text-decoration:none}
+.btn-outline{background:white;color:var(--blue);font-family:var(--sans);font-size:15px;font-weight:500;padding:13px 28px;border-radius:4px;border:1px solid var(--gray-300);cursor:pointer;transition:box-shadow .15s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn-outline:hover{box-shadow:var(--shadow-1);text-decoration:none}
+.hero-code{background:#202124;border-radius:8px;padding:20px 24px;text-align:left;max-width:600px;margin:48px auto 0;box-shadow:var(--shadow-2)}
+.code-dots{display:flex;gap:6px;margin-bottom:14px}
+.code-dots span{width:12px;height:12px;border-radius:50%}
+pre{font-family:var(--mono);font-size:13px;line-height:1.8;overflow-x:auto}
+.ck{color:#8AB4F8}.cf{color:#81C995}.cs{color:#F28B82}.cm{color:#9AA0A6}.cv{color:#E8EAED}
 
-/* STATS BAR */
-.stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:24px 40px;display:flex;align-items:center;justify-content:center;gap:60px;flex-wrap:wrap}
-.stat{text-align:center}
-.stat-val{font-family:var(--serif);font-size:32px;font-weight:500;color:var(--txt)}
-.stat-label{font-size:12px;color:var(--m);margin-top:2px}
+/* CHIPS BAR */
+.chips-bar{background:white;padding:16px 24px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;border-bottom:1px solid var(--gray-200)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:99px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:default}
+.chip-blue{background:var(--blue-light);color:var(--blue)}
+.chip-green{background:var(--green-light);color:var(--green)}
+.chip-amber{background:var(--amber-light);color:var(--amber)}
+.chip-red{background:var(--red-light);color:var(--red)}
 
 /* SECTIONS */
-section{padding:100px 40px;max-width:1200px;margin:0 auto;position:relative}
-.section-label{font-family:var(--mono);font-size:11px;color:var(--p);text-transform:uppercase;letter-spacing:.14em;margin-bottom:16px}
-h2{font-family:var(--serif);font-size:clamp(32px,5vw,52px);font-weight:300;line-height:1.1;letter-spacing:-.02em;margin-bottom:16px}
-h2 em{font-style:italic;color:var(--p)}
-.section-sub{font-size:17px;color:var(--m);max-width:600px;line-height:1.7;font-weight:300}
+section{padding:72px 24px;max-width:1100px;margin:0 auto}
+.section-label{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+h2{font-family:var(--sans);font-size:clamp(28px,4vw,40px);font-weight:400;color:var(--gray-900);margin-bottom:12px;line-height:1.2}
+h2 strong{color:var(--blue);font-weight:600}
+.section-sub{font-size:17px;color:var(--gray-700);max-width:580px;line-height:1.6;margin-bottom:48px}
 
-/* HOW IT WORKS */
-.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:60px;border:1px solid var(--border);border-radius:16px;overflow:hidden}
-.how-card{background:var(--s1);padding:36px;transition:background .2s}
-.how-card:hover{background:var(--s2)}
-.how-num{font-family:var(--mono);font-size:11px;color:var(--p);margin-bottom:14px}
-.how-title{font-family:var(--serif);font-size:22px;font-weight:300;margin-bottom:10px}
-.how-desc{font-size:14px;color:var(--m);line-height:1.7}
-.how-code{margin-top:16px;background:var(--bg);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12px;line-height:1.8;color:#C8C5F0;border:1px solid var(--border)}
+/* MATERIAL CARDS */
+.card{background:white;border-radius:8px;box-shadow:var(--shadow-2);padding:28px;transition:box-shadow .2s}
+.card:hover{box-shadow:var(--shadow-3)}
+.card-icon{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.card-title{font-family:var(--sans);font-size:16px;font-weight:500;color:var(--gray-900);margin-bottom:8px}
+.card-body{font-size:14px;color:var(--gray-700);line-height:1.6}
+.cards-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cards-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 
-/* FEATURES */
-.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:60px;background:var(--border);border-radius:16px;overflow:hidden}
-.feat{background:var(--s1);padding:32px;transition:background .2s}
-.feat:hover{background:var(--s2)}
-.feat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:18px}
-.feat-title{font-size:16px;font-weight:500;margin-bottom:8px}
-.feat-desc{font-size:13px;color:var(--m);line-height:1.65}
-.tag{display:inline-block;font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:4px;margin-top:10px}
-.tag-pro{background:var(--p-dim);color:var(--p);border:1px solid var(--p)30}
-.tag-free{background:var(--t-dim);color:var(--t);border:1px solid var(--t)30}
+/* HOW IT WORKS STEPPER */
+.stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:48px}
+.step-card{background:white;border-radius:8px;padding:24px;box-shadow:var(--shadow-1);position:relative}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--blue);color:white;font-family:var(--sans);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.step-title{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--gray-900);margin-bottom:8px}
+.step-desc{font-size:13px;color:var(--gray-700);line-height:1.6}
+.step-code{margin-top:12px;background:var(--gray-100);border-radius:4px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--gray-800);line-height:1.7;border:1px solid var(--gray-200)}
+
+/* DASHBOARD PREVIEW */
+.dash-shell{background:#202124;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-3);margin-top:48px}
+.dash-topbar{background:#2D2D2D;padding:0 16px;height:44px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #3D3D3D}
+.dash-dot-r{width:12px;height:12px;border-radius:50%;background:#EA4335}
+.dash-dot-y{width:12px;height:12px;border-radius:50%;background:#FBBC04}
+.dash-dot-g{width:12px;height:12px;border-radius:50%;background:#34A853}
+.dash-bar{background:#1565C0;padding:0 14px;height:42px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1557B0}
+.dash-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:10px 12px}
+.dash-tile{background:#2D2D2D;border-radius:6px;padding:10px 12px;border-left:3px solid transparent}
+.dash-tile-lbl{font-size:8px;color:#9AA0A6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-family:var(--sans)}
+.dash-tile-val{font-size:18px;font-weight:600;font-family:var(--sans);letter-spacing:-.02em;line-height:1}
+.dash-tile-delta{font-size:9px;margin-top:2px}
+.dash-body{display:flex;height:260px}
+.dash-list{flex:1;overflow:hidden}
+.dash-thead{display:flex;gap:10px;padding:5px 12px;font-size:8px;color:#5F6368;text-transform:uppercase;letter-spacing:.07em;font-family:var(--sans);border-bottom:1px solid #3D3D3D}
+.dash-row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid #2D2D2D;font-size:10px}
+.dash-row:hover{background:#2A2A2A}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dash-right{width:160px;border-left:1px solid #3D3D3D;padding:10px;background:#252525}
+.dr-lbl{font-size:8px;color:#9AA0A6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:var(--sans)}
+.dr-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #3D3D3D;font-size:9px}
 
 /* VS TABLE */
-.vs-wrap{margin-top:60px;background:var(--s1);border:1px solid var(--border);border-radius:16px;overflow:hidden}
-.vs-header{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--s2);padding:16px 24px;border-bottom:1px solid var(--border)}
-.vs-header div{font-size:13px;font-weight:500}
-.vs-header div:first-child{color:var(--m)}
-.vs-header .winner{color:var(--t)}
-.vs-row{display:grid;grid-template-columns:1fr 1fr 1fr;padding:14px 24px;border-bottom:1px solid var(--border);align-items:center;font-size:13px;transition:background .1s}
-.vs-row:hover{background:var(--s2)}
+.vs-table{background:white;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-2);margin-top:48px}
+.vs-head{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--gray-100);padding:14px 20px;border-bottom:1px solid var(--gray-200)}
+.vs-head div{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--gray-700)}
+.vs-head .winner{color:var(--blue)}
+.vs-row{display:grid;grid-template-columns:1fr 1fr 1fr;padding:12px 20px;border-bottom:1px solid var(--gray-200);align-items:center;font-size:13px;transition:background .1s}
 .vs-row:last-child{border-bottom:none}
-.vs-row div:first-child{color:var(--m)}
-.vs-row .check{color:var(--t)}
-.vs-row .cross{color:var(--r)}
-.vs-row .neutral{color:var(--m)}
-.vs-row .highlight{color:var(--txt);font-weight:500}
+.vs-row:hover{background:var(--gray-50)}
+.vs-row div:first-child{color:var(--gray-700)}
+.check{color:var(--green);font-weight:500}
+.cross{color:var(--red)}
+.neutral{color:var(--gray-600)}
 
 /* PRICING */
-.pricing-grid{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:16px;margin-top:60px;align-items:start}
-.price-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:32px;position:relative;transition:border-color .2s}
-.price-card:hover{border-color:var(--border2)}
-.price-card.featured{border-color:var(--p);background:var(--s2)}
-.price-card.featured::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,var(--p),transparent)}
-.popular{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--p);color:#fff;font-size:10px;font-family:var(--mono);padding:3px 12px;border-radius:99px;white-space:nowrap;font-weight:500}
-.price-tier{font-family:var(--mono);font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
-.price-val{font-family:var(--serif);font-size:42px;font-weight:300;color:var(--txt);margin-bottom:4px}
-.price-val span{font-size:14px;color:var(--m);font-family:var(--sans)}
-.price-desc{font-size:13px;color:var(--m);margin-bottom:24px;line-height:1.6;min-height:40px}
-.price-feats{list-style:none;margin-bottom:28px}
-.price-feats li{font-size:13px;color:var(--m);padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-.price-feats li:last-child{border-bottom:none}
-.price-feats .ok{color:var(--t);font-size:14px}
-.price-btn{width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .2s;font-family:var(--sans)}
-.price-btn-primary{background:var(--p);color:#fff}
-.price-btn-primary:hover{background:var(--p2)}
-.price-btn-ghost{background:transparent;color:var(--txt);border:1px solid var(--border2)}
-.price-btn-ghost:hover{border-color:var(--p);color:var(--p)}
-
-/* CHECKOUT MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(8,8,16,.85);backdrop-filter:blur(12px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{background:var(--s2);border:1px solid var(--border2);border-radius:20px;padding:40px;width:100%;max-width:440px;position:relative;animation:slideUp .25s ease}
-@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--m);font-size:20px;cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
-.modal-close:hover{background:var(--border);color:var(--txt)}
-.modal h3{font-family:var(--serif);font-size:24px;font-weight:300;margin-bottom:6px}
-.modal p{font-size:13px;color:var(--m);margin-bottom:24px}
-.field{margin-bottom:14px}
-.field label{display:block;font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-family:var(--mono)}
-.field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:14px;font-family:var(--sans);padding:11px 14px;outline:none;transition:border-color .15s}
-.field input:focus{border-color:var(--p)}
-.field input::placeholder{color:var(--d)}
-.modal-submit{width:100%;padding:13px;background:var(--p);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:background .2s;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px}
-.modal-submit:hover:not(:disabled){background:var(--p2)}
-.modal-submit:disabled{opacity:.5;cursor:not-allowed}
-.stripe-badge{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;font-size:11px;color:var(--d)}
-.stripe-badge svg{opacity:.5}
-.modal-success{display:none;text-align:center;padding:20px 0}
-.modal-success .check-circle{width:56px;height:56px;border-radius:50%;background:var(--t-dim);border:1px solid var(--t)40;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px}
-.modal-success h4{font-family:var(--serif);font-size:22px;font-weight:300;margin-bottom:8px}
-.modal-success p{font-size:13px;color:var(--m)}
-.modal-error{background:var(--r-dim);border:1px solid var(--r)30;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--r);margin-bottom:14px;display:none}
-
-/* TESTIMONIALS */
-.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:60px}
-.quote-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:24px}
-.quote-text{font-size:14px;color:var(--m);line-height:1.7;margin-bottom:16px;font-style:italic}
-.quote-author{font-size:12px;color:var(--txt);font-weight:500}
-.quote-role{font-size:11px;color:var(--d);margin-top:2px}
+.pricing-grid{display:grid;grid-template-columns:1fr 1.05fr 1fr;gap:16px;margin-top:48px;align-items:start}
+.price-card{background:white;border-radius:8px;padding:28px;box-shadow:var(--shadow-2)}
+.price-card.featured{box-shadow:0 0 0 2px var(--blue),var(--shadow-3);position:relative}
+.popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--blue);color:white;font-family:var(--sans);font-size:11px;font-weight:600;padding:4px 14px;border-radius:99px;white-space:nowrap}
+.price-tier{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.price-val{font-family:var(--sans);font-size:40px;font-weight:400;color:var(--gray-900);margin-bottom:4px}
+.price-val span{font-size:15px;color:var(--gray-600)}
+.price-desc{font-size:13px;color:var(--gray-700);margin-bottom:20px;line-height:1.5}
+.price-divider{height:1px;background:var(--gray-200);margin-bottom:20px}
+.price-feats{list-style:none;margin-bottom:24px;display:flex;flex-direction:column;gap:10px}
+.price-feats li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-800)}
+.price-feats .ok{color:var(--green);font-size:16px;line-height:1}
+.btn-price-primary{width:100%;padding:11px;background:var(--blue);color:white;border:none;border-radius:4px;font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow-1)}
+.btn-price-primary:hover{box-shadow:var(--shadow-2);background:var(--blue-dark)}
+.btn-price-outline{width:100%;padding:11px;background:white;color:var(--blue);border:1px solid var(--gray-300);border-radius:4px;font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;transition:box-shadow .15s}
+.btn-price-outline:hover{box-shadow:var(--shadow-1)}
 
 /* DOCS PREVIEW */
-.docs-preview{display:grid;grid-template-columns:240px 1fr;gap:0;background:var(--s1);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-top:60px;min-height:400px}
-.docs-sidebar{border-right:1px solid var(--border);padding:20px 0}
-.docs-nav-item{padding:8px 20px;font-size:13px;color:var(--m);cursor:pointer;transition:all .1s;border-left:2px solid transparent}
-.docs-nav-item:hover{color:var(--txt);background:var(--s2)}
-.docs-nav-item.active{color:var(--p);background:var(--p-dim);border-left-color:var(--p)}
-.docs-nav-label{padding:16px 20px 6px;font-size:10px;font-family:var(--mono);color:var(--d);text-transform:uppercase;letter-spacing:.1em}
-.docs-content{padding:32px;overflow:auto}
-.docs-content h3{font-family:var(--serif);font-size:22px;font-weight:300;margin-bottom:12px}
-.docs-content p{font-size:14px;color:var(--m);line-height:1.7;margin-bottom:14px}
-.docs-content pre{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.9;color:#C8C5F0;overflow-x:auto}
+.docs-shell{background:white;border-radius:8px;box-shadow:var(--shadow-2);overflow:hidden;margin-top:48px;display:grid;grid-template-columns:220px 1fr}
+.docs-sidebar{border-right:1px solid var(--gray-200);padding:16px 0}
+.docs-nav-section{font-family:var(--sans);font-size:10px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.1em;padding:12px 16px 6px}
+.docs-nav-item{font-size:13px;color:var(--gray-700);padding:8px 16px;cursor:pointer;transition:all .1s;border-left:3px solid transparent;display:block}
+.docs-nav-item:hover{background:var(--gray-50);color:var(--gray-900);text-decoration:none}
+.docs-nav-item.active{color:var(--blue);background:var(--blue-light);border-left-color:var(--blue);font-weight:500}
+.docs-content{padding:28px 32px}
+.docs-content h3{font-family:var(--sans);font-size:22px;font-weight:400;color:var(--gray-900);margin-bottom:10px}
+.docs-content p{font-size:14px;color:var(--gray-700);line-height:1.7;margin-bottom:14px}
+.docs-content pre{background:var(--gray-900);border-radius:6px;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.8;color:#9AA0A6;overflow-x:auto}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(60,64,67,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:white;border-radius:8px;padding:36px;width:100%;max-width:440px;box-shadow:var(--shadow-3);animation:slideUp .2s ease;position:relative}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.modal-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--gray-600);font-size:20px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.modal-close:hover{background:var(--gray-100)}
+.modal h3{font-family:var(--sans);font-size:22px;font-weight:400;margin-bottom:6px;color:var(--gray-900)}
+.modal p{font-size:13px;color:var(--gray-700);margin-bottom:24px}
+.field{margin-bottom:16px}
+.field label{display:block;font-family:var(--sans);font-size:12px;font-weight:500;color:var(--gray-700);margin-bottom:6px}
+.field input{width:100%;background:white;border:1px solid var(--gray-300);border-radius:4px;color:var(--gray-900);font-size:14px;font-family:var(--body);padding:10px 12px;outline:none;transition:border-color .15s}
+.field input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.15)}
+.modal-submit{width:100%;padding:12px;background:var(--blue);color:white;border:none;border-radius:4px;font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer;box-shadow:var(--shadow-1);transition:box-shadow .15s;margin-top:4px}
+.modal-submit:hover:not(:disabled){box-shadow:var(--shadow-2);background:var(--blue-dark)}
+.modal-submit:disabled{opacity:.5;cursor:not-allowed}
+.modal-error{background:var(--red-light);color:var(--red);font-size:13px;padding:10px 14px;border-radius:4px;margin-bottom:16px;display:none;border:1px solid rgba(197,34,31,.2)}
+.stripe-badge{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:11px;color:var(--gray-500)}
+.modal-success{display:none;text-align:center;padding:16px 0}
+.modal-success .check{width:56px;height:56px;border-radius:50%;background:var(--green-light);border:2px solid rgba(19,115,51,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;color:var(--green)}
+.modal-success h4{font-family:var(--sans);font-size:20px;font-weight:400;margin-bottom:8px;color:var(--gray-900)}
+
+/* SUCCESS BANNER */
+#success-banner{display:none;background:var(--green-light);border-bottom:1px solid rgba(19,115,51,.3);padding:12px 24px;text-align:center;font-size:14px;color:var(--green);font-family:var(--sans);margin-top:64px}
 
 /* FOOTER */
-footer{border-top:1px solid var(--border);padding:48px 40px;display:flex;align-items:flex-start;justify-content:space-between;max-width:1200px;margin:0 auto;flex-wrap:wrap;gap:32px}
-.footer-brand{max-width:260px}
-.footer-brand .tagline{font-size:13px;color:var(--m);margin-top:10px;line-height:1.6}
-.footer-links{display:flex;gap:48px;flex-wrap:wrap}
-.footer-col h4{font-size:12px;font-family:var(--mono);color:var(--m);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
-.footer-col a{display:block;font-size:13px;color:var(--m);margin-bottom:8px;transition:color .15s}
-.footer-col a:hover{color:var(--txt)}
-.footer-bottom{border-top:1px solid var(--border);padding:20px 40px;max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;font-size:12px;color:var(--d)}
-
-/* UTILS */
-.divider{height:1px;background:var(--border);margin:0}
-code{font-family:var(--mono);font-size:.85em;background:var(--s2);color:var(--t);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
-.badge-new{background:var(--t-dim);color:var(--t);font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:99px;border:1px solid var(--t)30;vertical-align:middle;margin-left:6px}
+footer{background:var(--gray-900);color:rgba(255,255,255,.7);padding:48px 24px 24px}
+.footer-inner{max-width:1100px;margin:0 auto}
+.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:48px;margin-bottom:40px}
+.footer-brand-name{font-family:var(--sans);font-size:18px;font-weight:500;color:white;margin-bottom:8px}
+.footer-brand-desc{font-size:13px;line-height:1.6;color:rgba(255,255,255,.6)}
+.footer-col h4{font-family:var(--sans);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.6);margin-bottom:14px}
+.footer-col a{display:block;font-size:13px;color:rgba(255,255,255,.7);margin-bottom:8px;transition:color .15s;text-decoration:none}
+.footer-col a:hover{color:white;text-decoration:none}
+.footer-divider{height:1px;background:rgba(255,255,255,.1);margin-bottom:20px}
+.footer-bottom{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.4);flex-wrap:wrap;gap:8px}
 
 @media(max-width:900px){
-  nav{padding:0 16px}
-  .how-grid,.pricing-grid,.features-grid,.quotes{grid-template-columns:1fr}
-  .vs-header,.vs-row{grid-template-columns:1fr 1fr}
-  .vs-header div:last-child,.vs-row div:last-child{display:none}
-  .docs-preview{grid-template-columns:1fr}
-  .docs-sidebar{border-right:none;border-bottom:1px solid var(--border);display:flex;overflow-x:auto;padding:0}
-  .docs-nav-label{display:none}
-  .docs-nav-item{white-space:nowrap;border-left:none;border-bottom:2px solid transparent;padding:12px 16px}
-  .docs-nav-item.active{border-bottom-color:var(--p);border-left:none}
-  section{padding:60px 20px}
-  .stats{padding:20px;gap:32px}
-  footer{padding:32px 20px}
-  .footer-bottom{padding:16px 20px;flex-direction:column;gap:8px}
-  .nav-links .nav-link-hide{display:none}
+  nav{padding:0 12px}
+  .nav-links .hide{display:none}
+  .cards-3,.cards-2,.stepper,.pricing-grid{grid-template-columns:1fr}
+  .vs-head div:last-child,.vs-row div:last-child{display:none}
+  .vs-head,.vs-row{grid-template-columns:1fr 1fr}
+  .docs-shell{grid-template-columns:1fr}
+  .docs-sidebar{display:flex;overflow-x:auto;padding:0;border-right:none;border-bottom:1px solid var(--gray-200)}
+  .docs-nav-section{display:none}
+  .docs-nav-item{white-space:nowrap;border-left:none;border-bottom:3px solid transparent;padding:12px 14px}
+  .docs-nav-item.active{border-bottom-color:var(--blue);border-left:none}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  .footer-bottom{flex-direction:column}
+  section{padding:48px 16px}
+  .hero{padding:60px 16px 48px}
+  .dash-tiles{grid-template-columns:repeat(3,1fr)}
 }
 </style>
 </head>
 <body>
 
+<!-- SUCCESS BANNER (Stripe redirect) -->
+<div id="success-banner"></div>
+
 <!-- NAV -->
 <nav>
-  <a href="/" class="nav-logo">
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-      <rect width="26" height="26" rx="7" fill="#7B6FFF"/>
-      <path d="M13 4 Q19 13 13 22" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M8 4 Q15.5 13 8 22" stroke="white" stroke-width="1.8" stroke-linecap="round" opacity=".35"/>
-      <circle cx="13" cy="4" r="2" fill="white"/>
-      <circle cx="13" cy="22" r="2" fill="white"/>
-    </svg>
-    CortexOps
+  <a href="/" class="nav-logo" style="text-decoration:none">
+    <div class="nav-logo-mark">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M9 2.5 Q13 9 9 15.5" stroke="#1A73E8" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M5 2.5 Q9.5 9 5 15.5" stroke="#1A73E8" stroke-width="1.8" stroke-linecap="round" opacity=".4"/>
+        <circle cx="9" cy="2.5" r="1.6" fill="#1A73E8"/>
+        <circle cx="9" cy="15.5" r="1.6" fill="#1A73E8"/>
+      </svg>
+    </div>
+    <span class="nav-logo-text">CortexOps</span>
   </a>
   <div class="nav-links">
-    <a href="#features" class="nav-link-hide">Features</a>
-    <a href="#observe" class="nav-link-hide">Dashboard</a>
-    <a href="#compare" class="nav-link-hide">vs LangSmith</a>
+    <a href="#observe" class="hide">Dashboard</a>
+    <a href="#features" class="hide">Features</a>
+    <a href="#compare" class="hide">vs LangSmith</a>
     <a href="#pricing">Pricing</a>
-    <a href="https://docs.getcortexops.com" target="_blank" class="nav-link-hide">Docs</a>
-    <a href="https://github.com/ashishodu2023/cortexops" target="_blank" class="nav-link-hide">GitHub</a>
-    <button class="btn-primary nav-cta" onclick="openModal()">Get Pro →</button>
+    <a href="https://docs.getcortexops.com" target="_blank" rel="noopener" class="hide">Docs</a>
+    <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener" class="hide">GitHub</a>
+    <button class="nav-cta" onclick="openModal()">Get started</button>
   </div>
 </nav>
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-grid"></div>
-  <div class="hero-glow"></div>
-  <div class="eyebrow">v0.1.0 live on PyPI — pip install cortexops</div>
-  <h1>Stop shipping agents<br><em>you can't trust</em></h1>
+  <div class="hero-chip">
+    <div class="hero-chip-dot"></div>
+    <span class="hero-chip-text">v0.1.0 live on PyPI — pip install cortexops</span>
+  </div>
+  <h1>Stop shipping agents<br><strong>you can't trust</strong></h1>
   <p class="hero-sub">Evaluate, observe, and gate LangGraph and CrewAI agents before they reach production. Built by a Senior AI Engineer at PayPal.</p>
   <div class="hero-actions">
-    <button class="btn-primary" onclick="openModal()">Start Pro trial — $49/seat →</button>
-    <a href="https://github.com/ashishodu2023/cortexops" class="btn-outline" target="_blank">
+    <button class="btn-primary" onclick="openModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>
+      Start free trial
+    </button>
+    <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener" class="btn-outline">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.09.66-.22.66-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85.004 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.16.58.67.48A10.02 10.02 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
       View on GitHub
     </a>
   </div>
   <div class="hero-code">
-    <div class="code-dots"><span></span><span></span><span></span></div>
-    <pre><span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>, <span class="cf">EvalSuite</span>
+    <div class="code-dots">
+      <span style="background:#EA4335"></span>
+      <span style="background:#FBBC04"></span>
+      <span style="background:#34A853"></span>
+    </div>
+    <pre><span class="ck">from</span> <span class="cv">cortexops</span> <span class="ck">import</span> <span class="cf">CortexTracer</span><span class="cv">, </span><span class="cf">EvalSuite</span>
 
 tracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"payments-agent"</span>, api_key=<span class="cs">"cxo-..."</span>)
 agent  = tracer.wrap(your_langgraph_app)   <span class="cm"># zero refactoring</span>
@@ -267,526 +285,362 @@ results = <span class="cf">EvalSuite</span>.run(
   </div>
 </div>
 
-<!-- STATS -->
-<div class="stats">
-  <div class="stat"><div class="stat-val">5</div><div class="stat-label">Built-in eval metrics</div></div>
-  <div class="stat"><div class="stat-val">1</div><div class="stat-label">Line to instrument any agent</div></div>
-  <div class="stat"><div class="stat-val">33</div><div class="stat-label">Tests passing in CI</div></div>
-  <div class="stat"><div class="stat-val">$49</div><div class="stat-label">Per seat / flat — no trace fees</div></div>
-  <div class="stat"><div class="stat-val">14d</div><div class="stat-label">Free trial — no card needed</div></div>
+<!-- CHIPS BAR -->
+<div class="chips-bar">
+  <div class="chip chip-blue">5 built-in eval metrics</div>
+  <div class="chip chip-green">1-line instrumentation</div>
+  <div class="chip chip-amber">CI gate — blocks PRs</div>
+  <div class="chip chip-red">No per-trace billing</div>
+  <div class="chip chip-blue">MIT licensed · open source</div>
+  <div class="chip chip-green">14-day free trial</div>
 </div>
 
 <!-- DASHBOARD PREVIEW -->
-<section id="observe" style="padding:100px 40px;max-width:1200px;margin:0 auto">
-  <div style="font-family:'DM Mono',monospace;font-size:11px;color:#7B6FFF;text-transform:uppercase;letter-spacing:.14em;margin-bottom:16px">Live observability</div>
-  <h2 style="font-family:'Fraunces',Georgia,serif;font-size:clamp(32px,5vw,52px);font-weight:300;line-height:1.1;letter-spacing:-.02em;margin-bottom:16px">See inside every agent run.<br><em style="font-style:italic;color:#7B6FFF">In real time.</em></h2>
-  <p style="font-size:17px;color:#7070A0;max-width:600px;line-height:1.7;font-weight:300;margin-bottom:60px">Click any trace row to see the node waterfall — exactly which step took how long, which tools were called, and what the output was. This is how you debug a 2am incident in 30 seconds.</p>
+<div style="background:var(--gray-50);border-bottom:1px solid var(--gray-200)">
+<section id="observe">
+  <div class="section-label">Live observability</div>
+  <h2>See inside every agent run.<br><strong>In real time.</strong></h2>
+  <p class="section-sub">Click any trace row to see the node waterfall — exactly which step took how long, which tools were called, and what the output was. Debug a 2am incident in 30 seconds.</p>
 
-  <!-- Dashboard shell -->
-  <div style="background:#0E0E1C;border:1px solid #1E1E3C;border-radius:16px;overflow:hidden;position:relative">
-    <div style="content:'';position:absolute;top:0;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,#7B6FFF,transparent)"></div>
-
-    <!-- Topbar -->
-    <div style="display:flex;align-items:center;padding:0 16px;height:44px;background:#141426;border-bottom:1px solid #1E1E3C;gap:12px;flex-shrink:0">
-      <div style="width:18px;height:18px;background:#6C63FF;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1.2 Q7.5 5 5 8.8" stroke="white" stroke-width="1.1" stroke-linecap="round"/><path d="M2.5 1.2 Q5.5 5 2.5 8.8" stroke="white" stroke-width="1.1" stroke-linecap="round" opacity=".35"/><circle cx="5" cy="1.2" r=".9" fill="white"/><circle cx="5" cy="8.8" r=".9" fill="white"/></svg>
+  <div class="dash-shell">
+    <div class="dash-topbar">
+      <div class="dash-dot-r"></div><div class="dash-dot-y"></div><div class="dash-dot-g"></div>
+      <span style="flex:1;text-align:center;font-size:11px;color:#9AA0A6;font-family:var(--sans)">app.getcortexops.com</span>
+    </div>
+    <div class="dash-bar">
+      <div style="width:18px;height:18px;background:white;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1.2 Q7.5 5 5 8.8" stroke="#1A73E8" stroke-width="1.1" stroke-linecap="round"/><path d="M2.5 1.2 Q5.5 5 2.5 8.8" stroke="#1A73E8" stroke-width="1.1" stroke-linecap="round" opacity=".35"/><circle cx="5" cy="1.2" r=".9" fill="#1A73E8"/><circle cx="5" cy="8.8" r=".9" fill="#1A73E8"/></svg>
       </div>
-      <span style="font-size:12px;font-weight:700;color:#E8E8F0">CortexOps</span>
-      <span style="font-size:9px;color:#3A3A5C">Observability</span>
-      <div style="width:1px;height:14px;background:#1E1E3C"></div>
-      <span style="font-size:9px;color:#6B6B8A">project</span>
-      <span style="background:#161628;border:1px solid #1E1E3C;border-radius:4px;color:#E8E8F0;font-size:10px;padding:2px 8px;font-family:'DM Mono',monospace">payments-agent</span>
+      <span style="font-family:var(--sans);font-size:13px;font-weight:500;color:white">CortexOps</span>
+      <span style="font-size:10px;color:rgba(255,255,255,.5)">Observability</span>
+      <div style="width:1px;height:16px;background:rgba(255,255,255,.2)"></div>
+      <span style="font-size:10px;color:rgba(255,255,255,.7);font-family:var(--sans)">project</span>
+      <span style="background:rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-family:var(--mono);font-size:10px;color:white">payments-agent</span>
       <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
-        <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;animation:livepulse 1.5s infinite"></div>
-        <span style="font-size:10px;color:#00D4A8">Live · 5s</span>
+        <div style="width:6px;height:6px;border-radius:50%;background:#34A853;animation:pulse 1.5s infinite"></div>
+        <span style="font-size:10px;color:#34A853;font-family:var(--sans)">Live · 5s</span>
       </div>
     </div>
-
-    <!-- Metric tiles — 5 col grid, fully inline -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:10px 14px">
-
-      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#00D4A8;opacity:.5"></div>
-        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Task completion</div>
-        <div style="font-size:20px;font-weight:700;color:#00D4A8;letter-spacing:-.03em;line-height:1;margin-bottom:3px">94.2<span style="font-size:9px;font-weight:400;color:#6B6B8A">%</span></div>
-        <div style="font-size:9px;color:#00D4A8;margin-bottom:3px">↑ 2.1%</div>
-        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,16 18,12 36,14 54,8 72,10 90,5 100,4" fill="none" stroke="#00D4A8" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="4" r="2" fill="#00D4A8"/></svg>
+    <div class="dash-tiles">
+      <div class="dash-tile" style="border-left-color:#34A853">
+        <div class="dash-tile-lbl">Task completion</div>
+        <div class="dash-tile-val" style="color:#34A853">94.2<span style="font-size:11px">%</span></div>
+        <div class="dash-tile-delta" style="color:#34A853">↑ 2.1%</div>
+        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,14 20,10 40,12 60,6 80,8 100,4" fill="none" stroke="#34A853" stroke-width="1.4" stroke-linecap="round"/></svg>
       </div>
-
-      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#00D4A8;opacity:.5"></div>
-        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Error rate</div>
-        <div style="font-size:20px;font-weight:700;color:#00D4A8;letter-spacing:-.03em;line-height:1;margin-bottom:3px">2.3<span style="font-size:9px;font-weight:400;color:#6B6B8A">%</span></div>
-        <div style="font-size:9px;color:#00D4A8;margin-bottom:3px">↓ 0.8%</div>
-        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,8 20,12 40,6 60,14 80,8 100,6" fill="none" stroke="#00D4A8" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="6" r="2" fill="#00D4A8"/></svg>
+      <div class="dash-tile" style="border-left-color:#34A853">
+        <div class="dash-tile-lbl">Error rate</div>
+        <div class="dash-tile-val" style="color:#34A853">2.3<span style="font-size:11px">%</span></div>
+        <div class="dash-tile-delta" style="color:#34A853">↓ 0.8%</div>
+        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,8 25,11 50,6 75,12 100,7" fill="none" stroke="#34A853" stroke-width="1.4" stroke-linecap="round"/></svg>
       </div>
-
-      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#FFB547;opacity:.5"></div>
-        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Avg latency</div>
-        <div style="font-size:20px;font-weight:700;color:#FFB547;letter-spacing:-.03em;line-height:1;margin-bottom:3px">487<span style="font-size:9px;font-weight:400;color:#6B6B8A">ms</span></div>
-        <div style="height:9px;margin-bottom:3px"></div>
-        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,10 20,7 40,13 60,9 80,14 100,9" fill="none" stroke="#FFB547" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="9" r="2" fill="#FFB547"/></svg>
+      <div class="dash-tile" style="border-left-color:#FBBC04">
+        <div class="dash-tile-lbl">Avg latency</div>
+        <div class="dash-tile-val" style="color:#FBBC04">487<span style="font-size:11px">ms</span></div>
+        <div class="dash-tile-delta" style="color:#9AA0A6"> </div>
+        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,10 25,7 50,13 75,9 100,11" fill="none" stroke="#FBBC04" stroke-width="1.4" stroke-linecap="round"/></svg>
       </div>
-
-      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#4D9FFF;opacity:.5"></div>
-        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">P95 latency</div>
-        <div style="font-size:20px;font-weight:700;color:#4D9FFF;letter-spacing:-.03em;line-height:1;margin-bottom:3px">1,240<span style="font-size:9px;font-weight:400;color:#6B6B8A">ms</span></div>
-        <div style="height:9px;margin-bottom:3px"></div>
-        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,12 25,9 50,14 75,8 100,11" fill="none" stroke="#4D9FFF" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="11" r="2" fill="#4D9FFF"/></svg>
+      <div class="dash-tile" style="border-left-color:#8AB4F8">
+        <div class="dash-tile-lbl">P95 latency</div>
+        <div class="dash-tile-val" style="color:#8AB4F8">1,240<span style="font-size:11px">ms</span></div>
+        <div class="dash-tile-delta" style="color:#9AA0A6"> </div>
+        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,12 33,9 66,14 100,11" fill="none" stroke="#8AB4F8" stroke-width="1.4" stroke-linecap="round"/></svg>
       </div>
-
-      <div style="background:#161628;border:.5px solid #1E1E3C;border-radius:8px;padding:10px 12px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#6C63FF;opacity:.5"></div>
-        <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Total traces</div>
-        <div style="font-size:20px;font-weight:700;color:#6C63FF;letter-spacing:-.03em;line-height:1;margin-bottom:3px">1,847</div>
-        <div style="height:9px;margin-bottom:3px"></div>
-        <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,16 20,14 40,12 60,10 80,7 100,5" fill="none" stroke="#6C63FF" stroke-width="1.4" stroke-linecap="round"/><circle cx="100" cy="5" r="2" fill="#6C63FF"/></svg>
+      <div class="dash-tile" style="border-left-color:#8AB4F8">
+        <div class="dash-tile-lbl">Total traces</div>
+        <div class="dash-tile-val" style="color:#8AB4F8">1,847</div>
+        <div class="dash-tile-delta" style="color:#9AA0A6"> </div>
+        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,16 25,14 50,11 75,8 100,5" fill="none" stroke="#8AB4F8" stroke-width="1.4" stroke-linecap="round"/></svg>
       </div>
-
     </div>
-
-    <!-- Body: trace list + right panel + waterfall -->
-    <div style="display:flex;height:310px;border-top:1px solid #1E1E3C">
-
-      <!-- Main trace list -->
-      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
-
-        <!-- Tabs -->
-        <div style="display:flex;align-items:center;padding:0 12px;height:34px;border-bottom:1px solid #1E1E3C;gap:3px;flex-shrink:0">
-          <div style="background:#2A2650;color:#6C63FF;border:1px solid rgba(108,99,255,.3);border-radius:4px;font-size:10px;padding:2px 10px;font-weight:600">Traces</div>
-          <div style="color:#6B6B8A;border:1px solid transparent;border-radius:4px;font-size:10px;padding:2px 10px">Evals</div>
-          <div style="color:#6B6B8A;border:1px solid transparent;border-radius:4px;font-size:10px;padding:2px 10px">Errors<span style="margin-left:3px;background:#FF4D6A;color:white;border-radius:99px;font-size:7px;padding:1px 4px">3</span></div>
-          <div style="margin-left:auto;display:flex;gap:3px">
-            <div style="background:#161628;border:1px solid #1E1E3C;border-radius:4px;color:#E8E8F0;font-size:9px;padding:2px 7px">all</div>
-            <div style="color:#6B6B8A;border:1px solid transparent;border-radius:4px;font-size:9px;padding:2px 7px">completed</div>
-            <div style="color:#6B6B8A;border:1px solid transparent;border-radius:4px;font-size:9px;padding:2px 7px">failed</div>
-          </div>
-        </div>
-
-        <!-- Column headers -->
-        <div style="display:flex;align-items:center;gap:10px;padding:4px 12px;border-bottom:.5px solid #1E1E3C;flex-shrink:0;font-size:8px;color:#3A3A5C;text-transform:uppercase;letter-spacing:.07em">
+    <div class="dash-body">
+      <div class="dash-list">
+        <div class="dash-thead">
           <div style="min-width:5px"></div>
           <div style="min-width:52px">ID</div>
           <div style="flex:1">Case</div>
-          <div style="min-width:44px;text-align:right">Latency</div>
+          <div style="min-width:50px;text-align:right">Latency</div>
           <div style="min-width:80px">Failure</div>
           <div style="min-width:60px;text-align:right">Time</div>
         </div>
-
-        <!-- Trace rows -->
-        <div style="flex:1;overflow-y:auto">
-
-          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;background:rgba(22,22,40,.6);font-size:10px">
-            <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;flex-shrink:0"></div>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">4398c8e8</span>
-            <span style="flex:1;color:#E8E8F0">refund_approved</span>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#00D4A8;min-width:44px;text-align:right">342ms</span>
-            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
-            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:24:11</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
-            <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;flex-shrink:0"></div>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">b21fa3c2</span>
-            <span style="flex:1;color:#E8E8F0">balance_check</span>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#00D4A8;min-width:44px;text-align:right">198ms</span>
-            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
-            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:24:08</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
-            <div style="width:5px;height:5px;border-radius:50%;background:#FF4D6A;flex-shrink:0"></div>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">9f3e1d77</span>
-            <span style="flex:1;color:#E8E8F0">dispute_escalation</span>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#FF4D6A;min-width:44px;text-align:right">3,240ms</span>
-            <span style="min-width:80px;font-size:8px"><span style="background:rgba(255,77,106,.15);color:#FF4D6A;padding:1px 5px;border-radius:2px;font-family:'DM Mono',monospace">TIMEOUT</span></span>
-            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:55</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
-            <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;flex-shrink:0"></div>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">c84ab910</span>
-            <span style="flex:1;color:#E8E8F0">refund_approved</span>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#00D4A8;min-width:44px;text-align:right">287ms</span>
-            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
-            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:41</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
-            <div style="width:5px;height:5px;border-radius:50%;background:#FFB547;flex-shrink:0"></div>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">e12cd456</span>
-            <span style="flex:1;color:#E8E8F0">kyc_verification</span>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#FFB547;min-width:44px;text-align:right">743ms</span>
-            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
-            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:30</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
-            <div style="width:5px;height:5px;border-radius:50%;background:#FF4D6A;flex-shrink:0"></div>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">a77bf219</span>
-            <span style="flex:1;color:#E8E8F0">fraud_detection</span>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#FF4D6A;min-width:44px;text-align:right">1,820ms</span>
-            <span style="min-width:80px;font-size:8px"><span style="background:rgba(255,77,106,.15);color:#FF4D6A;padding:1px 5px;border-radius:2px;font-family:'DM Mono',monospace">HALLUCI...</span></span>
-            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:18</span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:.5px solid #1E1E3C;font-size:10px">
-            <div style="width:5px;height:5px;border-radius:50%;background:#00D4A8;flex-shrink:0"></div>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6B8A;min-width:52px">3d9e2f88</span>
-            <span style="flex:1;color:#E8E8F0">payment_routing</span>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#00D4A8;min-width:44px;text-align:right">412ms</span>
-            <span style="min-width:80px;font-size:8px;color:#3A3A5C">—</span>
-            <span style="font-size:8px;color:#6B6B8A;min-width:60px;text-align:right">09:23:05</span>
-          </div>
-
-        </div>
+        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">4398c8e8</span><span style="flex:1;color:#E8EAED">refund_approved</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">342ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:24:11</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">b21fa3c2</span><span style="flex:1;color:#E8EAED">balance_check</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">198ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:24:08</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#EA4335"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">9f3e1d77</span><span style="flex:1;color:#E8EAED">dispute_escalation</span><span style="font-family:var(--mono);font-size:9px;color:#EA4335;min-width:50px;text-align:right">3,240ms</span><span style="min-width:80px;font-size:8px"><span style="background:rgba(234,67,53,.15);color:#EA4335;padding:1px 5px;border-radius:3px;font-family:var(--mono)">TIMEOUT</span></span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:55</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">c84ab910</span><span style="flex:1;color:#E8EAED">refund_approved</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">287ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:41</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#FBBC04"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">e12cd456</span><span style="flex:1;color:#E8EAED">kyc_verification</span><span style="font-family:var(--mono);font-size:9px;color:#FBBC04;min-width:50px;text-align:right">743ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:30</span></div>
+        <div class="dash-row"><div class="sdot" style="background:#EA4335"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">a77bf219</span><span style="flex:1;color:#E8EAED">fraud_detection</span><span style="font-family:var(--mono);font-size:9px;color:#EA4335;min-width:50px;text-align:right">1,820ms</span><span style="min-width:80px;font-size:8px"><span style="background:rgba(234,67,53,.15);color:#EA4335;padding:1px 5px;border-radius:3px;font-family:var(--mono)">HALLUCI...</span></span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:18</span></div>
       </div>
-
-      <!-- Right health panel -->
-      <div style="width:175px;border-left:1px solid #1E1E3C;background:#141426;padding:10px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;overflow:auto">
-
-        <div>
-          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Health</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:.5px solid #1E1E3C"><span style="font-size:9px;color:#6B6B8A">Success rate</span><span style="font-size:10px;font-family:'DM Mono',monospace;color:#00D4A8;font-weight:500">97.7%</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:.5px solid #1E1E3C"><span style="font-size:9px;color:#6B6B8A">Eval gate</span><span style="font-size:10px;font-family:'DM Mono',monospace;color:#00D4A8;font-weight:500">Passing</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0"><span style="font-size:9px;color:#6B6B8A">Regressions</span><span style="font-size:10px;font-family:'DM Mono',monospace;color:#00D4A8;font-weight:500">0</span></div>
-        </div>
-
-        <div>
-          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Failures</div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:.5px solid #1E1E3C"><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">TIMEOUT</span><span style="font-size:10px;color:#FF4D6A;font-weight:600">2</span></div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">HALLUCIN...</span><span style="font-size:10px;color:#FF4D6A;font-weight:600">1</span></div>
-        </div>
-
-        <div>
-          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Latency dist.</div>
-          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:8px;color:#6B6B8A">&lt;200ms</span><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">312</span></div><div style="height:3px;background:#1E1E3C;border-radius:2px"><div style="width:42%;height:100%;background:#00D4A8;border-radius:2px"></div></div></div>
-          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:8px;color:#6B6B8A">200–500ms</span><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">498</span></div><div style="height:3px;background:#1E1E3C;border-radius:2px"><div style="width:68%;height:100%;background:#00D4A8;border-radius:2px"></div></div></div>
-          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:8px;color:#6B6B8A">500ms–1s</span><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">87</span></div><div style="height:3px;background:#1E1E3C;border-radius:2px"><div style="width:22%;height:100%;background:#FFB547;border-radius:2px"></div></div></div>
-          <div><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:8px;color:#6B6B8A">&gt;1s</span><span style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace">23</span></div><div style="height:3px;background:#1E1E3C;border-radius:2px"><div style="width:8%;height:100%;background:#FF4D6A;border-radius:2px"></div></div></div>
-        </div>
-
-        <div style="margin-top:auto;padding-top:8px;border-top:.5px solid #1E1E3C">
-          <div style="font-size:8px;color:#3A3A5C;font-family:'DM Mono',monospace">api.getcortexops.com</div>
-          <div style="font-size:8px;color:#3A3A5C;margin-top:2px">payments-agent</div>
-        </div>
+      <div class="dash-right">
+        <div class="dr-lbl">Health</div>
+        <div class="dr-row"><span style="color:#9AA0A6">Success</span><span style="color:#34A853;font-weight:600">97.7%</span></div>
+        <div class="dr-row"><span style="color:#9AA0A6">Eval gate</span><span style="color:#34A853;font-weight:600">Passing</span></div>
+        <div class="dr-row" style="border:none"><span style="color:#9AA0A6">Regressions</span><span style="color:#34A853;font-weight:600">0</span></div>
+        <div class="dr-lbl" style="margin-top:12px">Failures</div>
+        <div class="dr-row"><span style="font-family:var(--mono);font-size:8px;color:#9AA0A6">TIMEOUT</span><span style="color:#EA4335;font-weight:600">2</span></div>
+        <div class="dr-row" style="border:none"><span style="font-family:var(--mono);font-size:8px;color:#9AA0A6">HALLUCI...</span><span style="color:#EA4335;font-weight:600">1</span></div>
+        <div class="dr-lbl" style="margin-top:12px">Latency</div>
+        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:8px;color:#9AA0A6;margin-bottom:2px"><span>&lt;200ms</span><span>312</span></div><div style="height:3px;background:#3D3D3D;border-radius:2px"><div style="width:42%;height:100%;background:#34A853;border-radius:2px"></div></div></div>
+        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:8px;color:#9AA0A6;margin-bottom:2px"><span>200–500</span><span>498</span></div><div style="height:3px;background:#3D3D3D;border-radius:2px"><div style="width:68%;height:100%;background:#34A853;border-radius:2px"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:8px;color:#9AA0A6;margin-bottom:2px"><span>&gt;1s</span><span>23</span></div><div style="height:3px;background:#3D3D3D;border-radius:2px"><div style="width:8%;height:100%;background:#EA4335;border-radius:2px"></div></div></div>
       </div>
-
-      <!-- Waterfall panel -->
-      <div style="width:270px;border-left:1px solid #1E1E3C;background:#161628;display:flex;flex-direction:column;flex-shrink:0">
-        <div style="padding:10px 12px;border-bottom:1px solid #1E1E3C;display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-size:11px;font-weight:600;color:#E8E8F0">Trace detail</div>
-            <div style="font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace;margin-top:1px">4398c8e8-b1e1-4012...</div>
-          </div>
-          <span style="color:#6B6B8A;font-size:14px">×</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:10px 12px">
-          <div style="background:#11111F;border-radius:5px;padding:7px 8px;border:.5px solid #1E1E3C"><div style="font-size:7px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Status</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:#00D4A8">completed</div></div>
-          <div style="background:#11111F;border-radius:5px;padding:7px 8px;border:.5px solid #1E1E3C"><div style="font-size:7px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Latency</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:#FFB547">342ms</div></div>
-          <div style="background:#11111F;border-radius:5px;padding:7px 8px;border:.5px solid #1E1E3C"><div style="font-size:7px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Environment</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:#4D9FFF">production</div></div>
-          <div style="background:#11111F;border-radius:5px;padding:7px 8px;border:.5px solid #1E1E3C"><div style="font-size:7px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Failure</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:#6B6B8A">none</div></div>
-        </div>
-        <div style="padding:0 12px 10px">
-          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Node waterfall</div>
-          <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:.5px solid #1E1E3C">
-            <div style="width:80px;font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">lookup_refund</div>
-            <div style="flex:1;height:12px;background:#11111F;border-radius:2px;overflow:hidden"><div style="width:35%;height:100%;background:#00D4A8;border-radius:2px;opacity:.8"></div></div>
-            <div style="width:36px;font-size:8px;font-family:'DM Mono',monospace;color:#00D4A8;text-align:right">120ms</div>
-            <span style="font-size:7px;background:#00342A;color:#00D4A8;padding:1px 3px;border-radius:2px;font-family:'DM Mono',monospace">✓</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:.5px solid #1E1E3C">
-            <div style="width:80px;font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">validate_policy</div>
-            <div style="flex:1;height:12px;background:#11111F;border-radius:2px;overflow:hidden"><div style="width:20%;height:100%;background:#00D4A8;border-radius:2px;opacity:.8"></div></div>
-            <div style="width:36px;font-size:8px;font-family:'DM Mono',monospace;color:#00D4A8;text-align:right">68ms</div>
-            <span style="font-size:7px;background:#00342A;color:#00D4A8;padding:1px 3px;border-radius:2px;font-family:'DM Mono',monospace">✓</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;padding:3px 0">
-            <div style="width:80px;font-size:8px;color:#6B6B8A;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">generate_response</div>
-            <div style="flex:1;height:12px;background:#11111F;border-radius:2px;overflow:hidden"><div style="width:45%;height:100%;background:#FFB547;border-radius:2px;opacity:.8"></div></div>
-            <div style="width:36px;font-size:8px;font-family:'DM Mono',monospace;color:#FFB547;text-align:right">154ms</div>
-            <span style="font-size:7px;background:#3A2800;color:#FFB547;padding:1px 3px;border-radius:2px;font-family:'DM Mono',monospace">llm</span>
-          </div>
-        </div>
-        <div style="padding:0 12px 10px">
-          <div style="font-size:8px;color:#6B6B8A;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Output</div>
-          <div style="background:#0A0A12;border-radius:6px;padding:8px;border:.5px solid #1E1E3C;font-family:'DM Mono',monospace;font-size:8px;color:#00D4A8;white-space:pre-wrap">{"result": "refund approved",
- "order_id": "ORD-8821",
- "amount": "$124.99",
- "confidence": 0.97}</div>
-        </div>
-      </div>
-
     </div>
   </div>
-
-  <style>@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+  <div style="text-align:center;margin-top:20px">
+    <a href="https://app.getcortexops.com" target="_blank" rel="noopener" class="btn-outline">Open live dashboard →</a>
+  </div>
 </section>
-
+</div>
 
 <!-- HOW IT WORKS -->
+<div style="background:white;border-top:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200)">
 <section id="how">
   <div class="section-label">How it works</div>
-  <h2>From <em>prototype</em> to trusted production</h2>
-  <p class="section-sub">Four steps between a working demo and an agent you can actually ship with confidence.</p>
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="how-num">01 — INSTRUMENT</div>
-      <div class="how-title">Wrap any agent in one line</div>
-      <div class="how-desc">CortexTracer auto-detects LangGraph, CrewAI, or any Python callable. No refactoring, no decorators, no config files.</div>
-      <div class="how-code"><span class="ck">tracer</span> = CortexTracer(project=<span class="cs">"my-agent"</span>)
-agent = tracer.wrap(your_agent)</div>
+  <h2>From prototype to<br><strong>trusted production</strong></h2>
+  <p class="section-sub">Four steps. No refactoring. Works with any LangGraph or CrewAI agent.</p>
+  <div class="stepper">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-title">Instrument</div>
+      <div class="step-desc">Wrap any agent in one line. CortexTracer auto-detects LangGraph and CrewAI.</div>
+      <div class="step-code">tracer = CortexTracer(project="my-agent")
+agent = tracer.wrap(your_app)</div>
     </div>
-    <div class="how-card">
-      <div class="how-num">02 — DEFINE</div>
-      <div class="how-title">Write golden datasets in YAML</div>
-      <div class="how-desc">Define what correct looks like — expected keywords, tool calls, latency budgets. One YAML file per agent workflow.</div>
-      <div class="how-code"><span class="ck">cases</span>:
-  - id: refund_approved
-    expected_output_contains: [refund, approved]
-    expected_tool_calls: [lookup_refund]</div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-title">Define</div>
+      <div class="step-desc">Write golden datasets in YAML. Expected keywords, tool calls, latency budgets.</div>
+      <div class="step-code">expected_output_contains:
+  - refund
+  - approved
+max_latency_ms: 3000</div>
     </div>
-    <div class="how-card">
-      <div class="how-num">03 — GATE</div>
-      <div class="how-title">Block PRs when quality drops</div>
-      <div class="how-desc">One fail_on expression in GitHub Actions. When task completion drops below your threshold, the merge is blocked — automatically.</div>
-      <div class="how-code">EvalSuite.run(
-    dataset=<span class="cs">"golden_v1.yaml"</span>,
-    fail_on=<span class="cs">"task_completion &lt; 0.90"</span>
-)</div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-title">Gate</div>
+      <div class="step-desc">One fail_on expression. PRs are blocked when quality drops — automatically.</div>
+      <div class="step-code">EvalSuite.run(
+  fail_on="task_completion
+    &lt; 0.90")</div>
     </div>
-    <div class="how-card">
-      <div class="how-num">04 — OBSERVE</div>
-      <div class="how-title">Live traces + Slack alerts</div>
-      <div class="how-desc">Every production run is traced — latency, tool calls, failure kind. Slack alert fires the moment something regresses.</div>
-      <div class="how-code">GET /v1/traces?project=payments-agent
-<span class="cm">→ node waterfall, tool calls, failure detail</span></div>
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-title">Observe</div>
+      <div class="step-desc">Live traces, Slack alerts, waterfall debug view. Root cause in 30 seconds.</div>
+      <div class="step-code">GET /v1/traces
+  ?project=payments
+→ node waterfall</div>
     </div>
   </div>
 </section>
+</div>
 
 <!-- FEATURES -->
+<div style="background:var(--gray-50);border-bottom:1px solid var(--gray-200)">
 <section id="features">
   <div class="section-label">Features</div>
-  <h2>Everything your agent needs<br><em>to ship safely</em></h2>
-  <div class="features-grid">
-    <div class="feat">
-      <div class="feat-icon" style="background:var(--p-dim)">⚡</div>
-      <div class="feat-title">Zero-config instrumentation</div>
-      <div class="feat-desc">Wraps LangGraph, CrewAI, or any callable with one line. No decorators, no config files, no refactoring.</div>
-      <span class="tag tag-free">Free</span>
+  <h2>Everything your agent needs<br><strong>to ship safely</strong></h2>
+  <div class="cards-3">
+    <div class="card">
+      <div class="card-icon" style="background:var(--blue-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="#1A73E8"><path d="M10 2l1.5 4.5H16l-3.7 2.7 1.4 4.3L10 11l-3.7 2.5 1.4-4.3L4 6.5h4.5z"/></svg></div>
+      <div class="card-title">Zero-config instrumentation</div>
+      <div class="card-body">Wraps LangGraph, CrewAI, or any callable with one line. No decorators, no config files, no refactoring.</div>
+      <div style="margin-top:12px"><span class="chip chip-green" style="font-size:11px;padding:3px 10px">Free</span></div>
     </div>
-    <div class="feat">
-      <div class="feat-icon" style="background:var(--t-dim)">🎯</div>
-      <div class="feat-title">Golden dataset evals</div>
-      <div class="feat-desc">YAML-based test cases with expected outputs, tool calls, latency budgets. Run locally or in CI.</div>
-      <span class="tag tag-free">Free</span>
+    <div class="card">
+      <div class="card-icon" style="background:var(--green-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="#137333"><path d="M8 4l6 6-6 6" stroke="#137333" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
+      <div class="card-title">Golden dataset evals</div>
+      <div class="card-body">YAML-based test cases with expected outputs, tool calls, and latency budgets. Run locally or in CI.</div>
+      <div style="margin-top:12px"><span class="chip chip-green" style="font-size:11px;padding:3px 10px">Free</span></div>
     </div>
-    <div class="feat">
-      <div class="feat-icon" style="background:var(--a-dim)">🚦</div>
-      <div class="feat-title">CI eval gate</div>
-      <div class="feat-desc">Block PRs with a single <code>fail_on</code> expression. Works with GitHub Actions, GitLab CI, any CI system.</div>
-      <span class="tag tag-free">Free</span>
+    <div class="card">
+      <div class="card-icon" style="background:var(--amber-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#B06000" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 6v5l3 2" stroke-linecap="round"/></svg></div>
+      <div class="card-title">CI eval gate</div>
+      <div class="card-body">Block PRs with a single fail_on expression. Works with GitHub Actions, GitLab CI, any CI system.</div>
+      <div style="margin-top:12px"><span class="chip chip-green" style="font-size:11px;padding:3px 10px">Free</span></div>
     </div>
-    <div class="feat">
-      <div class="feat-icon" style="background:var(--p-dim)">📡</div>
-      <div class="feat-title">Hosted trace storage</div>
-      <div class="feat-desc">90-day retention. Node waterfall, tool calls, latency breakdown. Query via API or live dashboard.</div>
-      <span class="tag tag-pro">Pro</span>
+    <div class="card">
+      <div class="card-icon" style="background:var(--blue-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1A73E8" stroke-width="1.5"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M2 7h16" stroke-linecap="round"/></svg></div>
+      <div class="card-title">Hosted trace storage</div>
+      <div class="card-body">90-day retention. Node waterfall, tool calls, latency breakdown. Live dashboard at app.getcortexops.com.</div>
+      <div style="margin-top:12px"><span class="chip chip-blue" style="font-size:11px;padding:3px 10px">Pro</span></div>
     </div>
-    <div class="feat">
-      <div class="feat-icon" style="background:var(--r-dim)">🔔</div>
-      <div class="feat-title">Slack + webhook alerts</div>
-      <div class="feat-desc">Get paged when production regresses — before your users notice. Configurable thresholds per project.</div>
-      <span class="tag tag-pro">Pro</span>
+    <div class="card">
+      <div class="card-icon" style="background:var(--red-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#C5221F" stroke-width="1.5"><path d="M10 2v4M10 14v4M4.22 4.22l2.83 2.83M12.95 12.95l2.83 2.83M2 10h4M14 10h4" stroke-linecap="round"/></svg></div>
+      <div class="card-title">Slack + webhook alerts</div>
+      <div class="card-body">Get paged when production regresses — before your users notice. Configurable thresholds per project.</div>
+      <div style="margin-top:12px"><span class="chip chip-blue" style="font-size:11px;padding:3px 10px">Pro</span></div>
     </div>
-    <div class="feat">
-      <div class="feat-icon" style="background:var(--t-dim)">🧑‍⚖️</div>
-      <div class="feat-title">LLM-as-judge scoring</div>
-      <div class="feat-desc">GPT-4o evaluates open-ended outputs against natural language criteria. Heuristic fallback always included.</div>
-      <span class="tag tag-pro">Pro</span>
+    <div class="card">
+      <div class="card-icon" style="background:var(--green-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#137333" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M7 10l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-title">LLM-as-judge scoring</div>
+      <div class="card-body">GPT-4o evaluates open-ended outputs against your criteria. Heuristic fallback always included.</div>
+      <div style="margin-top:12px"><span class="chip chip-blue" style="font-size:11px;padding:3px 10px">Pro</span></div>
     </div>
   </div>
 </section>
-
-
-
-
+</div>
 
 <!-- VS LANGSMITH -->
+<div style="background:white;border-bottom:1px solid var(--gray-200)">
 <section id="compare">
   <div class="section-label">vs LangSmith</div>
-  <h2>Know your bill before<br><em>you ship</em></h2>
-  <p class="section-sub">LangSmith is $39/seat plus $2.50–$5.00 per 1,000 traces. At 50k traces/month that's $164 per seat. CortexOps is $49/seat. Flat.</p>
-  <div class="vs-wrap">
-    <div class="vs-header">
+  <h2>Know your bill<br><strong>before you ship</strong></h2>
+  <p class="section-sub">LangSmith charges $39/seat plus $2.50–$5.00 per 1,000 traces. At 50k traces/month that's $164 per seat. CortexOps is $49/seat. Flat.</p>
+  <div class="vs-table">
+    <div class="vs-head">
       <div>Capability</div>
       <div class="winner">CortexOps</div>
       <div>LangSmith</div>
     </div>
-    <div class="vs-row"><div>Pricing model</div><div class="highlight check">$49/seat flat</div><div class="neutral">$39/seat + trace fees</div></div>
-    <div class="vs-row"><div>Trace cost</div><div class="check">Unlimited — included</div><div class="neutral">$2.50–$5.00 / 1k traces</div></div>
+    <div class="vs-row"><div>Pricing model</div><div class="check">$49/seat flat</div><div class="neutral">$39/seat + trace fees</div></div>
+    <div class="vs-row"><div>Trace cost</div><div class="check">Unlimited — included</div><div class="neutral">$2.50–$5.00 / 1k</div></div>
     <div class="vs-row"><div>CI eval gate</div><div class="check">1-line fail_on</div><div class="neutral">Manual setup required</div></div>
     <div class="vs-row"><div>Framework lock-in</div><div class="check">None — any agent</div><div class="neutral">Best with LangChain</div></div>
-    <div class="vs-row"><div>Payments domain depth</div><div class="check">Built-in templates</div><div class="cross">Not available</div></div>
+    <div class="vs-row"><div>Payments domain</div><div class="check">Built-in templates</div><div class="cross">Not available</div></div>
     <div class="vs-row"><div>Free local evals</div><div class="check">Unlimited</div><div class="neutral">5k traces/month</div></div>
-    <div class="vs-row"><div>Trace retention (free)</div><div class="check">Unlimited local</div><div class="neutral">14 days</div></div>
     <div class="vs-row"><div>Open source</div><div class="check">MIT licensed</div><div class="neutral">Proprietary</div></div>
-    <div class="vs-row"><div>Payments by</div><div class="check">Stripe</div><div class="neutral">Stripe</div></div>
   </div>
 </section>
+</div>
 
 <!-- PRICING -->
+<div style="background:var(--gray-50);border-bottom:1px solid var(--gray-200)">
 <section id="pricing">
   <div class="section-label">Pricing</div>
-  <h2>Start free.<br><em>Scale with your agents.</em></h2>
-  <p class="section-sub">No credit card required for free tier. Pro starts with a 14-day trial — cancel anytime via Stripe dashboard.</p>
+  <h2>Start free.<br><strong>Scale with your agents.</strong></h2>
+  <p class="section-sub">No credit card required for free tier. Pro starts with a 14-day trial — cancel anytime.</p>
   <div class="pricing-grid">
-
     <div class="price-card">
       <div class="price-tier">Free</div>
       <div class="price-val">$0</div>
       <div class="price-desc">Full SDK, unlimited local evals, CI gate. Forever free.</div>
+      <div class="price-divider"></div>
       <ul class="price-feats">
-        <li><span class="ok">+</span> pip install cortexops</li>
-        <li><span class="ok">+</span> Unlimited local eval runs</li>
-        <li><span class="ok">+</span> GitHub Actions CI gate</li>
-        <li><span class="ok">+</span> Golden dataset YAML format</li>
-        <li><span class="ok">+</span> CLI tool</li>
+        <li><span class="ok">✓</span> pip install cortexops</li>
+        <li><span class="ok">✓</span> Unlimited local eval runs</li>
+        <li><span class="ok">✓</span> GitHub Actions CI gate</li>
+        <li><span class="ok">✓</span> Golden dataset YAML format</li>
+        <li><span class="ok">✓</span> CLI tool</li>
       </ul>
-      <a href="https://github.com/ashishodu2023/cortexops" target="_blank"><button class="price-btn price-btn-ghost">Get started free</button></a>
+      <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener" style="text-decoration:none;display:block"><button class="btn-price-outline">Get started free</button></a>
     </div>
-
     <div class="price-card featured">
-      <div class="popular">Most popular</div>
+      <div class="popular-badge">Most popular</div>
       <div class="price-tier">Pro</div>
       <div class="price-val">$49<span> / seat / mo</span></div>
-      <div class="price-desc">Hosted traces, Slack alerts, dashboard. 14-day free trial.</div>
+      <div class="price-desc">Hosted traces, live dashboard, Slack alerts. 14-day free trial.</div>
+      <div class="price-divider"></div>
       <ul class="price-feats">
-        <li><span class="ok">+</span> Everything in Free</li>
-        <li><span class="ok">+</span> Hosted traces — 90 days</li>
-        <li><span class="ok">+</span> Live observability dashboard</li>
-        <li><span class="ok">+</span> Slack + webhook alerts</li>
-        <li><span class="ok">+</span> LLM-as-judge scoring</li>
-        <li><span class="ok">+</span> Prompt version history</li>
+        <li><span class="ok">✓</span> Everything in Free</li>
+        <li><span class="ok">✓</span> Hosted traces — 90 days</li>
+        <li><span class="ok">✓</span> Live observability dashboard</li>
+        <li><span class="ok">✓</span> Slack + webhook alerts</li>
+        <li><span class="ok">✓</span> LLM-as-judge scoring</li>
+        <li><span class="ok">✓</span> Prompt version history</li>
       </ul>
-      <button class="price-btn price-btn-primary" onclick="openModal()">Start 14-day trial →</button>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--d);display:flex;align-items:center;justify-content:center;gap:5px">
-        <svg width="10" height="12" viewBox="0 0 10 12" fill="none"><rect x="1" y="5" width="8" height="7" rx="1.5" stroke="#2A2A50" stroke-width="1.2"/><path d="M3 5V3.5a2 2 0 014 0V5" stroke="#2A2A50" stroke-width="1.2"/></svg>
-        Secured by Stripe · Cancel anytime
-      </div>
+      <button class="btn-price-primary" onclick="openModal()">Start 14-day trial →</button>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--gray-500)">Secured by Stripe · Cancel anytime</div>
     </div>
-
     <div class="price-card">
       <div class="price-tier">Enterprise</div>
       <div class="price-val">Custom</div>
       <div class="price-desc">VPC deployment, SSO, SLA guarantee, dedicated support.</div>
+      <div class="price-divider"></div>
       <ul class="price-feats">
-        <li><span class="ok">+</span> Everything in Pro</li>
-        <li><span class="ok">+</span> VPC / on-prem deployment</li>
-        <li><span class="ok">+</span> SSO / SAML</li>
-        <li><span class="ok">+</span> Custom data retention</li>
-        <li><span class="ok">+</span> SLA guarantee</li>
-        <li><span class="ok">+</span> Dedicated Slack channel</li>
+        <li><span class="ok">✓</span> Everything in Pro</li>
+        <li><span class="ok">✓</span> VPC / on-prem deployment</li>
+        <li><span class="ok">✓</span> SSO / SAML</li>
+        <li><span class="ok">✓</span> Custom data retention</li>
+        <li><span class="ok">✓</span> SLA guarantee</li>
       </ul>
-      <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Enterprise%20Inquiry"><button class="price-btn price-btn-ghost">Talk to us</button></a>
+      <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Enterprise%20Inquiry" style="text-decoration:none;display:block"><button class="btn-price-outline">Talk to us</button></a>
     </div>
-
   </div>
 </section>
+</div>
 
 <!-- DOCS PREVIEW -->
+<div style="background:white;border-bottom:1px solid var(--gray-200)">
 <section id="docs">
   <div class="section-label">Documentation</div>
-  <h2>Everything you need,<br><em>right here</em></h2>
-  <p class="section-sub">Complete docs at <a href="https://docs.getcortexops.com" target="_blank">docs.getcortexops.com</a> — no GitHub redirect, no markdown files to navigate.</p>
-  <div class="docs-preview">
+  <h2>Complete docs at<br><a href="https://docs.getcortexops.com" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600;text-decoration:none">docs.getcortexops.com</a></h2>
+  <p class="section-sub">18 pages covering installation, golden datasets, CI gate, LangGraph, CrewAI, API reference, and more. No GitHub redirect.</p>
+  <div class="docs-shell">
     <div class="docs-sidebar">
-      <div class="docs-nav-label">Getting started</div>
-      <div class="docs-nav-item active" onclick="switchDoc('quickstart',this)">Quickstart</div>
-      <div class="docs-nav-item" onclick="switchDoc('ci',this)">CI eval gate</div>
-      <div class="docs-nav-item" onclick="switchDoc('langgraph',this)">LangGraph</div>
-      <div class="docs-nav-label">API reference</div>
-      <div class="docs-nav-item" onclick="switchDoc('api',this)">Traces API</div>
-      <div class="docs-nav-item" onclick="switchDoc('sdk',this)">SDK reference</div>
+      <div class="docs-nav-section">Getting started</div>
+      <a class="docs-nav-item active" onclick="switchDoc('quickstart',this)">Quickstart</a>
+      <a class="docs-nav-item" onclick="switchDoc('ci',this)">CI eval gate</a>
+      <a class="docs-nav-item" onclick="switchDoc('langgraph',this)">LangGraph</a>
+      <div class="docs-nav-section">API reference</div>
+      <a class="docs-nav-item" onclick="switchDoc('api',this)">Traces API</a>
+      <a class="docs-nav-item" onclick="switchDoc('sdk',this)">SDK reference</a>
     </div>
     <div class="docs-content" id="docs-content">
       <h3>Quickstart</h3>
       <p>Install the SDK and run your first eval in under 2 minutes.</p>
-      <pre><span class="cm"># Install</span>
+      <pre><span class="ck"># Install</span>
 pip install cortexops
 
-<span class="cm"># Run your first eval</span>
 <span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>, <span class="cf">EvalSuite</span>
 
-<span class="ck">def</span> <span class="cf">my_agent</span>(input_data):
-    <span class="ck">return</span> {<span class="cs">"output"</span>: <span class="cs">"refund approved for your order"</span>}
+tracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)
+agent  = tracer.wrap(my_agent)
 
 results = <span class="cf">EvalSuite</span>.run(
-    dataset={
-        <span class="cs">"project"</span>: <span class="cs">"my-agent"</span>,
-        <span class="cs">"cases"</span>: [{
-            <span class="cs">"id"</span>: <span class="cs">"refund_test"</span>,
-            <span class="cs">"input"</span>: {<span class="cs">"query"</span>: <span class="cs">"process my refund"</span>},
-            <span class="cs">"expected_output_contains"</span>: [<span class="cs">"refund"</span>, <span class="cs">"approved"</span>],
-        }]
-    },
-    agent=my_agent,
-    verbose=<span class="cf">True</span>,
+    dataset=<span class="cs">"golden_v1.yaml"</span>,
+    agent=agent,
+    verbose=<span class="cv">True</span>,
 )</pre>
     </div>
   </div>
-  <div style="text-align:center;margin-top:28px">
-    <a href="https://docs.getcortexops.com" target="_blank" class="btn-outline" style="display:inline-flex">Read full docs →</a>
+  <div style="text-align:center;margin-top:24px">
+    <a href="https://docs.getcortexops.com" target="_blank" rel="noopener" class="btn-outline">Read full docs →</a>
   </div>
 </section>
+</div>
 
 <!-- FOOTER -->
-<div class="divider"></div>
 <footer>
-  <div class="footer-brand">
-    <div class="nav-logo" style="margin-bottom:0">
-      <svg width="22" height="22" viewBox="0 0 26 26" fill="none">
-        <rect width="26" height="26" rx="7" fill="#7B6FFF"/>
-        <path d="M13 4 Q19 13 13 22" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M8 4 Q15.5 13 8 22" stroke="white" stroke-width="1.8" stroke-linecap="round" opacity=".35"/>
-        <circle cx="13" cy="4" r="2" fill="white"/>
-        <circle cx="13" cy="22" r="2" fill="white"/>
-      </svg>
-      CortexOps
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:28px;height:28px;background:#1A73E8;border-radius:6px;display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2 Q11.5 8 8 14" stroke="white" stroke-width="1.6" stroke-linecap="round"/><path d="M4.5 2 Q8.5 8 4.5 14" stroke="white" stroke-width="1.6" stroke-linecap="round" opacity=".4"/><circle cx="8" cy="2" r="1.4" fill="white"/><circle cx="8" cy="14" r="1.4" fill="white"/></svg>
+          </div>
+          <div class="footer-brand-name">CortexOps</div>
+        </div>
+        <div class="footer-brand-desc">Reliability infrastructure for AI agents. Built by a Senior AI Engineer at PayPal. MIT licensed.</div>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="#observe">Dashboard</a>
+        <a href="#features">Features</a>
+        <a href="#compare">vs LangSmith</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+      <div class="footer-col">
+        <h4>Developers</h4>
+        <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://pypi.org/project/cortexops" target="_blank" rel="noopener">PyPI</a>
+        <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
+        <a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">API reference</a>
+        <a href="https://docs.getcortexops.com/#changelog">Changelog</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Inquiry">Contact</a>
+        <a href="https://www.linkedin.com/in/ashishodu2023/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://app.getcortexops.com" target="_blank" rel="noopener">Dashboard</a>
+      </div>
     </div>
-    <p class="tagline">Reliability infrastructure for AI agents. Built by a Senior AI Engineer at PayPal. Payments by Stripe.</p>
-  </div>
-  <div class="footer-links">
-    <div class="footer-col">
-      <h4>Product</h4>
-      <a href="#how">How it works</a>
-      <a href="#observe">Dashboard</a>
-      <a href="#features">Features</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#compare">vs LangSmith</a>
-      <a href="https://docs.getcortexops.com" target="_blank">Docs</a>
-    </div>
-    <div class="footer-col">
-      <h4>Developers</h4>
-      <a href="https://github.com/ashishodu2023/cortexops" target="_blank">GitHub</a>
-      <a href="https://pypi.org/project/cortexops" target="_blank">PyPI</a>
-      <a href="https://api.getcortexops.com/docs" target="_blank">API reference</a>
-      <a href="https://docs.getcortexops.com/#changelog">Changelog</a>
-    </div>
-    <div class="footer-col">
-      <h4>Company</h4>
-      <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Inquiry">Contact</a>
-      <a href="https://www.linkedin.com/in/ashishodu2023/" target="_blank">LinkedIn</a>
+    <div class="footer-divider"></div>
+    <div class="footer-bottom">
+      <span>© 2026 CortexOps. MIT licensed.</span>
+      <span>Built by a PayPal AI engineer · Payments by Stripe</span>
     </div>
   </div>
 </footer>
-<div class="footer-bottom">
-  <span>© 2026 CortexOps. MIT licensed.</span>
-  <span>Built by a PayPal AI engineer · Payments by Stripe</span>
-</div>
 
 <!-- CHECKOUT MODAL -->
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
@@ -804,133 +658,84 @@ results = <span class="cf">EvalSuite</span>.run(
         <label>Project name</label>
         <input type="text" id="checkout-project" placeholder="payments-agent" autocomplete="off">
       </div>
-      <button class="modal-submit" id="checkout-btn" onclick="startCheckout()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        Continue to Stripe →
-      </button>
+      <button class="modal-submit" id="checkout-btn" onclick="startCheckout()">Continue to Stripe →</button>
       <div class="stripe-badge">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         Secured by Stripe. We never see your card details.
       </div>
     </div>
     <div class="modal-success" id="modal-success">
-      <div class="check-circle">✓</div>
+      <div class="check">✓</div>
       <h4>Redirecting to Stripe…</h4>
-      <p>You'll complete payment on Stripe's secure checkout. Your API key arrives by email immediately after.</p>
+      <p>Your API key arrives by email immediately after payment.</p>
     </div>
   </div>
 </div>
 
+<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+
 <script>
 const API = 'https://api.getcortexops.com';
 
-function openModal() {
-  document.getElementById('modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('checkout-email').focus(), 100);
-}
+function openModal(){document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>document.getElementById('checkout-email').focus(),100)}
+function closeModal(e){if(e&&e.target!==document.getElementById('modal'))return;document.getElementById('modal').classList.remove('open');document.body.style.overflow=''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
-function closeModal(e) {
-  if (e && e.target !== document.getElementById('modal')) return;
-  document.getElementById('modal').classList.remove('open');
-  document.body.style.overflow = '';
-}
+function showError(msg){const el=document.getElementById('modal-error');el.textContent=msg;el.style.display='block'}
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-function showError(msg) {
-  const el = document.getElementById('modal-error');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
-async function startCheckout() {
-  const email = document.getElementById('checkout-email').value.trim();
-  const project = document.getElementById('checkout-project').value.trim();
-  document.getElementById('modal-error').style.display = 'none';
-
-  if (!email || !email.includes('@')) return showError('Please enter a valid email address.');
-  if (!project) return showError('Please enter a project name.');
-
-  const btn = document.getElementById('checkout-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Connecting…';
-
-  try {
-    const r = await fetch(`${API}/v1/billing/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, project, seats: 1 }),
-    });
-
-    if (!r.ok) {
-      const err = await r.json();
-      throw new Error(err.detail || 'Server error');
-    }
-
-    const { checkout_url } = await r.json();
-    document.getElementById('modal-form').style.display = 'none';
-    document.getElementById('modal-success').style.display = 'block';
-    setTimeout(() => { window.location.href = checkout_url; }, 1200);
-
-  } catch (err) {
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Continue to Stripe →';
-    showError(err.message || 'Something went wrong. Email ashish@getcortexops.com.');
+async function startCheckout(){
+  const email=document.getElementById('checkout-email').value.trim();
+  const project=document.getElementById('checkout-project').value.trim();
+  document.getElementById('modal-error').style.display='none';
+  if(!email||!email.includes('@'))return showError('Please enter a valid email address.');
+  if(!project)return showError('Please enter a project name.');
+  const btn=document.getElementById('checkout-btn');
+  btn.disabled=true;btn.textContent='Connecting…';
+  try{
+    const r=await fetch(`${API}/v1/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,project,seats:1})});
+    if(!r.ok){const err=await r.json();throw new Error(err.detail||'Server error');}
+    const {checkout_url}=await r.json();
+    document.getElementById('modal-form').style.display='none';
+    document.getElementById('modal-success').style.display='block';
+    setTimeout(()=>{window.location.href=checkout_url},1200);
+  }catch(err){
+    btn.disabled=false;btn.textContent='Continue to Stripe →';
+    showError(err.message||'Cannot reach API. Email ashish@getcortexops.com');
   }
 }
 
-// Docs switcher
-const docsContent = {
-  quickstart: `<h3>Quickstart</h3><p>Install the SDK and run your first eval in under 2 minutes.</p><pre><span class="cm"># Install</span>\npip install cortexops\n\n<span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">EvalSuite</span>\n\nresults = <span class="cf">EvalSuite</span>.run(\n    dataset=<span class="cs">"golden_v1.yaml"</span>,\n    agent=my_agent,\n    verbose=<span class="cf">True</span>,\n)</pre>`,
-  ci: `<h3>CI eval gate</h3><p>Add to your GitHub Actions workflow. PRs are blocked when task completion drops below your threshold.</p><pre><span class="cm"># .github/workflows/eval.yml</span>\n<span class="ck">- name</span>: Run eval gate\n  <span class="ck">run</span>: |\n    cortexops eval run \\\n      --dataset golden_v1.yaml \\\n      --fail-on <span class="cs">"task_completion &lt; 0.90"</span></pre>`,
-  langgraph: `<h3>LangGraph integration</h3><p>Auto-detects CompiledStateGraph. Wraps invoke() with zero refactoring required.</p><pre><span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>\n\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"payments-agent"</span>)\ngraph  = tracer.wrap(compiled_graph)\n\n<span class="cm"># Use exactly as before</span>\nresult = graph.invoke({<span class="cs">"messages"</span>: [...]})</pre>`,
-  api: `<h3>Traces API</h3><p>Base URL: api.getcortexops.com · Auth: X-API-Key header</p><pre>GET  /v1/traces?project=my-agent\nPOST /v1/traces\nGET  /v1/traces/{trace_id}\nGET  /health</pre><p style="margin-top:12px">Full reference at <a href="https://api.getcortexops.com/docs" target="_blank" style="color:var(--p)">api.getcortexops.com/docs</a></p>`,
-  sdk: `<h3>SDK reference</h3><p>CortexTracer accepts project, api_key, api_url, environment, sample_rate.</p><pre>tracer = <span class="cf">CortexTracer</span>(\n    project=<span class="cs">"my-agent"</span>,\n    api_key=<span class="cs">"cxo-..."</span>,\n    api_url=<span class="cs">"https://api.getcortexops.com"</span>,\n    environment=<span class="cs">"production"</span>,\n)</pre><p style="margin-top:12px"><a href="https://docs.getcortexops.com" target="_blank" style="color:var(--p)">Full SDK docs →</a></p>`,
+const docsContent={
+  quickstart:`<h3>Quickstart</h3><p>Install the SDK and run your first eval in under 2 minutes.</p><pre><span class="ck"># Install</span>\npip install cortexops\n\n<span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>, <span class="cf">EvalSuite</span>\n\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)\nresults = <span class="cf">EvalSuite</span>.run(dataset=<span class="cs">"golden_v1.yaml"</span>, agent=agent)</pre>`,
+  ci:`<h3>CI eval gate</h3><p>Add to your GitHub Actions workflow. PRs are blocked when quality drops.</p><pre><span class="ck">- name</span>: Run eval gate\n  <span class="ck">run</span>: |\n    cortexops eval run \\\n      --dataset golden_v1.yaml \\\n      --fail-on <span class="cs">"task_completion &lt; 0.90"</span></pre>`,
+  langgraph:`<h3>LangGraph integration</h3><p>Auto-detects CompiledStateGraph. Wraps invoke() with zero refactoring.</p><pre><span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>\n\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"payments-agent"</span>)\ngraph  = tracer.wrap(compiled_graph)\nresult = graph.invoke({<span class="cs">"messages"</span>: [...]})</pre>`,
+  api:`<h3>Traces API</h3><p>Base URL: api.getcortexops.com · Auth: X-API-Key header</p><pre>GET  /v1/traces?project=my-agent\nPOST /v1/traces\nGET  /v1/traces/{trace_id}\nGET  /health</pre><p style="margin-top:12px">Full reference at <a href="https://api.getcortexops.com/docs" target="_blank" style="color:var(--blue)">api.getcortexops.com/docs</a></p>`,
+  sdk:`<h3>SDK reference</h3><p>CortexTracer accepts project, api_key, api_url, environment, sample_rate.</p><pre>tracer = <span class="cf">CortexTracer</span>(\n    project=<span class="cs">"my-agent"</span>,\n    api_key=<span class="cs">"cxo-..."</span>,\n    api_url=<span class="cs">"https://api.getcortexops.com"</span>,\n)</pre><p style="margin-top:12px"><a href="https://docs.getcortexops.com" target="_blank" style="color:var(--blue)">Full SDK docs →</a></p>`,
 };
 
-function switchDoc(id, el) {
-  document.querySelectorAll('.docs-nav-item').forEach(n => n.classList.remove('active'));
+function switchDoc(id,el){
+  document.querySelectorAll('.docs-nav-item').forEach(n=>n.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('docs-content').innerHTML = docsContent[id];
+  document.getElementById('docs-content').innerHTML=docsContent[id];
 }
 
-// Smooth scroll for nav links
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', e => {
-    const t = document.querySelector(a.getAttribute('href'));
-    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
-  });
-});
-
-// Handle Stripe success redirect (?checkout=success or /billing/success)
-(function() {
-  const params = new URLSearchParams(window.location.search);
-  const path = window.location.pathname;
-  if (params.get('checkout') === 'success' || path === '/billing/success') {
-    const sessionId = params.get('session_id') || '';
-    const project = params.get('project') || '';
-    const banner = document.createElement('div');
-    banner.id = 'success-banner';
-    banner.style.cssText = 'position:fixed;top:60px;left:0;right:0;z-index:200;background:#003D30;border-bottom:1px solid #00E5B8;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;animation:slideIn .3s ease';
-    banner.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px">
-        <span style="font-size:18px">✓</span>
-        <div>
-          <div style="font-size:14px;font-weight:500;color:#00E5B8">Subscription active — check your email for your API key</div>
-          <div style="font-size:12px;color:#7070A0;margin-top:2px">Project: <strong style="color:#EEEEF8">${project || 'your project'}</strong> · Questions? Email ashish@getcortexops.com</div>
-        </div>
-      </div>
-      <button onclick="this.parentElement.remove();history.replaceState(null,'','/')" style="background:none;border:1px solid #00E5B820;border-radius:6px;color:#00E5B8;font-size:12px;padding:6px 12px;cursor:pointer">Dismiss</button>
-    `;
-    document.body.appendChild(banner);
-    // Clean URL without reloading
-    if (path !== '/billing/success') {
-      history.replaceState(null, '', '/');
-    }
+// Stripe success banner
+(function(){
+  const p=new URLSearchParams(window.location.search);
+  if(p.get('checkout')==='success'){
+    const b=document.getElementById('success-banner');
+    b.style.display='block';
+    b.innerHTML=`Subscription active — check your email for your API key · Project: <strong>${p.get('project')||'your project'}</strong> · <a href="/" onclick="this.parentElement.parentElement.style.display='none';history.replaceState(null,'','/');return false" style="color:var(--green);font-weight:600">Dismiss</a>`;
+    history.replaceState(null,'','/');
   }
 })();
 
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'})}
+  });
+});
 </script>
 </body>
 </html>
