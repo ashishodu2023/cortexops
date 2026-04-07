@@ -494,7 +494,7 @@ fail_on=<span class="cs">"latency_p95_ms &gt; 2000"</span></pre></div>
         <span class="cn">run</span>: pip install cortexops
       - <span class="cn">name</span>: Run eval gate
         <span class="cn">env</span>:
-          <span class="cn">OPENAI_API_KEY</span>: ${{secrets.OPENAI_API_KEY}}
+          <span class="cn">OPENAI_API_KEY</span>: \${{ secrets.OPENAI_API_KEY }}
         <span class="cn">run</span>: |
           cortexops eval run \
             --dataset golden_v1.yaml \
