@@ -78,7 +78,6 @@ def cmd_eval_diff(args: argparse.Namespace) -> int:
 
     def sign(v):
         return f"+{v:.1%}" if v >= 0 else f"{v:.1%}"
-
     print(f"Diff: {args.run_a[:8]} → {args.run_b[:8]}")
     print(f"  Task completion : {sign(delta_tc)}")
     print(f"  Tool accuracy   : {sign(delta_tool / 100)}")
@@ -139,6 +138,29 @@ def _load_agent(agent_path: str):
     return getattr(module, attr)
 
 
+
+
+def cmd_login(args: argparse.Namespace) -> int:
+    """cortexops login"""
+    from cortexops.auth import cmd_login as _login
+    return _login(
+        api_key=getattr(args, 'api_key', None),
+        project=getattr(args, 'project', None),
+        api_url=getattr(args, 'base_url', 'https://api.getcortexops.com'),
+    )
+
+
+def cmd_logout(args: argparse.Namespace) -> int:
+    """cortexops logout"""
+    from cortexops.auth import cmd_logout as _logout
+    return _logout()
+
+
+def cmd_whoami(args: argparse.Namespace) -> int:
+    """cortexops whoami"""
+    from cortexops.auth import cmd_whoami as _whoami
+    return _whoami(api_url=getattr(args, 'base_url', None))
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="cortexops",
@@ -171,12 +193,26 @@ def main() -> None:
     fail_p.add_argument("--api-key", default=None)
     fail_p.add_argument("--base-url", default="https://api.cortexops.ai")
 
+
+    # ── login / logout / whoami ───────────────────────────────────────────
+    login_p = sub.add_parser("login", help="Save API key to ~/.cortexops/credentials")
+    login_p.add_argument("--api-key", default=None, help="cxo-... key (prompted if omitted)")
+    login_p.add_argument("--project", "-p", default=None, help="Default project name")
+    login_p.add_argument("--base-url", default="https://api.getcortexops.com")
+
+    sub.add_parser("logout", help="Remove stored credentials")
+    whoami_p = sub.add_parser("whoami", help="Show current credentials and verify key")
+    whoami_p.add_argument("--base-url", default=None)
+
     # ── version ───────────────────────────────────────────────────────────
     sub.add_parser("version", help="Print version and exit")
 
     args = parser.parse_args()
 
     handlers = {
+        ("login", None): cmd_login,
+        ("logout", None): cmd_logout,
+        ("whoami", None): cmd_whoami,
         ("eval", "run"): cmd_eval_run,
         ("eval", "diff"): cmd_eval_diff,
         ("failures", None): cmd_failures,
