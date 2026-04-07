@@ -7,16 +7,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import get_settings
-from .db import init_db
+from .db import init_db, get_db
 from .models.schemas import HealthResponse
+from .observability import configure_logging, health_aggregator
+from .resilience import stripe_circuit, slack_circuit, openai_circuit
+from .security import RequestIDMiddleware, RateLimitMiddleware
 from .routers import billing, evals, keys, prompts, traces
 
 settings = get_settings()
+
+# Configure structured logging at startup
+configure_logging(settings.environment)
+
+
+async def _check_db():
+    """Health check: verify DB is reachable."""
+    from sqlalchemy import text
+    async with get_db() as session:
+        await session.execute(text("SELECT 1"))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    # Register health checks
+    health_aggregator.register("database", _check_db)
     yield
 
 
@@ -29,14 +44,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── Middleware (order matters — outermost runs first) ─────────────────────
+# 1. Request ID — attach before everything
+app.add_middleware(RequestIDMiddleware)
+
+# 2. Rate limiting
+app.add_middleware(RateLimitMiddleware)
+
+# 3. CORS — must be before routers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
+    max_age=600,
 )
 
+# ── Routers ───────────────────────────────────────────────────────────────
 app.include_router(billing.router)
 app.include_router(evals.router)
 app.include_router(traces.router)
@@ -44,11 +70,20 @@ app.include_router(prompts.router)
 app.include_router(keys.router)
 
 
-@app.get("/health", response_model=HealthResponse, tags=["system"])
+# ── Health endpoint — enhanced with subsystem checks ─────────────────────
+@app.get("/health", tags=["system"])
 async def health():
-    return HealthResponse(version=settings.version, environment=settings.environment)
+    base = {"status": "ok", "version": settings.version, "environment": settings.environment}
+    # Add circuit breaker states
+    base["circuits"] = {
+        "stripe": stripe_circuit.get_status()["state"],
+        "slack":  slack_circuit.get_status()["state"],
+        "openai": openai_circuit.get_status()["state"],
+    }
+    return base
 
 
+# ── Global exception handler ──────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     return JSONResponse(

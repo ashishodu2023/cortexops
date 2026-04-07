@@ -28,7 +28,14 @@ class Settings(BaseSettings):
     eval_timeout_seconds: int = 300
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "https://cortexops.ai"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://getcortexops.com",
+        "https://www.getcortexops.com",
+        "https://app.getcortexops.com",
+        "https://docs.getcortexops.com",
+    ]
 
 
 @lru_cache

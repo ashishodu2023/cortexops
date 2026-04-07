@@ -24,13 +24,15 @@ stripe==15.0.0
 # Postgres async driver (required for Railway Postgres)
 asyncpg==0.29.0
 
-# SDK (local editable install in dev; pinned in prod)
+# SDK
 pyyaml==6.0.2
 
-# Observability
+# Observability — structured JSON logging
 python-json-logger==2.0.7
 
-# Dev / test only — not needed in prod image
-# pytest==8.3.3
-# pytest-asyncio==0.24.0
-# httpx==0.27.2   (already above)
+# Production hardening
+# Checklist item 7 — security
+python-multipart==0.0.12
+
+# Checklist item 5 — statistical regression detection (optional, heuristic fallback if absent)
+# scipy==1.13.1  # uncomment for Welch's t-test
