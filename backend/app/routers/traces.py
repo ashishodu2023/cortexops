@@ -13,7 +13,7 @@ from ..db import get_db
 from ..models.records import TraceRecord, Project
 from ..models.schemas import TraceDetailResponse, TraceIngest, TraceResponse
 from ..security import redact_pii, idempotency_store
-from ..tiers import TierInfo, check_trace_quota, FREE_RETENTION_DAYS, PRO_RETENTION_DAYS
+from ..tiers import TierInfo, check_trace_quota
 
 import logging
 logger = logging.getLogger(__name__)

@@ -67,7 +67,7 @@ async def get_current_key_info(
     ApiKey = _get_model()
     hashed = hash_key(raw_key)
     result = await db.execute(
-        select(ApiKey).where(ApiKey.key_hash == hashed, ApiKey.is_active == True)
+        select(ApiKey).where(ApiKey.key_hash == hashed, ApiKey.is_active)
     )
     key_record = result.scalar_one_or_none()
 
@@ -83,7 +83,6 @@ async def get_current_key_info(
     # Count traces this calendar month for quota enforcement
     from .models.records import TraceRecord
     from datetime import timezone
-    import calendar
     now = datetime.now(timezone.utc)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
