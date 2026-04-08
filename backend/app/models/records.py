@@ -34,6 +34,7 @@ class ApiKey(Base):
     project: Mapped[str] = mapped_column(String(255), ForeignKey("projects.name"), nullable=False, index=True)
     key_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), default="default")
+    tier: Mapped[str] = mapped_column(String(20), default="free", index=True)  # "free" | "pro"
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

@@ -45,7 +45,7 @@ async def create_api_key(body: ApiKeyCreate, db: AsyncSession = Depends(get_db))
         await db.flush()
 
     raw_key, hashed = generate_api_key()
-    key = ApiKey(project=body.project, key_hash=hashed, name=body.name)
+    key = ApiKey(tier="free", project=body.project, key_hash=hashed, name=body.name)
     db.add(key)
     await db.flush()
     await db.refresh(key)
