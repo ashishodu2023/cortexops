@@ -201,7 +201,7 @@ const sections={
     title:'Introduction',
     lead:'CortexOps is an evaluation and observability platform for AI agents. Evaluate agent outputs against golden datasets, gate your CI pipeline, and observe every production run in real time.',
     html:`
-<div class="version-badge">v0.1.0</div>
+<div class="version-badge">v0.2.0</div>
 
 <h2>What CortexOps solves</h2>
 <p>AI agents fail in ways traditional software doesn't. Same input, different output every run. Hallucinations that return HTTP 200. Prompt changes that silently break tool call sequences. Latency that spikes without warning.</p>
@@ -237,7 +237,8 @@ const sections={
     lead:'Install the CortexOps SDK from PyPI. Python 3.10+ required.',
     html:`
 <h2>Install from PyPI</h2>
-<div class="code-block"><pre>pip install cortexops</pre><button class="copy-btn" onclick="copy(this,'pip install cortexops')">Copy</button></div>
+<div class="code-block"><pre>pip install cortexops
+cortexops login   <span class="cm"># saves key to ~/.cortexops/credentials</span></pre><button class="copy-btn" onclick="copy(this,'pip install cortexops')">Copy</button></div>
 
 <h2>Verify</h2>
 <div class="code-block"><pre>python -c "import cortexops; print(cortexops.__version__)"
@@ -330,7 +331,7 @@ CortexOps eval — payments-agent
 
 tracer = <span class="cf">CortexTracer</span>(
     project=<span class="cs">"payments-agent"</span>,
-    api_key=<span class="cs">"cxo-..."</span>,          <span class="cm"># optional — for hosted API</span>
+    ,          <span class="cm"># optional — for hosted API</span>
     api_url=<span class="cs">"https://api.getcortexops.com"</span>,
     environment=<span class="cs">"production"</span>,
     sample_rate=<span class="cv">1.0</span>,            <span class="cm"># 1.0 = trace everything</span>
@@ -543,7 +544,7 @@ graph = builder.compile()
 <span class="cm"># Wrap with CortexTracer — zero refactoring</span>
 tracer = <span class="cf">CortexTracer</span>(
     project=<span class="cs">"payments-agent"</span>,
-    api_key=<span class="cs">"cxo-..."</span>,
+    ,
     api_url=<span class="cs">"https://api.getcortexops.com"</span>,
 )
 graph = tracer.wrap(graph)
@@ -578,7 +579,7 @@ result = graph.invoke({<span class="cs">"messages"</span>: [HumanMessage(content
 <span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>
 
 crew = <span class="cf">Crew</span>(agents=[...], tasks=[...])
-tracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"research-crew"</span>, api_key=<span class="cs">"cxo-..."</span>)
+tracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"research-crew"</span>, )
 
 <span class="cm"># Wrap the crew</span>
 crew = tracer.wrap(crew)
@@ -637,7 +638,7 @@ wrapped = tracer.wrap(agent)  <span class="cm"># wraps __call__</span></pre></di
 <h2>Enable hosted tracing</h2>
 <div class="code-block"><pre>tracer = <span class="cf">CortexTracer</span>(
     project=<span class="cs">"payments-agent"</span>,
-    api_key=<span class="cs">"cxo-..."</span>,          <span class="cm"># your Pro API key</span>
+    ,          <span class="cm"># your Pro API key</span>
     api_url=<span class="cs">"https://api.getcortexops.com"</span>,
     environment=<span class="cs">"production"</span>,
 )</pre></div>
@@ -870,7 +871,7 @@ export OPENAI_API_KEY=sk-...</pre></div>
     title:'Changelog',
     lead:'All notable changes to CortexOps.',
     html:`
-<h2>v0.1.0 — April 2026</h2>
+<h2>v0.2.0 — April 2026</h2>
 <p>First public release.</p>
 <ul>
 <li>CortexTracer — wraps LangGraph, CrewAI, any callable</li>
@@ -922,7 +923,7 @@ export OPENAI_API_KEY=sk-...</pre></div>
     title:'Production hardening roadmap',
     lead:'What CortexOps is building to become a full LLM observability, evaluation, and reliability platform.',
     html:`
-<div class="callout callout-blue"><div class="callout-title">Status</div>v0.1.0 covers the core eval and observability loop. Items below are the v0.2-v1.0 roadmap based on production requirements from fintech and AI platform teams.</div>
+<div class="callout callout-blue"><div class="callout-title">Status</div>v0.2.0 covers the core eval and observability loop. Items below are the v0.2-v1.0 roadmap based on production requirements from fintech and AI platform teams.</div>
 
 <h2>1 — Typed interfaces</h2>
 <p>Pydantic v2 models for all dataset schemas, metric inputs, and trace outputs. Strict agent input/output contracts prevent silent runtime schema errors.</p>
