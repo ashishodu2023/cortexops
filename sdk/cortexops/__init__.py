@@ -10,6 +10,7 @@ Quickstart:
     print(results.summary())
 """
 
+from .auth import cmd_login, cmd_logout, cmd_whoami, load_credentials, save_credentials
 from .client import CortexClient
 from .eval import EvalSuite, EvalThresholdError
 from .judge import LLMJudgeMetric
@@ -31,7 +32,6 @@ from .models import (
     Trace,
     TraceNode,
 )
-from .auth import cmd_login, cmd_logout, cmd_whoami, save_credentials, load_credentials
 from .tracer import CortexTracer
 
 __version__ = "0.2.0"
