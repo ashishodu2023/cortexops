@@ -114,10 +114,11 @@ async def list_traces(
     List traces for a project.
     Free tier: only sees last 7 days. Pro: 90 days.
     """
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta
 
     retention_days = tier_info.retention_days
-    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    # DB column is TIMESTAMP WITHOUT TIME ZONE — use naive UTC datetime
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
 
     q = (
         select(TraceRecord)

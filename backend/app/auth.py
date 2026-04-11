@@ -82,8 +82,8 @@ async def get_current_key_info(
 
     # Count traces this calendar month for quota enforcement
     from .models.records import TraceRecord
-    from datetime import timezone
-    now = datetime.now(timezone.utc)
+    # DB column is TIMESTAMP WITHOUT TIME ZONE — use naive UTC datetime
+    now = datetime.utcnow()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     count_result = await db.execute(
