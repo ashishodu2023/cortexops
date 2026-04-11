@@ -21,7 +21,7 @@ import os
 import time
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
-from fastapi import APIRouter, Depends, HTTPException, Security, status
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -114,7 +114,6 @@ async def issue_token(
 
     The JWT carries: project, tier, scope, key_id, iat, exp
     """
-    from fastapi import Request
     raise HTTPException(
         status_code=501,
         detail="Use POST /v1/auth/token with X-API-Key header via the dedicated auth dependency."
@@ -155,7 +154,7 @@ async def issue_jwt(
 
     hashed = hash_key(api_key_header)
     result = await db.execute(
-        select(ApiKey).where(ApiKey.key_hash == hashed, ApiKey.is_active == True)
+        select(ApiKey).where(ApiKey.key_hash == hashed, ApiKey.is_active)
     )
     key_record = result.scalar_one_or_none()
 

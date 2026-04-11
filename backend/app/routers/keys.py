@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -125,7 +124,7 @@ async def list_api_keys(
 
     q = select(ApiKey).where(ApiKey.project == project)
     if not include_inactive:
-        q = q.where(ApiKey.is_active == True)
+        q = q.where(ApiKey.is_active)
     q = q.order_by(ApiKey.created_at.desc())
 
     result = await db.execute(q)

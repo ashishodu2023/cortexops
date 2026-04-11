@@ -10,7 +10,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_db
@@ -183,7 +183,6 @@ async def admin_list_projects(
     _: None = Depends(require_admin),
 ):
     """List all projects and their key counts. Admin only."""
-    from sqlalchemy import func
     result = await db.execute(
         select(Project).order_by(Project.created_at.desc()).limit(limit)
     )
@@ -192,7 +191,7 @@ async def admin_list_projects(
     out = []
     for p in projects:
         keys_result = await db.execute(
-            select(ApiKey).where(ApiKey.project == p.name, ApiKey.is_active == True)
+            select(ApiKey).where(ApiKey.project == p.name, ApiKey.is_active)
         )
         active_keys = len(keys_result.scalars().all())
         out.append({
