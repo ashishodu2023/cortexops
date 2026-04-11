@@ -82,7 +82,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         sess = event["data"]["object"]
         # Stripe SDK v15 returns StripeObject — use getattr, not .get()
         raw_meta = getattr(sess, "metadata", None)
-        meta = dict(raw_meta) if raw_meta else {}
+        meta = getattr(raw_meta, "_data", None) or {}
         sess_id = getattr(sess, "id", "") or ""
         project = meta.get("project", f"stripe-{sess_id[:8]}")
         email_addr = meta.get("email", "") or ""
@@ -91,7 +91,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     elif etype == "customer.subscription.deleted":
         sub = event["data"]["object"]
         raw_meta = getattr(sub, "metadata", None)
-        meta = dict(raw_meta) if raw_meta else {}
+        meta = getattr(raw_meta, "_data", None) or {}
         logger.info(f"Subscription cancelled: {meta.get('project', '')}")
 
     elif etype == "invoice.payment_failed":
