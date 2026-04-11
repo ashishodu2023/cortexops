@@ -179,6 +179,8 @@ li{margin-bottom:4px}
       <a class="nav-item" onclick="show('api-traces')">Traces API</a>
       <a class="nav-item" onclick="show('api-evals')">Evals API</a>
       <a class="nav-item" onclick="show('api-keys')">Keys API</a>
+      <a class="nav-item" onclick="show('api-auth')">Auth &amp; JWT</a>
+      <a class="nav-item" onclick="show('api-admin')">Admin API</a>
 
       <div class="nav-section">Other</div>
       <a class="nav-item" onclick="show('changelog')">Changelog</a>
@@ -764,39 +766,117 @@ export OPENAI_API_KEY=sk-...</pre></div>
   'api-traces':{
     breadcrumb:'Docs / API reference',
     title:'Traces API',
-    lead:'REST API for storing and querying agent traces. Base URL: api.getcortexops.com. Auth: X-API-Key header.',
+    lead:'Ingest, query, and inspect agent traces. Base URL: https://api.getcortexops.com. Auth: X-API-Key header.',
     html:`
+<div class="callout callout-blue"><div class="callout-title">Base URL</div><code>https://api.getcortexops.com</code> &nbsp;·&nbsp; Auth: <code>X-API-Key: cxo-...</code> &nbsp;·&nbsp; All responses are JSON.</div>
+
 <h2>Endpoints</h2>
 <table class="metric-table">
-<thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+<thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td>GET</td><td>/health</td><td>Health check. Returns status, version, environment.</td></tr>
-<tr><td>POST</td><td>/v1/traces</td><td>Store a trace. Returns trace_id.</td></tr>
-<tr><td>GET</td><td>/v1/traces</td><td>List traces for a project. Supports status filter, limit.</td></tr>
-<tr><td>GET</td><td>/v1/traces/{trace_id}</td><td>Get a single trace with full node waterfall.</td></tr>
+<tr><td>GET</td><td>/health</td><td>None</td><td>API health + circuit breaker states</td></tr>
+<tr><td>POST</td><td>/v1/traces</td><td>Required</td><td>Ingest a trace. PII auto-redacted.</td></tr>
+<tr><td>GET</td><td>/v1/traces</td><td>Required</td><td>List traces. Free = 7d, Pro = 90d retention.</td></tr>
+<tr><td>GET</td><td>/v1/traces/{id}</td><td>Required</td><td>Get trace with full node waterfall.</td></tr>
+<tr><td>GET</td><td>/v1/traces/quota</td><td>Required</td><td>Usage: used/limit, tier, features.</td></tr>
 </tbody>
 </table>
 
+<h2>GET /health</h2>
+<div class="code-block"><pre>curl https://api.getcortexops.com/health</pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"status"</span>: <span class="cs">"ok"</span>,
+  <span class="cn">"version"</span>: <span class="cs">"0.1.0"</span>,
+  <span class="cn">"environment"</span>: <span class="cs">"production"</span>,
+  <span class="cn">"circuits"</span>: {
+    <span class="cn">"stripe"</span>: <span class="cs">"closed"</span>,
+    <span class="cn">"slack"</span>:  <span class="cs">"closed"</span>,
+    <span class="cn">"openai"</span>: <span class="cs">"closed"</span>
+  }
+}</pre></div>
+
 <h2>POST /v1/traces</h2>
+<p>Ingest a trace from an agent run. PII (email, card, SSN) is automatically redacted before storage. Supports idempotency keys to prevent duplicates on retry.</p>
 <div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/traces \
   -H <span class="cs">"X-API-Key: cxo-..."</span> \
   -H <span class="cs">"Content-Type: application/json"</span> \
+  -H <span class="cs">"Idempotency-Key: unique-run-id"</span> \
   -d '{
-    "project": "payments-agent",
-    "status": "completed",
-    "total_latency_ms": 342,
-    "output": {"result": "refund approved"},
-    "nodes": [
-      {"node_name": "lookup_refund", "latency_ms": 120},
-      {"node_name": "generate_response", "latency_ms": 222}
-    ]
+    <span class="cn">"project"</span>: <span class="cs">"payments-agent"</span>,
+    <span class="cn">"case_id"</span>: <span class="cs">"refund-4821"</span>,
+    <span class="cn">"status"</span>: <span class="cs">"completed"</span>,
+    <span class="cn">"total_latency_ms"</span>: 342,
+    <span class="cn">"input"</span>: {<span class="cn">"query"</span>: <span class="cs">"Refund order #4821"</span>},
+    <span class="cn">"output"</span>: {<span class="cn">"action"</span>: <span class="cs">"refund_approved"</span>, <span class="cn">"amount"</span>: 49.99},
+    <span class="cn">"nodes"</span>: [
+      {<span class="cn">"node_name"</span>: <span class="cs">"classify_intent"</span>, <span class="cn">"latency_ms"</span>: 89},
+      {<span class="cn">"node_name"</span>: <span class="cs">"process_refund"</span>,  <span class="cn">"latency_ms"</span>: 253}
+    ],
+    <span class="cn">"environment"</span>: <span class="cs">"production"</span>
   }'</pre></div>
+<div class="code-block"><pre><span class="cm">// Response 201</span>
+{
+  <span class="cn">"trace_id"</span>:        <span class="cs">"63542bfc-8480-41e5-9413-87fc604625bd"</span>,
+  <span class="cn">"project"</span>:         <span class="cs">"payments-agent"</span>,
+  <span class="cn">"case_id"</span>:         <span class="cs">"refund-4821"</span>,
+  <span class="cn">"status"</span>:          <span class="cs">"completed"</span>,
+  <span class="cn">"total_latency_ms"</span>: 342.0,
+  <span class="cn">"failure_kind"</span>:    <span class="ck">null</span>,
+  <span class="cn">"failure_detail"</span>:  <span class="ck">null</span>,
+  <span class="cn">"environment"</span>:    <span class="cs">"production"</span>,
+  <span class="cn">"created_at"</span>:     <span class="cs">"2026-04-11T08:01:56.282Z"</span>
+}</pre></div>
+
+<h3>Error responses</h3>
+<table class="metric-table">
+<thead><tr><th>Status</th><th>Error</th><th>Cause</th></tr></thead>
+<tbody>
+<tr><td>401</td><td>Unauthorized</td><td>Missing or invalid X-API-Key</td></tr>
+<tr><td>403</td><td>insufficient_scope</td><td>Key is read_only — cannot ingest traces</td></tr>
+<tr><td>429</td><td>trace_quota_exceeded</td><td>Free tier 5,000/month limit reached</td></tr>
+</tbody>
+</table>
 
 <h2>GET /v1/traces</h2>
-<div class="code-block"><pre>curl "https://api.getcortexops.com/v1/traces?project=payments-agent&limit=50" \
+<div class="code-block"><pre>curl "https://api.getcortexops.com/v1/traces?project=payments-agent&limit=10&status=failed" \
   -H <span class="cs">"X-API-Key: cxo-..."</span></pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200 — array of trace summaries</span>
+[
+  {
+    <span class="cn">"trace_id"</span>:        <span class="cs">"fb5ff3c3-..."</span>,
+    <span class="cn">"project"</span>:         <span class="cs">"payments-agent"</span>,
+    <span class="cn">"case_id"</span>:         <span class="cs">"e2e-fail"</span>,
+    <span class="cn">"status"</span>:          <span class="cs">"failed"</span>,
+    <span class="cn">"total_latency_ms"</span>: 3240.0,
+    <span class="cn">"failure_kind"</span>:    <span class="cs">"TIMEOUT"</span>,
+    <span class="cn">"environment"</span>:    <span class="cs">"production"</span>,
+    <span class="cn">"created_at"</span>:     <span class="cs">"2026-04-11T08:46:57Z"</span>
+  }
+]</pre></div>
 
-<p>Full interactive reference at <a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">api.getcortexops.com/docs</a>.</p>
+<h2>GET /v1/traces/quota</h2>
+<div class="code-block"><pre>curl https://api.getcortexops.com/v1/traces/quota \
+  -H <span class="cs">"X-API-Key: cxo-..."</span></pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200 — Pro tier</span>
+{
+  <span class="cn">"project"</span>:       <span class="cs">"payments-agent"</span>,
+  <span class="cn">"tier"</span>:          <span class="cs">"pro"</span>,
+  <span class="cn">"monthly_traces"</span>: {
+    <span class="cn">"used"</span>:      3,
+    <span class="cn">"limit"</span>:     <span class="ck">null</span>,
+    <span class="cn">"unlimited"</span>: <span class="ck">true</span>,
+    <span class="cn">"percent_used"</span>: 0
+  },
+  <span class="cn">"retention_days"</span>: 90,
+  <span class="cn">"features"</span>: {
+    <span class="cn">"slack_alerts"</span>:      <span class="ck">true</span>,
+    <span class="cn">"llm_judge"</span>:         <span class="ck">true</span>,
+    <span class="cn">"prompt_versioning"</span>: <span class="ck">true</span>,
+    <span class="cn">"unlimited_traces"</span>:  <span class="ck">true</span>
+  },
+  <span class="cn">"upgrade_url"</span>: <span class="ck">null</span>
+}</pre></div>
     `,
     prev:{id:'judge',label:'LLM judge'},next:{id:'api-evals',label:'Evals API'}
   },
@@ -804,32 +884,75 @@ export OPENAI_API_KEY=sk-...</pre></div>
   'api-evals':{
     breadcrumb:'Docs / API reference',
     title:'Evals API',
-    lead:'Store and query eval run results. Powers the Evals tab in the dashboard.',
+    lead:'Run evaluation suites, store results, and diff runs to detect regressions.',
     html:`
 <h2>Endpoints</h2>
 <table class="metric-table">
 <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td>POST</td><td>/v1/evals</td><td>Store an eval run result.</td></tr>
-<tr><td>GET</td><td>/v1/evals</td><td>List eval runs for a project.</td></tr>
-<tr><td>GET</td><td>/v1/evals/{run_id}</td><td>Get a single eval run with per-case results.</td></tr>
+<tr><td>POST</td><td>/v1/evals/run</td><td>Start an async eval suite run</td></tr>
+<tr><td>GET</td><td>/v1/evals/{run_id}</td><td>Get eval results and per-case breakdown</td></tr>
+<tr><td>GET</td><td>/v1/evals/diff</td><td>Regression diff between two runs</td></tr>
 </tbody>
 </table>
 
-<h2>Eval run schema</h2>
-<div class="code-block"><pre>{
-  "run_id": "uuid",
-  "project": "payments-agent",
-  "passed": 9,
-  "total_cases": 10,
-  "task_completion_rate": 0.90,
-  "tool_accuracy": 97.0,
-  "latency_p50_ms": 287,
-  "latency_p95_ms": 1240,
-  "regressions": 1
+<h2>POST /v1/evals/run</h2>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/evals/run \
+  -H <span class="cs">"X-API-Key: cxo-..."</span> \
+  -H <span class="cs">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="cn">"project"</span>:  <span class="cs">"payments-agent"</span>,
+    <span class="cn">"dataset"</span>:  <span class="cs">"golden_v1"</span>,
+    <span class="cn">"fail_on"</span>:  <span class="cs">"task_completion &lt; 0.90"</span>
+  }'</pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"run_id"</span>:   <span class="cs">"9f3e1d77-..."</span>,
+  <span class="cn">"project"</span>:  <span class="cs">"payments-agent"</span>,
+  <span class="cn">"status"</span>:   <span class="cs">"pending"</span>,
+  <span class="cn">"task_id"</span>:  <span class="cs">"celery-task-id"</span>,
+  <span class="cn">"message"</span>:  <span class="cs">"Eval started"</span>
 }</pre></div>
 
-<p>Full interactive reference at <a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">api.getcortexops.com/docs</a>.</p>
+<h2>GET /v1/evals/{run_id}</h2>
+<div class="code-block"><pre>curl https://api.getcortexops.com/v1/evals/9f3e1d77-... \
+  -H <span class="cs">"X-API-Key: cxo-..."</span></pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200 — completed run</span>
+{
+  <span class="cn">"run_id"</span>:               <span class="cs">"9f3e1d77-..."</span>,
+  <span class="cn">"project"</span>:              <span class="cs">"payments-agent"</span>,
+  <span class="cn">"status"</span>:               <span class="cs">"completed"</span>,
+  <span class="cn">"total_cases"</span>:          10,
+  <span class="cn">"passed"</span>:               9,
+  <span class="cn">"failed"</span>:               1,
+  <span class="cn">"task_completion_rate"</span>:  0.90,
+  <span class="cn">"tool_accuracy"</span>:         97.0,
+  <span class="cn">"latency_p50_ms"</span>:        287,
+  <span class="cn">"latency_p95_ms"</span>:        1240,
+  <span class="cn">"regressions"</span>:           1,
+  <span class="cn">"case_results"</span>: [
+    {
+      <span class="cn">"case_id"</span>:        <span class="cs">"refund_happy_path"</span>,
+      <span class="cn">"passed"</span>:         <span class="ck">true</span>,
+      <span class="cn">"score"</span>:          95.0,
+      <span class="cn">"task_completion"</span>: <span class="ck">true</span>,
+      <span class="cn">"latency_ms"</span>:     287
+    }
+  ]
+}</pre></div>
+
+<h2>GET /v1/evals/diff</h2>
+<div class="code-block"><pre>curl "https://api.getcortexops.com/v1/evals/diff?run_a=run-id-a&run_b=run-id-b" \
+  -H <span class="cs">"X-API-Key: cxo-..."</span></pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"run_id_a"</span>:              <span class="cs">"run-id-a"</span>,
+  <span class="cn">"run_id_b"</span>:              <span class="cs">"run-id-b"</span>,
+  <span class="cn">"task_completion_delta"</span>: -0.05,
+  <span class="cn">"tool_accuracy_delta"</span>:   -2.1,
+  <span class="cn">"regressions"</span>:          [<span class="cs">"fraud_block"</span>, <span class="cs">"kyc_timeout"</span>],
+  <span class="cn">"improvements"</span>:         [<span class="cs">"refund_happy_path"</span>]
+}</pre></div>
     `,
     prev:{id:'api-traces',label:'Traces API'},next:{id:'api-keys',label:'Keys API'}
   },
@@ -837,33 +960,189 @@ export OPENAI_API_KEY=sk-...</pre></div>
   'api-keys':{
     breadcrumb:'Docs / API reference',
     title:'Keys API',
-    lead:'Manage API keys programmatically. All keys use the cxo- prefix and SHA-256 hashing.',
+    lead:'Create, rotate, and revoke API keys. Supports scopes (read_write / read_only) and expiry.',
     html:`
 <h2>Endpoints</h2>
 <table class="metric-table">
 <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td>POST</td><td>/v1/keys</td><td>Create a new API key. Returns raw key once — store it securely.</td></tr>
-<tr><td>GET</td><td>/v1/keys</td><td>List key metadata (hashed — raw key not returned).</td></tr>
-<tr><td>DELETE</td><td>/v1/keys/{key_id}</td><td>Revoke a key immediately.</td></tr>
+<tr><td>POST</td><td>/v1/keys</td><td>Create key (scope, expiry)</td></tr>
+<tr><td>GET</td><td>/v1/keys/{project}</td><td>List keys for your project</td></tr>
+<tr><td>GET</td><td>/v1/keys/{id}/info</td><td>Key metadata — tier, scope, last used</td></tr>
+<tr><td>POST</td><td>/v1/keys/{id}/rotate</td><td>Revoke old key, issue new one atomically</td></tr>
+<tr><td>DELETE</td><td>/v1/keys/{id}</td><td>Revoke key immediately</td></tr>
 </tbody>
 </table>
 
-<h2>Create a key</h2>
+<h2>POST /v1/keys — Create a key</h2>
 <div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/keys \
-  -H <span class="cs">"X-API-Key: cxo-internal-..."</span> \
   -H <span class="cs">"Content-Type: application/json"</span> \
-  -d '{"project": "payments-agent"}'
-
-<span class="cm"># Response — save this key, it is not shown again</span>
+  -d '{
+    <span class="cn">"project"</span>:          <span class="cs">"payments-agent"</span>,
+    <span class="cn">"name"</span>:             <span class="cs">"ci-key"</span>,
+    <span class="cn">"scope"</span>:            <span class="cs">"read_write"</span>,
+    <span class="cn">"expires_in_days"</span>:  90
+  }'</pre></div>
+<div class="code-block"><pre><span class="cm">// Response 201 — save raw_key immediately, not shown again</span>
 {
-  "api_key": "cxo-a1b2c3d4e5f6...",
-  "project": "payments-agent"
+  <span class="cn">"id"</span>:              <span class="cs">"a63d03f1-..."</span>,
+  <span class="cn">"raw_key"</span>:         <span class="cs">"cxo-a1b2c3d4e5f6..."</span>,
+  <span class="cn">"project"</span>:         <span class="cs">"payments-agent"</span>,
+  <span class="cn">"name"</span>:            <span class="cs">"ci-key"</span>,
+  <span class="cn">"tier"</span>:            <span class="cs">"free"</span>,
+  <span class="cn">"scope"</span>:           <span class="cs">"read_write"</span>,
+  <span class="cn">"is_active"</span>:       <span class="ck">true</span>,
+  <span class="cn">"expires_at"</span>:      <span class="cs">"2026-07-11T00:00:00"</span>,
+  <span class="cn">"created_at"</span>:      <span class="cs">"2026-04-11T08:01:56Z"</span>
 }</pre></div>
 
-<div class="callout callout-amber"><div class="callout-title">Security</div>Raw keys are returned once only. CortexOps stores only the SHA-256 hash. If you lose a key, revoke it and create a new one.</div>
+<h2>POST /v1/keys/{id}/rotate</h2>
+<p>Revokes the old key and issues a new one with the same tier, scope, and project. Use this to rotate compromised keys without downtime.</p>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/keys/a63d03f1-.../rotate \
+  -H <span class="cs">"X-API-Key: cxo-..."</span></pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"new_key"</span>:    <span class="cs">"cxo-newkey123..."</span>,
+  <span class="cn">"old_key_id"</span>: <span class="cs">"a63d03f1-..."</span>,
+  <span class="cn">"new_key_id"</span>: <span class="cs">"b74e14g2-..."</span>,
+  <span class="cn">"message"</span>:   <span class="cs">"Rotated. Old key a63d03f1... revoked."</span>
+}</pre></div>
+
+<h2>DELETE /v1/keys/{id}</h2>
+<div class="code-block"><pre>curl -X DELETE https://api.getcortexops.com/v1/keys/a63d03f1-... \
+  -H <span class="cs">"X-API-Key: cxo-..."</span>
+
+<span class="cm"># Response 204 No Content</span></pre></div>
+
+<div class="callout callout-amber"><div class="callout-title">Security</div>Raw keys are returned exactly once at creation. CortexOps stores only the SHA-256 hash. If a key is lost, rotate or revoke it and create a new one.</div>
     `,
-    prev:{id:'api-evals',label:'Evals API'},next:{id:'changelog',label:'Changelog'}
+    prev:{id:'api-evals',label:'Evals API'},next:{id:'api-auth',label:'Auth & JWT'}
+  },
+
+  'api-auth':{
+    breadcrumb:'Docs / API reference',
+    title:'Auth & JWT',
+    lead:'Exchange a long-lived cxo- API key for a short-lived JWT token. JWTs are stateless — ideal for dashboards and browser clients.',
+    html:`
+<h2>How it works</h2>
+<table class="metric-table">
+<thead><tr><th>Credential</th><th>Lifespan</th><th>Best for</th><th>DB lookup</th></tr></thead>
+<tbody>
+<tr><td>cxo- API key</td><td>Until revoked</td><td>SDK, CLI, CI/CD</td><td>Every request</td></tr>
+<tr><td>JWT token</td><td>1 hour</td><td>Dashboard, browser</td><td>None (stateless)</td></tr>
+</tbody>
+</table>
+
+<h2>POST /v1/auth/token/issue</h2>
+<p>Exchange a cxo- key for a 1-hour JWT. The JWT carries project, tier, and scope — no DB hit needed on subsequent requests.</p>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/auth/token/issue \
+  -H <span class="cs">"X-API-Key: cxo-..."</span></pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"access_token"</span>: <span class="cs">"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."</span>,
+  <span class="cn">"token_type"</span>:   <span class="cs">"bearer"</span>,
+  <span class="cn">"expires_in"</span>:   3600,
+  <span class="cn">"project"</span>:      <span class="cs">"payments-agent"</span>,
+  <span class="cn">"tier"</span>:         <span class="cs">"pro"</span>,
+  <span class="cn">"scope"</span>:        <span class="cs">"read_write"</span>
+}</pre></div>
+
+<h2>Using the JWT</h2>
+<div class="code-block"><pre><span class="cm"># Use Bearer token instead of X-API-Key</span>
+curl https://api.getcortexops.com/v1/traces/quota \
+  -H <span class="cs">"Authorization: Bearer eyJhbGci..."</span></pre></div>
+
+<h2>GET /v1/auth/token/verify</h2>
+<div class="code-block"><pre>curl https://api.getcortexops.com/v1/auth/token/verify \
+  -H <span class="cs">"Authorization: Bearer eyJhbGci..."</span></pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"valid"</span>:              <span class="ck">true</span>,
+  <span class="cn">"project"</span>:            <span class="cs">"payments-agent"</span>,
+  <span class="cn">"tier"</span>:               <span class="cs">"pro"</span>,
+  <span class="cn">"scope"</span>:              <span class="cs">"read_write"</span>,
+  <span class="cn">"expires_in_seconds"</span>: 3421
+}
+
+<span class="cm">// Response 401 — expired</span>
+{<span class="cn">"detail"</span>: <span class="cs">"JWT expired"</span>}</pre></div>
+
+<h3>Scopes</h3>
+<table class="metric-table">
+<thead><tr><th>Scope</th><th>GET</th><th>POST / PUT / DELETE</th></tr></thead>
+<tbody>
+<tr><td>read_write</td><td>Allowed</td><td>Allowed</td></tr>
+<tr><td>read_only</td><td>Allowed</td><td>403 insufficient_scope</td></tr>
+</tbody>
+</table>
+    `,
+    prev:{id:'api-keys',label:'Keys API'},next:{id:'api-admin',label:'Admin API'}
+  },
+
+  'api-admin':{
+    breadcrumb:'Docs / API reference',
+    title:'Admin API',
+    lead:'Internal endpoints for managing keys and projects. Requires X-Internal-Key header — never expose to end users.',
+    html:`
+<div class="callout callout-amber"><div class="callout-title">Admin only</div>All endpoints require <code>X-Internal-Key: your-internal-key</code>. Set <code>INTERNAL_API_KEY</code> in Railway env vars. Never expose these endpoints publicly.</div>
+
+<h2>Endpoints</h2>
+<table class="metric-table">
+<thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td>/v1/admin/keys</td><td>List all keys across all projects</td></tr>
+<tr><td>POST</td><td>/v1/admin/keys/{id}/revoke</td><td>Revoke any key (no ownership check)</td></tr>
+<tr><td>POST</td><td>/v1/admin/keys/{id}/upgrade</td><td>Set tier (free/pro) and scope</td></tr>
+<tr><td>POST</td><td>/v1/admin/keys/{id}/scope</td><td>Set scope only</td></tr>
+<tr><td>GET</td><td>/v1/admin/projects</td><td>List all projects + key counts</td></tr>
+</tbody>
+</table>
+
+<h2>Upgrade a key to Pro</h2>
+<p>Use this instead of raw SQL in Railway after a manual payment or refund.</p>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/admin/keys/a63d03f1-.../upgrade \
+  -H <span class="cs">"X-Internal-Key: your-internal-key"</span> \
+  -H <span class="cs">"Content-Type: application/json"</span> \
+  -d '{<span class="cn">"tier"</span>: <span class="cs">"pro"</span>, <span class="cn">"scope"</span>: <span class="cs">"read_write"</span>}'</pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"upgraded"</span>:  <span class="ck">true</span>,
+  <span class="cn">"key_id"</span>:    <span class="cs">"a63d03f1-..."</span>,
+  <span class="cn">"project"</span>:   <span class="cs">"payments-agent"</span>,
+  <span class="cn">"old_tier"</span>:  <span class="cs">"free"</span>,
+  <span class="cn">"new_tier"</span>:  <span class="cs">"pro"</span>,
+  <span class="cn">"scope"</span>:     <span class="cs">"read_write"</span>
+}</pre></div>
+
+<h2>Revoke any key</h2>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/admin/keys/a63d03f1-.../revoke \
+  -H <span class="cs">"X-Internal-Key: your-internal-key"</span> \
+  -H <span class="cs">"Content-Type: application/json"</span> \
+  -d '{<span class="cn">"reason"</span>: <span class="cs">"customer_churn"</span>}'</pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"revoked"</span>:  <span class="ck">true</span>,
+  <span class="cn">"key_id"</span>:   <span class="cs">"a63d03f1-..."</span>,
+  <span class="cn">"project"</span>:  <span class="cs">"payments-agent"</span>,
+  <span class="cn">"reason"</span>:   <span class="cs">"customer_churn"</span>
+}</pre></div>
+
+<h2>List all projects</h2>
+<div class="code-block"><pre>curl https://api.getcortexops.com/v1/admin/projects \
+  -H <span class="cs">"X-Internal-Key: your-internal-key"</span></pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"projects"</span>: [
+    {
+      <span class="cn">"name"</span>:        <span class="cs">"payments-agent"</span>,
+      <span class="cn">"active_keys"</span>: 2,
+      <span class="cn">"created_at"</span>:  <span class="cs">"2026-04-11T06:03:58Z"</span>
+    }
+  ],
+  <span class="cn">"total"</span>: 1
+}</pre></div>
+    `,
+    prev:{id:'api-auth',label:'Auth & JWT'},next:{id:'changelog',label:'Changelog'}
   },
 
   changelog:{
@@ -886,7 +1165,7 @@ export OPENAI_API_KEY=sk-...</pre></div>
 <li>PyPI package — pip install cortexops</li>
 </ul>
     `,
-    prev:{id:'api-keys',label:'Keys API'},next:{id:'faq',label:'FAQ'}
+    prev:{id:'api-admin',label:'Admin API'},next:{id:'faq',label:'FAQ'}
   },
 
   faq:{
@@ -1015,7 +1294,7 @@ results.cost_per_case  <span class="cm"># per-case breakdown</span></pre></div>
 
 };
 
-const sectionOrder=['intro','install','quickstart','tracer','datasets','metrics','ci','langgraph','crewai','generic','hosted','alerts','prompts','judge','api-traces','api-evals','api-keys','changelog','faq','roadmap'];
+const sectionOrder=['intro','install','quickstart','tracer','datasets','metrics','ci','langgraph','crewai','generic','hosted','alerts','prompts','judge','api-traces','api-evals','api-keys','api-auth','api-admin','changelog','faq','roadmap'];
 
 function show(id){
   const s=sections[id];
