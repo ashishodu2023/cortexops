@@ -201,7 +201,7 @@ async def _provision(db, project_name, email, ref):
             ApiKey.is_active,
         )
     )
-    if existing.scalar_one_or_none():
+    if existing.scalars().first():
         logger.info(f"Pro key already exists for project={project_name} — skipping provision")
         return None
 
