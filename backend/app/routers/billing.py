@@ -198,7 +198,7 @@ async def _provision(db, project_name, email, ref):
             ApiKey.project == project_name,
             ApiKey.name == "pro",
             ApiKey.tier == "pro",
-            ApiKey.is_active == True,
+            ApiKey.is_active,
         )
     )
     if existing.scalar_one_or_none():

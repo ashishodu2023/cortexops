@@ -163,7 +163,7 @@ class TestCLIImports:
         cmd_version(argparse.Namespace())
         captured = capsys.readouterr()
         assert "cortexops" in captured.out
-        assert "0.1.0" in captured.out
+        assert "0.2.0" in captured.out
 
 
 # ---------------------------------------------------------------------------
