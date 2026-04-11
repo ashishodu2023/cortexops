@@ -80,17 +80,24 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     if etype == "checkout.session.completed":
         sess = event["data"]["object"]
-        meta = sess.get("metadata", {})
-        project = meta.get("project", f"stripe-{sess['id'][:8]}")
-        await _provision(db, project, meta.get("email", ""), sess["id"])
+        # Stripe SDK v15 returns StripeObject — use getattr, not .get()
+        raw_meta = getattr(sess, "metadata", None)
+        meta = dict(raw_meta) if raw_meta else {}
+        sess_id = getattr(sess, "id", "") or ""
+        project = meta.get("project", f"stripe-{sess_id[:8]}")
+        email_addr = meta.get("email", "") or ""
+        await _provision(db, project, email_addr, sess_id)
 
     elif etype == "customer.subscription.deleted":
         sub = event["data"]["object"]
-        logger.info(f"Subscription cancelled: {sub.get('metadata', {}).get('project', '')}")
+        raw_meta = getattr(sub, "metadata", None)
+        meta = dict(raw_meta) if raw_meta else {}
+        logger.info(f"Subscription cancelled: {meta.get('project', '')}")
 
     elif etype == "invoice.payment_failed":
         inv = event["data"]["object"]
-        logger.warning(f"Payment failed: {inv.get('customer')}")
+        customer = getattr(inv, "customer", "") or ""
+        logger.warning(f"Payment failed: {customer}")
 
     return {"status": "ok", "event": etype}
 
