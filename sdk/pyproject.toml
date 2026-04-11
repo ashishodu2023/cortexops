@@ -4,19 +4,19 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cortexops"
-version = "0.1.0"
+version = "0.2.0"
 description = "Reliability infrastructure for AI agents — evaluation, observability, and regression testing"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
-    { name = "Ashish", email = "ashishodu2023@gmail.com" },
+    { name = "Ashish", email = "ashish@getcortexops.com" },
 ]
 keywords = [
     "llm", "agents", "evaluation", "observability",
     "langgraph", "crewai", "autogen", "ai", "testing",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -33,7 +33,6 @@ requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.0",
     "pyyaml>=6.0",
-    "setuptools>=82.0.1",
 ]
 
 [project.optional-dependencies]
@@ -49,9 +48,9 @@ dev  = [
 ]
 
 [project.urls]
-Homepage      = "https://cortexops.ai"
+Homepage      = "https://getcortexops.com"
 Repository    = "https://github.com/ashishodu2023/cortexops"
-Documentation = "https://docs.cortexops.ai"
+Documentation = "https://docs.getcortexops.com"
 "Bug Tracker" = "https://github.com/ashishodu2023/cortexops/issues"
 Changelog     = "https://github.com/ashishodu2023/cortexops/releases"
 

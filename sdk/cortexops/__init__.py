@@ -31,9 +31,10 @@ from .models import (
     Trace,
     TraceNode,
 )
+from .auth import cmd_login, cmd_logout, cmd_whoami, save_credentials, load_credentials
 from .tracer import CortexTracer
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "CortexTracer",
@@ -55,4 +56,9 @@ __all__ = [
     "CaseResult",
     "FailureKind",
     "RunStatus",
+    "cmd_login",
+    "cmd_logout",
+    "cmd_whoami",
+    "save_credentials",
+    "load_credentials",
 ]

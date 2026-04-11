@@ -112,6 +112,8 @@ async def _send_key_email(email: str, project: str, raw_key: str) -> None:
     """
     sendgrid_key = os.getenv("SENDGRID_API_KEY")
     resend_key   = os.getenv("RESEND_API_KEY")
+    sendgrid_key = os.getenv("SENDGRID_API_KEY")
+    logger.info(f"Email send: resend_configured={bool(resend_key)} sendgrid_configured={bool(sendgrid_key)}")
 
     subject = "Your CortexOps Pro API key"
     body = f"""Welcome to CortexOps Pro!
@@ -187,9 +189,22 @@ ashish@getcortexops.com
             logger.warning(f"SendGrid error: {e}")
 
     # Fallback — log the key so it can be manually retrieved from Railway logs
-    logger.info(f"EMAIL_FALLBACK to={email} project={project} key={raw_key[:12]}...")
+    logger.info(f"EMAIL_FALLBACK to={email} project={project} key={raw_key}")
 
 async def _provision(db, project_name, email, ref):
+    # Idempotency — check if a pro key already exists for this project from this Stripe ref
+    existing = await db.execute(
+        select(ApiKey).where(
+            ApiKey.project == project_name,
+            ApiKey.name == "pro",
+            ApiKey.tier == "pro",
+            ApiKey.is_active == True,
+        )
+    )
+    if existing.scalar_one_or_none():
+        logger.info(f"Pro key already exists for project={project_name} — skipping provision")
+        return None
+
     r = await db.execute(select(Project).where(Project.name == project_name))
     proj = r.scalar_one_or_none()
     if not proj:
@@ -200,13 +215,8 @@ async def _provision(db, project_name, email, ref):
     db.add(ApiKey(id=str(uuid.uuid4()), project=project_name, name="pro", tier="pro", key_hash=hashed, is_active=True))
     await db.commit()
     logger.info(f"Provisioned key for project={project_name} email={email}")
-    # Send the key by email — non-blocking
-    try:
-        import asyncio
-        asyncio.create_task(_send_key_email(email, project_name, raw_key))
-    except RuntimeError:
-        # No running event loop (e.g. tests) — skip email
-        pass
+    # Send email directly — await so it runs in the same event loop context
+    await _send_key_email(email, project_name, raw_key)
     return raw_key
 
 
@@ -218,7 +228,7 @@ async def get_session(session_id: str):
         "status": sess.status,
         "payment_status": sess.payment_status,
         "customer_email": sess.customer_details.email if sess.customer_details else None,
-        "project": sess.metadata.get("project"),
+        "project": getattr(getattr(sess, "metadata", None), "_data", {}).get("project"),
     }
 
 
