@@ -13,7 +13,7 @@ from ..db import get_db
 from ..models.records import TraceRecord, Project
 from ..models.schemas import TraceDetailResponse, TraceIngest, TraceResponse
 from ..security import redact_pii, idempotency_store
-from ..tiers import TierInfo, check_trace_quota
+from ..tiers import TierInfo, check_trace_quota, require_scope
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,6 +38,9 @@ async def ingest_trace(
     """
     t0 = time.perf_counter()
 
+    # ── Scope enforcement — read_only keys cannot ingest traces ───────────
+    require_scope(tier_info, "read_write")
+
     # ── Idempotency check ─────────────────────────────────────────────────
     if idempotency_key:
         cached = idempotency_store.get(idempotency_key, "POST:/v1/traces")
@@ -55,6 +58,7 @@ async def ingest_trace(
 
     # ── PII redaction before storage ──────────────────────────────────────
     safe_payload = body.model_dump()
+    safe_payload["input"]  = redact_pii(safe_payload.get("input", {}))   # redact PII from inputs too
     safe_payload["output"] = redact_pii(safe_payload.get("output", {}))
     safe_payload["nodes"]  = redact_pii(safe_payload.get("nodes", []))
     if safe_payload.get("failure_detail"):

@@ -77,6 +77,17 @@ async def get_current_key_info(
             detail="Invalid or revoked API key.",
         )
 
+    # Expiry enforcement (checklist item — SLA & reliability)
+    if key_record.expires_at and datetime.utcnow() > key_record.expires_at:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": "key_expired",
+                "message": f"API key expired at {key_record.expires_at.isoformat()}. Rotate or create a new key.",
+                "expired_at": key_record.expires_at.isoformat(),
+            },
+        )
+
     key_record.last_used_at = datetime.utcnow()
     await db.flush()
 
@@ -99,6 +110,7 @@ async def get_current_key_info(
         tier=key_record.tier,
         key_id=key_record.id,
         monthly_traces=monthly_traces,
+        scope=getattr(key_record, "scope", "read_write") or "read_write",
     )
 
 

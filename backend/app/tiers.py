@@ -45,6 +45,7 @@ class TierInfo:
     tier: str           # "free" | "pro"
     key_id: str
     monthly_traces: int = 0  # current month usage — populated by check_trace_quota
+    scope: str = "read_write"   # "read_write" | "read_only"
 
     @property
     def is_pro(self) -> bool:
@@ -114,3 +115,19 @@ def _month_reset_iso() -> str:
     else:
         nxt = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
     return nxt.isoformat()
+
+def require_scope(tier_info: "TierInfo", required: str = "read_write") -> None:
+    """
+    Raise HTTP 403 if the key is read_only and a write operation is attempted.
+    Call at the top of any write endpoint (POST, PUT, DELETE).
+    """
+    if required == "read_write" and getattr(tier_info, "scope", "read_write") == "read_only":
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "insufficient_scope",
+                "message": "This endpoint requires a read_write key. Your key has read_only scope.",
+                "required_scope": "read_write",
+                "current_scope": "read_only",
+            },
+        )
