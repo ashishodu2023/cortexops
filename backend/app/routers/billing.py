@@ -189,7 +189,7 @@ ashish@getcortexops.com
             logger.warning(f"SendGrid error: {e}")
 
     # Fallback — log the key so it can be manually retrieved from Railway logs
-    logger.info(f"EMAIL_FALLBACK to={email} project={project} key={raw_key}")
+    logger.info(f"EMAIL_FALLBACK to={email} project={project} key={raw_key[:12]}...")
 
 async def _provision(db, project_name, email, ref):
     # Idempotency — check if a pro key already exists for this project from this Stripe ref

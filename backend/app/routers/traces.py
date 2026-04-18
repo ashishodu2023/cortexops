@@ -56,6 +56,14 @@ async def ingest_trace(
         db.add(Project(name=body.project))
         await db.flush()
 
+    # ── Payload size bomb protection ─────────────────────────────────────
+    raw_size = len(json.dumps(body.model_dump(), default=str))
+    if raw_size > 131072:  # 128KB hard limit per trace
+        raise HTTPException(
+            status_code=413,
+            detail=f"Payload too large ({raw_size} bytes). Max 128KB per trace."
+        )
+
     # ── PII redaction before storage ──────────────────────────────────────
     safe_payload = body.model_dump()
     safe_payload["input"]  = redact_pii(safe_payload.get("input", {}))   # redact PII from inputs too

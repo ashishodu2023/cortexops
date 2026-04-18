@@ -206,7 +206,7 @@ async def verify_jwt(
     try:
         payload = _verify(credentials.credentials, _JWT_SECRET)
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     ttl = int(payload["exp"] - time.time())
     return {
@@ -235,4 +235,4 @@ async def get_jwt_payload(
     try:
         return _verify(credentials.credentials, _JWT_SECRET)
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=401, detail="Invalid or expired token")

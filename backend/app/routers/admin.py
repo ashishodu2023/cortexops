@@ -113,7 +113,7 @@ async def admin_revoke_key(
     key = result.scalar_one_or_none()
 
     if not key:
-        raise HTTPException(404, f"Key {key_id} not found")
+        raise HTTPException(403, "Forbidden")
 
     key.is_active = False
     await db.commit()
@@ -153,7 +153,7 @@ async def admin_upgrade_key(
     key = result.scalar_one_or_none()
 
     if not key:
-        raise HTTPException(404, f"Key {key_id} not found")
+        raise HTTPException(403, "Forbidden")
 
     old_tier = key.tier
     key.tier  = body.tier
@@ -225,7 +225,7 @@ async def admin_set_scope(
     key = result.scalar_one_or_none()
 
     if not key:
-        raise HTTPException(404, f"Key {key_id} not found")
+        raise HTTPException(403, "Forbidden")
 
     try:
         key.scope = scope

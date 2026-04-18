@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import Query, APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -114,6 +114,7 @@ async def create_api_key(
 @router.get("/{project}", response_model=list[ApiKeyResponse])
 async def list_api_keys(
     project: str,
+    limit: int = Query(100, ge=1, le=500, description="Max keys to return"),
     include_inactive: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     tier_info: TierInfo = Depends(get_current_key_info),
