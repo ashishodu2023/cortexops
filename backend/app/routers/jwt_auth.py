@@ -114,6 +114,7 @@ async def issue_token(
 
     The JWT carries: project, tier, scope, key_id, iat, exp
     """
+    from fastapi import Request
     raise HTTPException(
         status_code=501,
         detail="Use POST /v1/auth/token with X-API-Key header via the dedicated auth dependency."

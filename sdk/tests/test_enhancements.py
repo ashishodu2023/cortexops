@@ -222,3 +222,177 @@ class TestApiKeyPureFunctions:
     def test_raw_key_length(self):
         raw, _ = self._gen()
         assert len(raw) == 68  # "cxo-" (4) + "-" (0 included in prefix) + 64 hex chars
+
+
+# ── Framework detection tests ────────────────────────────────────────────
+class TestFrameworkDetection:
+    """Test that _detect_framework correctly identifies all supported SDKs."""
+
+    def _make_mock(self, class_name: str, module: str) -> object:
+        from unittest.mock import MagicMock
+        obj = MagicMock()
+        obj.__class__.__name__ = class_name
+        obj.__class__.__module__ = module
+        return obj
+
+    def test_detects_langgraph(self):
+        from cortexops.tracer import CortexTracer
+        mock = self._make_mock("CompiledStateGraph", "langgraph.graph.graph")
+        assert CortexTracer._detect_framework(mock) == "langgraph"
+
+    def test_detects_crewai(self):
+        from cortexops.tracer import CortexTracer
+        mock = self._make_mock("Crew", "crewai.crew")
+        assert CortexTracer._detect_framework(mock) == "crewai"
+
+    def test_detects_openai_agents(self):
+        from cortexops.tracer import CortexTracer
+        mock = self._make_mock("Agent", "agents.agent")
+        assert CortexTracer._detect_framework(mock) == "openai_agents"
+
+    def test_detects_pydantic_ai(self):
+        from cortexops.tracer import CortexTracer
+        mock = self._make_mock("Agent", "pydantic_ai.agent")
+        assert CortexTracer._detect_framework(mock) == "pydantic_ai"
+
+    def test_detects_agno(self):
+        from cortexops.tracer import CortexTracer
+        mock = self._make_mock("Agent", "agno.agent.agent")
+        assert CortexTracer._detect_framework(mock) == "agno"
+
+    def test_detects_autogen(self):
+        from cortexops.tracer import CortexTracer
+        from unittest.mock import MagicMock
+        mock = self._make_mock("AssistantAgent", "autogen.agentchat.assistant_agent")
+        mock.initiate_chat = MagicMock()
+        assert CortexTracer._detect_framework(mock) == "autogen"
+
+    def test_detects_smolagents(self):
+        from cortexops.tracer import CortexTracer
+        from unittest.mock import MagicMock
+        mock = self._make_mock("CodeAgent", "smolagents.agents")
+        mock.run = MagicMock()
+        assert CortexTracer._detect_framework(mock) == "smolagents"
+
+    def test_detects_haystack(self):
+        from cortexops.tracer import CortexTracer
+        mock = self._make_mock("Pipeline", "haystack.core.pipeline.pipeline")
+        assert CortexTracer._detect_framework(mock) == "haystack"
+
+    def test_detects_dspy(self):
+        from cortexops.tracer import CortexTracer
+        from unittest.mock import MagicMock
+        mock = self._make_mock("RefundClassifier", "dspy.modules")
+        mock.forward = MagicMock()
+        assert CortexTracer._detect_framework(mock) == "dspy"
+
+    def test_detects_llamaindex_query(self):
+        from cortexops.tracer import CortexTracer
+        from unittest.mock import MagicMock
+        mock = self._make_mock("RetrieverQueryEngine", "llama_index.core.query_engine")
+        mock.query = MagicMock()
+        assert CortexTracer._detect_framework(mock) == "llamaindex_query"
+
+    def test_detects_llamaindex_chat(self):
+        from cortexops.tracer import CortexTracer
+        from unittest.mock import MagicMock
+        mock = self._make_mock("CondensePlusContextChatEngine", "llama_index.core.chat_engine")
+        mock.chat = MagicMock()
+        # No query attr → should detect as chat engine
+        del mock.query
+        assert CortexTracer._detect_framework(mock) == "llamaindex_chat"
+
+    def test_generic_callable_fallback(self):
+        from cortexops.tracer import CortexTracer
+        def my_fn(x): return x
+        assert CortexTracer._detect_framework(my_fn) == "generic"
+
+
+class TestNewFrameworkWrappers:
+    """Test that new framework wrappers trace correctly using mock agents."""
+
+    def _tracer(self):
+        from cortexops import CortexTracer
+        return CortexTracer(project="test", sample_rate=1.0)
+
+    def test_pydantic_ai_wrap_traces(self):
+        from unittest.mock import MagicMock, patch
+        tracer = self._tracer()
+        mock_agent = MagicMock()
+        mock_agent.__class__.__name__ = "Agent"
+        mock_agent.__class__.__module__ = "pydantic_ai.agent"
+        mock_result = MagicMock()
+        mock_result.data = "refund_approved"
+        mock_agent.run_sync.return_value = mock_result
+
+        wrapped = tracer.wrap(mock_agent)
+        result = wrapped.run_sync("Process refund #4821")
+
+        assert result.data == "refund_approved"
+        trace = tracer.last_trace()
+        assert trace is not None
+        assert str(trace.status) in ("completed", "RunStatus.COMPLETED")
+        print(f"PydanticAI trace: latency={trace.total_latency_ms:.0f}ms")
+
+    def test_smolagents_wrap_traces(self):
+        from unittest.mock import MagicMock
+        tracer = self._tracer()
+        mock_agent = MagicMock()
+        mock_agent.__class__.__name__ = "CodeAgent"
+        mock_agent.__class__.__module__ = "smolagents.agents"
+        mock_agent.run.return_value = "Task completed: refund approved"
+
+        wrapped = tracer.wrap(mock_agent)
+        result = wrapped.run("Process refund for order #4821")
+
+        assert result == "Task completed: refund approved"
+        trace = tracer.last_trace()
+        assert trace is not None
+        assert str(trace.status) in ("completed", "RunStatus.COMPLETED")
+
+    def test_haystack_wrap_traces(self):
+        from unittest.mock import MagicMock
+        tracer = self._tracer()
+        mock_pipeline = MagicMock()
+        mock_pipeline.__class__.__name__ = "Pipeline"
+        mock_pipeline.__class__.__module__ = "haystack.core.pipeline.pipeline"
+        mock_pipeline.run.return_value = {"llm": {"replies": ["refund approved"]}}
+
+        wrapped = tracer.wrap(mock_pipeline)
+        result = wrapped.run({"retriever": {"query": "refund policy"}})
+
+        assert "llm" in result
+        trace = tracer.last_trace()
+        assert trace is not None
+        assert str(trace.status) in ("completed", "RunStatus.COMPLETED")
+
+    def test_dspy_wrap_traces(self):
+        from unittest.mock import MagicMock
+        tracer = self._tracer()
+        mock_module = MagicMock()
+        mock_module.__class__.__name__ = "RefundClassifier"
+        mock_module.__class__.__module__ = "dspy.modules"
+        mock_module.forward.return_value = MagicMock(action="refund_approved")
+        mock_module.forward.__name__ = "forward"
+
+        wrapped = tracer.wrap(mock_module)
+        result = wrapped("What should I do with refund #4821?")
+
+        trace = tracer.last_trace()
+        assert trace is not None
+        assert str(trace.status) in ("completed", "RunStatus.COMPLETED")
+
+    def test_agno_wrap_traces(self):
+        from unittest.mock import MagicMock
+        tracer = self._tracer()
+        mock_agent = MagicMock()
+        mock_agent.__class__.__name__ = "Agent"
+        mock_agent.__class__.__module__ = "agno.agent.agent"
+        mock_agent.run.return_value = MagicMock(content="Refund approved for order #4821")
+
+        wrapped = tracer.wrap(mock_agent)
+        result = wrapped.run("Process refund for order #4821")
+
+        trace = tracer.last_trace()
+        assert trace is not None
+        assert str(trace.status) in ("completed", "RunStatus.COMPLETED")

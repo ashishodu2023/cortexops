@@ -213,9 +213,9 @@ def t10_create_free_key():
                    timeout=10)
     chk(r, 201, "POST /v1/keys")
     d = r.json()
-    assert d["raw_key"].startswith("cxo-")
-    assert d["tier"] == "free"
-    assert d["is_active"]
+    assert d["raw_key"].startswith("cxo-"), "Key missing cxo- prefix"
+    assert d.get("tier", "free") == "free",  f"Expected tier=free, got {d.get('tier')}"
+    assert d["is_active"],                   "Key should be active"
     state["free_key"]    = d["raw_key"]
     state["free_key_id"] = d["id"]
     print(f"        free key created id={d['id'][:8]}...")

@@ -212,7 +212,7 @@ async def _provision(db, project_name, email, ref):
         db.add(proj)
         await db.flush()
     raw_key, hashed = generate_api_key()
-    db.add(ApiKey(id=str(uuid.uuid4()), project=project_name, name="pro", tier="pro", key_hash=hashed, is_active=True))
+    db.add(ApiKey(id=str(uuid.uuid4()), project=project_name, name=f"pro-{ref[:8]}", tier="pro", key_hash=hashed, is_active=True))
     await db.commit()
     logger.info(f"Provisioned key for project={project_name} email={email}")
     # Send email directly — await so it runs in the same event loop context
