@@ -250,7 +250,7 @@ footer{background:var(--gray-100);color:var(--gray-700);padding:48px 24px 24px;b
 <div class="hero">
   <div class="hero-chip">
     <div class="hero-chip-dot"></div>
-    <span class="hero-chip-text">v0.2.0 live on PyPI — pip install cortexops</span>
+    <span class="hero-chip-text">v0.3.0 live on PyPI — pip install cortexops</span>
   </div>
   <h1>Stop shipping agents<br><strong>you can't trust</strong></h1>
   <p class="hero-sub">Evaluate, observe, and gate LangGraph and CrewAI agents before they reach production. Built by a Senior AI Engineer at PayPal.</p>
@@ -704,7 +704,7 @@ const docsContent={
   ci:`<h3>CI eval gate</h3><p>Add to your GitHub Actions workflow. PRs are blocked when quality drops.</p><pre><span class="ck">- name</span>: Run eval gate\n  <span class="ck">run</span>: |\n    cortexops eval run \\\n      --dataset golden_v1.yaml \\\n      --fail-on <span class="cs">"task_completion &lt; 0.90"</span></pre>`,
   langgraph:`<h3>LangGraph integration</h3><p>Auto-detects CompiledStateGraph. Wraps invoke() with zero refactoring.</p><pre><span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>\n\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"payments-agent"</span>)\ngraph  = tracer.wrap(compiled_graph)\nresult = graph.invoke({<span class="cs">"messages"</span>: [...]})</pre>`,
   api:`<h3>Traces API</h3><p>Base URL: api.getcortexops.com · Auth: X-API-Key header</p><pre>GET  /v1/traces?project=my-agent\nPOST /v1/traces\nGET  /v1/traces/{trace_id}\nGET  /health</pre><p style="margin-top:12px">Full reference at <a href="https://api.getcortexops.com/docs" target="_blank" style="color:var(--blue)">api.getcortexops.com/docs</a></p>`,
-  sdk:`<h3>SDK reference — v0.2.0</h3><p>Key auto-loads from <code>CORTEXOPS_API_KEY</code> env var or <code>~/.cortexops/credentials</code> after <code>cortexops login</code>.</p><pre><span class="cm"># v0.2.0 — no api_key argument needed</span>\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)\n\n<span class="cm"># Or set env var</span>\n<span class="ck">export</span> CORTEXOPS_API_KEY=cxo-...\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)</pre><p style="margin-top:12px"><a href="https://docs.getcortexops.com" target="_blank" style="color:var(--blue)">Full SDK docs →</a></p>`,
+  sdk:`<h3>SDK reference — v0.3.0</h3><p>Key auto-loads from <code>CORTEXOPS_API_KEY</code> env var or <code>~/.cortexops/credentials</code> after <code>cortexops login</code>.</p><pre><span class="cm"># v0.3.0 — no api_key argument needed</span>\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)\n\n<span class="cm"># Or set env var</span>\n<span class="ck">export</span> CORTEXOPS_API_KEY=cxo-...\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)</pre><p style="margin-top:12px"><a href="https://docs.getcortexops.com" target="_blank" style="color:var(--blue)">Full SDK docs →</a></p>`,
 };
 
 function switchDoc(id,el){
