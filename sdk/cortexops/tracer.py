@@ -292,8 +292,8 @@ class CortexTracer:
             def run_sync(self_, prompt: str, **kwargs) -> Any:
                 try:
                     from agents import Runner
-                except ImportError:
-                    raise ImportError("pip install openai-agents")
+                except ImportError as e:
+                    raise ImportError("pip install openai-agents") from e
                 return tracer._run_traced(
                     fn=lambda: Runner.run_sync(agent, prompt, **kwargs),
                     input={"prompt": prompt},
@@ -303,8 +303,8 @@ class CortexTracer:
             async def run(self_, prompt: str, **kwargs) -> Any:
                 try:
                     from agents import Runner
-                except ImportError:
-                    raise ImportError("pip install openai-agents")
+                except ImportError as e:
+                    raise ImportError("pip install openai-agents") from e
                 import asyncio
                 return await asyncio.get_event_loop().run_in_executor(
                     None, lambda: Runner.run_sync(agent, prompt, **kwargs)
