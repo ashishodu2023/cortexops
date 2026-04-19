@@ -103,7 +103,9 @@ jobs:
         run: pip install pip-audit
 
       - name: Audit backend dependencies
-        run: pip-audit -r backend/requirements.txt --desc on
+        run: |
+          pip install -r backend/requirements.txt --quiet
+          pip-audit --desc on
 
       - name: Audit SDK dependencies
         run: pip-audit -r sdk/pyproject.toml --desc on
@@ -148,11 +150,14 @@ jobs:
   trivy:
     name: Container Scan (Trivy)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t cortexops-backend:test backend/
+        run: docker build -t cortexops-backend:test -f Dockerfile .
 
       - name: Run Trivy on image
         uses: aquasecurity/trivy-action@master
@@ -200,14 +205,14 @@ jobs:
             --header "X-API-Key: $CORTEXOPS_API_KEY" \
             --checks all \
             --max-examples 50 \
-            --report schemathesis-report.yaml
+            --junit-xml schemathesis-report.xml
 
       - name: Upload Schemathesis report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: schemathesis-report
-          path: schemathesis-report.yaml
+          path: schemathesis-report.xml
 
   # ════════════════════════════════════════════════════════════
   # JOB 8: JS/REACT SECURITY — Bearer
@@ -372,6 +377,62 @@ jobs:
               sys.exit(1)
           print("✓ All CORS + security header checks passed")
           EOF
+
+
+  # ════════════════════════════════════════════════════════════
+  # DEPLOY — Only runs after ALL security jobs pass
+  # Requires: lint, tests, bandit, pip-audit, semgrep, trivy,
+  #           bearer, license-check to all succeed
+  # ════════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy to Railway + Vercel
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - tests
+      - bandit
+      - pip-audit
+      - semgrep
+      - trivy
+      - bearer
+      - license-check
+    # Only deploy on push to main — not PRs, not schedule
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.lint.result == 'success' &&
+      needs.tests.result == 'success' &&
+      needs.bandit.result == 'success' &&
+      needs.pip-audit.result == 'success' &&
+      needs.semgrep.result == 'success' &&
+      needs.trivy.result == 'success' &&
+      needs.bearer.result == 'success' &&
+      needs.license-check.result == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy backend to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          npm install -g @railway/cli
+          railway up --service cortexops-backend --detach
+
+      - name: Deploy frontend to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel
+          vercel --prod --token $VERCEL_TOKEN --yes
+
+      - name: Notify deploy success
+        run: |
+          echo "✓ Deployed to production after all security checks passed"
+          echo "  Commit: ${{ github.sha }}"
+          echo "  Triggered by: ${{ github.actor }}"
 
   # ════════════════════════════════════════════════════════════
   # SUMMARY: What each job covers
