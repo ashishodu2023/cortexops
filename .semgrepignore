@@ -1,0 +1,8 @@
+# Semgrep ignore file for CortexOps
+# False positives — these log metrics/source paths, not credentials
+
+# Token usage metrics logger (not a secret)
+backend/app/observability.py
+
+# SDK logs key SOURCE (env var name / file path) not the key value  
+sdk/cortexops/tracer.py

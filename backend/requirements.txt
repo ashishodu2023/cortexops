@@ -1,5 +1,5 @@
 # Web framework
-fastapi==0.115.0
+fastapi==0.115.12
 uvicorn[standard]==0.30.6
 
 # Database
@@ -32,7 +32,9 @@ python-json-logger==2.0.7
 
 # Production hardening
 # Checklist item 7 — security
-python-multipart==0.0.12
+python-multipart==0.0.26
 
 # Checklist item 5 — statistical regression detection (optional, heuristic fallback if absent)
 # scipy==1.13.1  # uncomment for Welch's t-test
+
+starlette>=0.47.2

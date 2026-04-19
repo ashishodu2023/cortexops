@@ -105,8 +105,8 @@ class CortexTracer:
                     source = "~/.cortexops/credentials"
             if source != "argument":
                 import logging
-                logging.getLogger(__name__).debug(
-                    "CortexTracer: api_key loaded from %s", source
+                logging.getLogger(__name__).debug(  # nosemgrep: python-logger-credential-disclosure
+                    "CortexTracer: api_key loaded from %s", source  # logs source path, not the key
                 )
 
     @property
