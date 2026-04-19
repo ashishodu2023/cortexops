@@ -672,69 +672,108 @@ results = <span class="cf">EvalSuite</span>.run(
 <script>
 const API = 'https://api.getcortexops.com';
 
-function openModal(){document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>document.getElementById('checkout-email').focus(),100)}
-function closeModal(e){if(e&&e.target!==document.getElementById('modal'))return;document.getElementById('modal').classList.remove('open');document.body.style.overflow=''}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-
-function showError(msg){const el=document.getElementById('modal-error');el.textContent=msg;el.style.display='block'}
-
-async function startCheckout(){
-  const email=document.getElementById('checkout-email').value.trim();
-  const project=document.getElementById('checkout-project').value.trim();
-  document.getElementById('modal-error').style.display='none';
-  if(!email||!email.includes('@'))return showError('Please enter a valid email address.');
-  if(!project)return showError('Please enter a project name.');
-  const btn=document.getElementById('checkout-btn');
-  btn.disabled=true;btn.textContent='Connecting…';
-  try{
-    const r=await fetch(`${API}/v1/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,project,seats:1})});
-    if(!r.ok){const err=await r.json();throw new Error(err.detail||'Server error');}
-    const {checkout_url}=await r.json();
-    document.getElementById('modal-form').style.display='none';
-    document.getElementById('modal-success').style.display='block';
-    setTimeout(()=>{window.location.href=checkout_url},1200);
-  }catch(err){
-    btn.disabled=false;btn.textContent='Continue to Stripe →';
-    showError(err.message||'Cannot reach API. Email ashish@getcortexops.com');
-  }
-}
-
-const docsContent={
-  quickstart:`<h3>Quickstart</h3><p>Install the SDK and run your first eval in under 2 minutes.</p><pre><span class="ck"># Install</span>\npip install cortexops\n\n<span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>, <span class="cf">EvalSuite</span>\n\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)\nresults = <span class="cf">EvalSuite</span>.run(dataset=<span class="cs">"golden_v1.yaml"</span>, agent=agent)</pre>`,
-  ci:`<h3>CI eval gate</h3><p>Add to your GitHub Actions workflow. PRs are blocked when quality drops.</p><pre><span class="ck">- name</span>: Run eval gate\n  <span class="ck">run</span>: |\n    cortexops eval run \\\n      --dataset golden_v1.yaml \\\n      --fail-on <span class="cs">"task_completion &lt; 0.90"</span></pre>`,
-  langgraph:`<h3>LangGraph integration</h3><p>Auto-detects CompiledStateGraph. Wraps invoke() with zero refactoring.</p><pre><span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>\n\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"payments-agent"</span>)\ngraph  = tracer.wrap(compiled_graph)\nresult = graph.invoke({<span class="cs">"messages"</span>: [...]})</pre>`,
-  api:`<h3>Traces API</h3><p>Base URL: api.getcortexops.com · Auth: X-API-Key header</p><pre>GET  /v1/traces?project=my-agent\nPOST /v1/traces\nGET  /v1/traces/{trace_id}\nGET  /health</pre><p style="margin-top:12px">Full reference at <a href="https://api.getcortexops.com/docs" target="_blank" style="color:var(--blue)">api.getcortexops.com/docs</a></p>`,
-  sdk:`<h3>SDK reference — v0.3.0</h3><p>Key auto-loads from <code>CORTEXOPS_API_KEY</code> env var or <code>~/.cortexops/credentials</code> after <code>cortexops login</code>.</p><pre><span class="cm"># v0.3.0 — no api_key argument needed</span>\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)\n\n<span class="cm"># Or set env var</span>\n<span class="ck">export</span> CORTEXOPS_API_KEY=cxo-...\ntracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)</pre><p style="margin-top:12px"><a href="https://docs.getcortexops.com" target="_blank" style="color:var(--blue)">Full SDK docs →</a></p>`,
+// ── Modal ────────────────────────────────────────────────────────
+window.openModal = function() {
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => {
+    const el = document.getElementById('checkout-email');
+    if (el) el.focus();
+  }, 100);
 };
 
-function switchDoc(id,el){
-  document.querySelectorAll('.docs-nav-item').forEach(n=>n.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('docs-content').innerHTML=docsContent[id];
-}
+window.closeModal = function(e) {
+  if (e && e.target !== document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow = '';
+};
 
-// Stripe success banner
-(function(){
-  const p=new URLSearchParams(window.location.search);
-  // Auto-open trial modal when coming from docs or any ?trial=1 link
-  if(p.get('trial')==='1'){
-    history.replaceState(null,'','/');
-    setTimeout(openModal, 300);
-  }
-  if(p.get('checkout')==='success'){
-    const b=document.getElementById('success-banner');
-    b.style.display='block';
-    b.textContent='Subscription active — check your email for your API key · Project: <strong>${p.get('project')||'your project'}</strong> · <a href="/" onclick="this.parentElement.parentElement.style.display='none';history.replaceState(null,'','/');return false" style="color:var(--green);font-weight:600">Dismiss</a>';
-    history.replaceState(null,'','/');
-  }
-})();
+window.showError = function(msg) {
+  const el = document.getElementById('modal-error');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+};
 
-// Smooth scroll
-document.querySelectorAll('a[href^="#"]').forEach(a=>{
-  a.addEventListener('click',e=>{
-    const t=document.querySelector(a.getAttribute('href'));
-    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'})}
+// ── Checkout ─────────────────────────────────────────────────────
+window.startCheckout = async function() {
+  const email   = (document.getElementById('checkout-email').value || '').trim();
+  const project = (document.getElementById('checkout-project').value || '').trim();
+  document.getElementById('modal-error').style.display = 'none';
+  if (!email || !email.includes('@')) return window.showError('Please enter a valid email address.');
+  if (!project || project.length < 2)  return window.showError('Please enter a project name (min 2 chars).');
+  const btn = document.getElementById('checkout-btn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting to Stripe…';
+  try {
+    const r = await fetch(`${API}/v1/billing/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email, project, seats: 1 })
+    });
+    if (!r.ok) {
+      let msg = 'Server error (' + r.status + ')';
+      try { const err = await r.json(); msg = err.detail || msg; } catch(e) {}
+      throw new Error(msg);
+    }
+    const data = await r.json();
+    if (!data.checkout_url) throw new Error('No checkout URL returned from server');
+    document.getElementById('modal-form').style.display = 'none';
+    document.getElementById('modal-success').style.display = 'block';
+    setTimeout(() => { window.location.href = data.checkout_url; }, 1000);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Continue to Stripe →';
+    const msg = err.message || 'Unknown error';
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) {
+      window.showError('Cannot reach API. Check your connection and try again, or email ashish@getcortexops.com');
+    } else if (msg.includes('503') || msg.includes('STRIPE_PRICE_ID')) {
+      window.showError('Stripe not configured. Email ashish@getcortexops.com to activate Pro.');
+    } else {
+      window.showError(msg + ' — email ashish@getcortexops.com if this persists.');
+    }
+    console.error('Checkout error:', err);
+  }
+};
+
+// ── Keyboard + scroll ─────────────────────────────────────────────
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeModal(); });
+
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
   });
+});
+
+// ── Docs switcher ─────────────────────────────────────────────────
+window.switchDoc = function(id, el) {
+  document.querySelectorAll('.docs-nav-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const content = document.getElementById('docs-content');
+  if (content && window.docsContent && window.docsContent[id]) {
+    content.innerHTML = window.docsContent[id];
+  }
+};
+
+// ── API health check ──────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  try {
+    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) console.warn('CortexOps API health check failed:', r.status);
+  } catch(e) {
+    console.warn('CortexOps API unreachable:', e.message);
+  }
+
+  // Stripe success banner
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('checkout') === 'success') {
+    const b = document.getElementById('success-banner');
+    if (b) {
+      b.style.display = 'block';
+      b.textContent = 'Subscription active — check your email for your API key · Pro access is now live.';
+    }
+  }
 });
 </script>
 </body>
