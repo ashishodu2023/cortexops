@@ -34,7 +34,16 @@ from ..models.records import ApiKey
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
 # ── JWT secret ────────────────────────────────────────────────────────────
-_JWT_SECRET = os.getenv("JWT_SECRET", "cortexops-dev-jwt-secret-change-in-production")
+_JWT_SECRET = os.getenv("JWT_SECRET", "")
+
+if not _JWT_SECRET:
+    import logging
+    logging.getLogger(__name__).critical(
+        "SECURITY ERROR: JWT_SECRET env var is not set. "
+        "Set it in Railway Variables before deploying."
+    )
+    raise RuntimeError("JWT_SECRET must be set in production")
+
 _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRY_SECONDS = 3600  # 1 hour
 

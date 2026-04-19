@@ -94,6 +94,8 @@ async def validate_secrets():
         log.critical("STARTUP SECURITY ERROR: %s", err)
     if errors:
         raise RuntimeError(f"Missing/insecure secrets: {'; '.join(errors)}")
+    # Validate production database — prevent silent SQLite usage
+    settings.validate_production()
 
 
 # ── Routers ───────────────────────────────────────────────────────────────

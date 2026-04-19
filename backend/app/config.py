@@ -11,8 +11,21 @@ class Settings(BaseSettings):
     debug: bool = False
     version: str = "0.1.0"
 
-    # Database
+    # Database — MUST be set to PostgreSQL in production
     database_url: str = "sqlite+aiosqlite:///./cortexops.db"
+
+    @property
+    def is_sqlite(self) -> bool:
+        return "sqlite" in self.database_url
+
+    def validate_production(self) -> None:
+        """Raise if running SQLite in production."""
+        if self.environment == "production" and self.is_sqlite:
+            raise RuntimeError(
+                "FATAL: DATABASE_URL must be set to PostgreSQL in production. "
+                "SQLite data is lost on container restart. "
+                "Set DATABASE_URL in Railway Variables."
+            )
 
     # Redis / Celery
     redis_url: str = "redis://localhost:6379/0"

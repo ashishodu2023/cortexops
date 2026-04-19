@@ -724,7 +724,7 @@ function switchDoc(id,el){
   if(p.get('checkout')==='success'){
     const b=document.getElementById('success-banner');
     b.style.display='block';
-    b.innerHTML=`Subscription active — check your email for your API key · Project: <strong>${p.get('project')||'your project'}</strong> · <a href="/" onclick="this.parentElement.parentElement.style.display='none';history.replaceState(null,'','/');return false" style="color:var(--green);font-weight:600">Dismiss</a>`;
+    b.textContent='Subscription active — check your email for your API key · Project: <strong>${p.get('project')||'your project'}</strong> · <a href="/" onclick="this.parentElement.parentElement.style.display='none';history.replaceState(null,'','/');return false" style="color:var(--green);font-weight:600">Dismiss</a>';
     history.replaceState(null,'','/');
   }
 })();

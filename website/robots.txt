@@ -2,3 +2,10 @@ User-agent: *
 Allow: /
 
 Sitemap: https://www.getcortexops.com/sitemap.xml
+
+# Block API and admin from crawlers
+User-agent: *
+Disallow: /v1/
+Disallow: /admin
+Disallow: /docs
+Disallow: /openapi.json
