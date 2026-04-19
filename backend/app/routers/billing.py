@@ -57,7 +57,12 @@ class CheckoutResponse(BaseModel):
     session_id: str
 
 
-@router.post("/checkout", response_model=CheckoutResponse)
+@router.post("/checkout", response_model=CheckoutResponse, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def create_checkout(body: CheckoutRequest):
     s = get_stripe()
     if not STRIPE_PRICE_ID:
@@ -78,7 +83,10 @@ async def create_checkout(body: CheckoutRequest):
     return CheckoutResponse(checkout_url=session.url, session_id=session.id)
 
 
-@router.post("/webhook/stripe")
+@router.post("/webhook/stripe", responses={
+    400: {"description": "Invalid webhook payload or signature"},
+    500: {"description": "Internal server error"},
+})
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     s = get_stripe()
     body = await request.body()
@@ -236,7 +244,12 @@ async def _provision(db, project_name, email, ref):
     return raw_key
 
 
-@router.get("/session/{session_id}")
+@router.get("/session/{session_id}", responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def get_session(
     session_id: str,
     tier_info: TierInfo = Depends(get_current_key_info),
@@ -254,7 +267,13 @@ async def get_session(
 class PortalRequest(BaseModel):
     customer_id: str
 
-@router.post("/portal")
+@router.post("/portal", responses={
+    401: {"description": "Invalid or missing API key"},
+    402: {"description": "Pro subscription required"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def create_portal(
     body: PortalRequest,
     tier_info: TierInfo = Depends(get_current_key_info),

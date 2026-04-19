@@ -117,7 +117,12 @@ class TokenPayload(BaseModel):
 
 # ── Endpoints ─────────────────────────────────────────────────────────────
 
-@router.post("/token", response_model=TokenResponse)
+@router.post("/token", response_model=TokenResponse, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def issue_token(
     db: AsyncSession = Depends(get_db),
     raw_key: str | None = None,  # from X-API-Key header via dependency
@@ -137,7 +142,12 @@ async def issue_token(
     )
 
 
-@router.post("/token/issue", response_model=TokenResponse)
+@router.post("/token/issue", response_model=TokenResponse, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def issue_jwt(
     db: AsyncSession = Depends(get_db),
     api_key_header: str | None = Security(
@@ -209,7 +219,12 @@ async def issue_jwt(
     )
 
 
-@router.get("/token/verify")
+@router.get("/token/verify", responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def verify_jwt(
     credentials: HTTPAuthorizationCredentials | None = Security(_bearer),
 ):

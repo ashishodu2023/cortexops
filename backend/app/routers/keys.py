@@ -56,7 +56,12 @@ VALID_SCOPES = {"read_write", "read_only"}
 
 # ── Endpoints ─────────────────────────────────────────────────────────────
 
-@router.post("", response_model=ApiKeyCreateResponse, status_code=201)
+@router.post("", response_model=ApiKeyCreateResponse, status_code=201, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def create_api_key(
     body: ApiKeyCreate,
     db: AsyncSession = Depends(get_db),
@@ -111,7 +116,12 @@ async def create_api_key(
     )
 
 
-@router.get("/{project}", response_model=list[ApiKeyResponse])
+@router.get("/{project}", response_model=list[ApiKeyResponse], responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def list_api_keys(
     project: str,
     limit: int = Query(100, ge=1, le=500, description="Max keys to return"),
@@ -147,7 +157,12 @@ async def list_api_keys(
     ]
 
 
-@router.post("/{key_id}/rotate", response_model=RotateResponse)
+@router.post("/{key_id}/rotate", response_model=RotateResponse, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def rotate_api_key(
     key_id: str,
     db: AsyncSession = Depends(get_db),
@@ -195,7 +210,12 @@ async def rotate_api_key(
     )
 
 
-@router.delete("/{key_id}", status_code=204)
+@router.delete("/{key_id}", status_code=204, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def revoke_api_key(
     key_id: str,
     db: AsyncSession = Depends(get_db),
@@ -216,7 +236,12 @@ async def revoke_api_key(
     await db.commit()
 
 
-@router.get("/{key_id}/info", response_model=ApiKeyResponse)
+@router.get("/{key_id}/info", response_model=ApiKeyResponse, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def get_key_info(
     key_id: str,
     db: AsyncSession = Depends(get_db),

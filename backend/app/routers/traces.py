@@ -21,7 +21,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/traces", tags=["traces"])
 
 
-@router.post("", response_model=TraceResponse, status_code=201)
+@router.post("", response_model=TraceResponse, status_code=201, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def ingest_trace(
     body: TraceIngest,
     db: AsyncSession = Depends(get_db),
@@ -113,7 +118,12 @@ async def ingest_trace(
     return response
 
 
-@router.get("", response_model=list[TraceResponse])
+@router.get("", response_model=list[TraceResponse], responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def list_traces(
     project: str = Query(...),
     limit: int = Query(50, le=500),
@@ -161,7 +171,12 @@ async def list_traces(
     ]
 
 
-@router.get("/quota", tags=["traces"])
+@router.get("/quota", tags=["traces"], responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def get_quota(
     tier_info: TierInfo = Depends(get_current_key_info),
 ):
@@ -189,7 +204,12 @@ async def get_quota(
     }
 
 
-@router.get("/{trace_id}", response_model=TraceDetailResponse)
+@router.get("/{trace_id}", response_model=TraceDetailResponse, responses={
+    401: {"description": "Invalid or missing API key"},
+    403: {"description": "Forbidden — insufficient scope or project mismatch"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
 async def get_trace(
     trace_id: str,
     db: AsyncSession = Depends(get_db),

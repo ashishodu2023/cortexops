@@ -57,7 +57,11 @@ class RevokeRequest(BaseModel):
 
 # ── Endpoints ─────────────────────────────────────────────────────────────
 
-@router.get("/keys", response_model=list[AdminKeyResponse])
+@router.get("/keys", response_model=list[AdminKeyResponse], responses={
+    401: {"description": "Missing or invalid X-Internal-Key header"},
+    403: {"description": "Forbidden"},
+    500: {"description": "Internal server error"},
+})
 async def admin_list_all_keys(
     project: str | None = None,
     tier: str | None = None,
@@ -96,7 +100,11 @@ async def admin_list_all_keys(
     ]
 
 
-@router.post("/keys/{key_id}/revoke", status_code=200)
+@router.post("/keys/{key_id}/revoke", status_code=200, responses={
+    401: {"description": "Missing or invalid X-Internal-Key header"},
+    403: {"description": "Forbidden"},
+    500: {"description": "Internal server error"},
+})
 async def admin_revoke_key(
     key_id: str,
     body: RevokeRequest,
@@ -126,7 +134,11 @@ async def admin_revoke_key(
     }
 
 
-@router.post("/keys/{key_id}/upgrade", status_code=200)
+@router.post("/keys/{key_id}/upgrade", status_code=200, responses={
+    401: {"description": "Missing or invalid X-Internal-Key header"},
+    403: {"description": "Forbidden"},
+    500: {"description": "Internal server error"},
+})
 async def admin_upgrade_key(
     key_id: str,
     body: UpgradeTierRequest,
@@ -176,7 +188,11 @@ async def admin_upgrade_key(
     }
 
 
-@router.get("/projects", status_code=200)
+@router.get("/projects", status_code=200, responses={
+    401: {"description": "Missing or invalid X-Internal-Key header"},
+    403: {"description": "Forbidden"},
+    500: {"description": "Internal server error"},
+})
 async def admin_list_projects(
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
@@ -205,7 +221,11 @@ async def admin_list_projects(
     return {"projects": out, "total": len(out)}
 
 
-@router.post("/keys/{key_id}/scope", status_code=200)
+@router.post("/keys/{key_id}/scope", status_code=200, responses={
+    401: {"description": "Missing or invalid X-Internal-Key header"},
+    403: {"description": "Forbidden"},
+    500: {"description": "Internal server error"},
+})
 async def admin_set_scope(
     key_id: str,
     scope: str,
