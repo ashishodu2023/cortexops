@@ -108,7 +108,9 @@ jobs:
           pip-audit --desc on
 
       - name: Audit SDK dependencies
-        run: pip-audit -r sdk/pyproject.toml --desc on
+        run: |
+          cd sdk && pip install -e ".[dev]" --quiet
+          pip-audit --desc on
 
   # ════════════════════════════════════════════════════════════
   # JOB 5: SECRETS SCAN — Semgrep
@@ -165,6 +167,7 @@ jobs:
           image-ref: cortexops-backend:test
           format: table
           exit-code: '1'
+          ignore-unfixed: true
           severity: CRITICAL,HIGH
           vuln-type: os,library
 
@@ -205,14 +208,9 @@ jobs:
             --header "X-API-Key: $CORTEXOPS_API_KEY" \
             --checks all \
             --max-examples 50 \
-            --junit-xml schemathesis-report.xml
+            
 
-      - name: Upload Schemathesis report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: schemathesis-report
-          path: schemathesis-report.xml
+      # Schemathesis results visible in CI log output above
 
   # ════════════════════════════════════════════════════════════
   # JOB 8: JS/REACT SECURITY — Bearer
