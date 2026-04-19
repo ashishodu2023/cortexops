@@ -221,7 +221,10 @@ async def _provision(db, project_name, email, ref):
 
 
 @router.get("/session/{session_id}")
-async def get_session(session_id: str):
+async def get_session(
+    session_id: str,
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
     s = get_stripe()
     sess = s.checkout.Session.retrieve(session_id)
     return {

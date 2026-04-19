@@ -68,6 +68,14 @@ def _verify(token: str, secret: str) -> dict:
     except ValueError:
         raise ValueError("Malformed JWT")
 
+    # Reject alg:none and any non-HS256 algorithm (prevents alg confusion)
+    try:
+        header_data = json.loads(_b64_decode(header))
+        if header_data.get("alg", "").upper() != "HS256":
+            raise ValueError(f"Unsupported algorithm: {header_data.get('alg')}")
+    except (ValueError, KeyError) as e:
+        raise ValueError("Invalid JWT header") from e
+
     expected_sig = _b64_encode(
         hmac.HMAC(secret.encode(), f"{header}.{body}".encode(), hashlib.sha256).digest()
     )

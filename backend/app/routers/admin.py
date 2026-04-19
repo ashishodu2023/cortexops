@@ -18,7 +18,7 @@ from ..models.records import ApiKey, Project
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
-_INTERNAL_KEY = os.getenv("INTERNAL_API_KEY", "dev_internal_key")
+_INTERNAL_KEY = os.getenv("INTERNAL_API_KEY", "")
 
 
 # ── Internal auth ─────────────────────────────────────────────────────────

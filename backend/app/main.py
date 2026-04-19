@@ -74,6 +74,28 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"]          = "1; mode=block"
     return response
 
+
+@app.on_event("startup")
+async def validate_secrets():
+    """Fail fast on startup if critical secrets are missing or default."""
+    import os, logging
+    log = logging.getLogger(__name__)
+    errors = []
+    jwt_secret = os.getenv("JWT_SECRET", "")
+    internal_key = os.getenv("INTERNAL_API_KEY", "")
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    if not jwt_secret or "dev" in jwt_secret:
+        errors.append("JWT_SECRET not set or uses default")
+    if not internal_key or internal_key == "dev_internal_key":
+        errors.append("INTERNAL_API_KEY not set or uses default")
+    if not webhook_secret:
+        errors.append("STRIPE_WEBHOOK_SECRET not set")
+    for err in errors:
+        log.critical("STARTUP SECURITY ERROR: %s", err)
+    if errors:
+        raise RuntimeError(f"Missing/insecure secrets: {'; '.join(errors)}")
+
+
 # ── Routers ───────────────────────────────────────────────────────────────
 app.include_router(admin.router)
 app.include_router(jwt_auth.router)
