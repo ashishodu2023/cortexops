@@ -73,7 +73,7 @@ async def create_checkout(body: CheckoutRequest):
         },
         success_url=f"{FRONTEND_URL}/?checkout=success&session_id={{CHECKOUT_SESSION_ID}}&project={body.project}",
         cancel_url=f"{FRONTEND_URL}/#pricing",
-        allow_promotion_codes=True,
+        allow_promotion_codes=False,
     )
     return CheckoutResponse(checkout_url=session.url, session_id=session.id)
 
