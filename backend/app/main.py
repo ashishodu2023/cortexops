@@ -78,7 +78,8 @@ async def add_security_headers(request: Request, call_next):
 @app.on_event("startup")
 async def validate_secrets():
     """Fail fast on startup if critical secrets are missing or default."""
-    import os, logging
+    import logging
+    import os
     log = logging.getLogger(__name__)
     errors = []
     jwt_secret = os.getenv("JWT_SECRET", "")

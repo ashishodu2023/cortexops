@@ -7,11 +7,12 @@ import uuid
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import generate_api_key
+from ..auth import generate_api_key, get_current_key_info
+from ..tiers import TierInfo
 from ..db import get_db
 from ..models.records import ApiKey, Project
 
@@ -35,6 +36,21 @@ class CheckoutRequest(BaseModel):
     project: str
     email: str
     seats: int = 1
+
+    @field_validator("seats")
+    @classmethod
+    def validate_seats(cls, v: int) -> int:
+        if v < 1 or v > 100:
+            raise ValueError("seats must be between 1 and 100")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if "@" not in v or len(v) > 254:
+            raise ValueError("Invalid email address")
+        return v
 
 class CheckoutResponse(BaseModel):
     checkout_url: str
@@ -239,7 +255,16 @@ class PortalRequest(BaseModel):
     customer_id: str
 
 @router.post("/portal")
-async def create_portal(body: PortalRequest):
+async def create_portal(
+    body: PortalRequest,
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
+    """Create Stripe billing portal session. Requires Pro API key."""
+    if not tier_info.is_pro:
+        raise HTTPException(status_code=403, detail="Pro subscription required to access billing portal")
     s = get_stripe()
-    sess = s.billing_portal.Session.create(customer=body.customer_id, return_url=f"{FRONTEND_URL}/#pricing")
+    sess = s.billing_portal.Session.create(
+        customer=body.customer_id,
+        return_url=f"{FRONTEND_URL}/#pricing",
+    )
     return {"portal_url": sess.url}
