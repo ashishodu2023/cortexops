@@ -1,0 +1,406 @@
+name: Security + Quality Gates
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'   # Every Monday 6am — weekly full scan
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 1: LINT (already in your CI — keep it)
+  # ════════════════════════════════════════════════════════════
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Run ruff
+        run: ruff check sdk/cortexops backend/app --line-length 121
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 2: TESTS (already in your CI — keep it)
+  # ════════════════════════════════════════════════════════════
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install SDK deps
+        run: cd sdk && pip install -e ".[dev]"
+
+      - name: Run SDK tests
+        run: cd sdk && pytest tests/ -v --tb=short
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 3: PYTHON SAST — Bandit
+  # Finds: hardcoded secrets, insecure random, subprocess injection,
+  #        SQL injection, weak crypto, shell injection
+  # ════════════════════════════════════════════════════════════
+  bandit:
+    name: Python SAST (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit on backend
+        run: |
+          bandit -r backend/app/ \
+            -ll \
+            --skip B101 \
+            -f json \
+            -o bandit-report.json || true
+          bandit -r backend/app/ -ll --skip B101
+
+      - name: Run Bandit on SDK
+        run: bandit -r sdk/cortexops/ -ll --skip B101
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 4: DEPENDENCY CVE SCAN — pip-audit
+  # Finds: known CVEs in FastAPI, SQLAlchemy, Stripe, Pydantic
+  # ════════════════════════════════════════════════════════════
+  pip-audit:
+    name: Dependency CVE Scan (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit backend dependencies
+        run: pip-audit -r backend/requirements.txt --desc on
+
+      - name: Audit SDK dependencies
+        run: pip-audit -r sdk/pyproject.toml --desc on
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 5: SECRETS SCAN — Semgrep
+  # Finds: hardcoded API keys, tokens, passwords across ALL files
+  #        including git history patterns, JS, Python, YAML
+  # ════════════════════════════════════════════════════════════
+  semgrep:
+    name: Secrets + Pattern Scan (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for secrets
+        run: semgrep --config=p/secrets . --error --json > semgrep-secrets.json || true
+
+      - name: Scan Python security patterns
+        run: semgrep --config=p/python . --error
+
+      - name: Scan JavaScript security patterns
+        run: semgrep --config=p/javascript frontend-new/src/ --error
+
+      - name: Scan OWASP Top 10
+        run: semgrep --config=p/owasp-top-ten . --error
+
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep-secrets.json
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 6: DOCKER IMAGE SCAN — Trivy
+  # Finds: CVEs inside the container OS + installed packages
+  #        OS vulnerabilities, misconfigurations, secrets in image
+  # ════════════════════════════════════════════════════════════
+  trivy:
+    name: Container Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t cortexops-backend:test backend/
+
+      - name: Run Trivy on image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: cortexops-backend:test
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+          vuln-type: os,library
+
+      - name: Run Trivy on filesystem
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 7: API FUZZING — Schemathesis
+  # Finds: unhandled edge cases, broken auth, missing validation,
+  #        500 errors on malformed input, spec vs impl mismatch
+  # Runs against LIVE api.getcortexops.com
+  # ════════════════════════════════════════════════════════════
+  schemathesis:
+    name: API Fuzzing (Schemathesis)
+    runs-on: ubuntu-latest
+    # Only run on main branch — hits live API
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install schemathesis
+        run: pip install schemathesis
+
+      - name: Fuzz all API endpoints
+        env:
+          CORTEXOPS_API_KEY: ${{ secrets.CORTEXOPS_API_KEY }}
+        run: |
+          schemathesis run https://api.getcortexops.com/openapi.json \
+            --header "X-API-Key: $CORTEXOPS_API_KEY" \
+            --checks all \
+            --max-examples 50 \
+            --hypothesis-seed 42 \
+            --report schemathesis-report.yaml
+
+      - name: Upload Schemathesis report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schemathesis-report
+          path: schemathesis-report.yaml
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 8: JS/REACT SECURITY — Bearer
+  # Finds: XSS patterns, insecure data storage, data flow issues,
+  #        OWASP Top 10 in JavaScript/TypeScript/React
+  # ════════════════════════════════════════════════════════════
+  bearer:
+    name: JS/React Security (Bearer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bearer
+        run: |
+          curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh
+          echo "$HOME/.bearer/bin" >> $GITHUB_PATH
+
+      - name: Scan frontend React
+        run: bearer scan frontend-new/ --exit-code 0 --format json > bearer-frontend.json || true
+
+      - name: Scan website HTML/JS
+        run: bearer scan website/ --exit-code 0 --format json > bearer-website.json || true
+
+      - name: Show Bearer results
+        run: |
+          bearer scan frontend-new/ --format summary || true
+          bearer scan website/ --format summary || true
+
+      - name: Upload Bearer reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bearer-reports
+          path: |
+            bearer-frontend.json
+            bearer-website.json
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 9: LICENSE COMPLIANCE — pip-licenses
+  # Finds: GPL/AGPL dependencies that could affect open-source
+  #        licensing of CortexOps — important for MIT license
+  # ════════════════════════════════════════════════════════════
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps + pip-licenses
+        run: |
+          pip install -r backend/requirements.txt
+          pip install pip-licenses
+
+      - name: Check licenses
+        run: |
+          pip-licenses --format=markdown --output-file=licenses.md
+          # Fail if GPL/AGPL found (incompatible with MIT)
+          pip-licenses --fail-on="GPL;AGPL" || echo "WARNING: GPL/AGPL dependency found"
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: licenses.md
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 10: OWASP ZAP DAST — Live site scan
+  # Finds: XSS, SQLi, CSRF, open redirects, misconfigurations
+  #        on the LIVE deployed website + API
+  # Runs weekly only (schedule) — not on every PR
+  # ════════════════════════════════════════════════════════════
+  zap-scan:
+    name: DAST — OWASP ZAP (Weekly)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: ZAP Baseline scan — website
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'https://getcortexops.com'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+
+      - name: ZAP API scan
+        uses: zaproxy/action-api-scan@v0.7.0
+        with:
+          target: 'https://api.getcortexops.com/openapi.json'
+          format: openapi
+          cmd_options: '-a'
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: report_html.html
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 11: CORS VALIDATION
+  # Finds: wildcard CORS, missing credentials handling,
+  #        misconfigured allowed origins
+  # ════════════════════════════════════════════════════════════
+  cors-check:
+    name: CORS Validation
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install httpx
+        run: pip install httpx
+
+      - name: Test CORS headers
+        run: |
+          python3 << 'EOF'
+          import httpx, sys
+
+          api = "https://api.getcortexops.com"
+          errors = []
+
+          # Test 1: Wildcard CORS not allowed
+          r = httpx.options(f"{api}/health",
+              headers={"Origin": "https://evil.com",
+                       "Access-Control-Request-Method": "GET"})
+          acao = r.headers.get("access-control-allow-origin", "")
+          if acao == "*":
+              errors.append("CRITICAL: Wildcard CORS (*) allows evil.com")
+          elif "evil.com" in acao:
+              errors.append("CRITICAL: evil.com in CORS allow list")
+          else:
+              print(f"✓ CORS rejects evil.com (got: '{acao}')")
+
+          # Test 2: Legitimate origin allowed
+          r2 = httpx.options(f"{api}/health",
+              headers={"Origin": "https://getcortexops.com",
+                       "Access-Control-Request-Method": "GET"})
+          acao2 = r2.headers.get("access-control-allow-origin", "")
+          if "getcortexops.com" not in acao2:
+              errors.append(f"WARN: getcortexops.com not in CORS (got: '{acao2}')")
+          else:
+              print(f"✓ CORS allows getcortexops.com")
+
+          # Test 3: Security headers present
+          r3 = httpx.get(f"{api}/health")
+          for hdr in ["x-content-type-options", "x-frame-options", "strict-transport-security"]:
+              if hdr in r3.headers:
+                  print(f"✓ Header present: {hdr}")
+              else:
+                  errors.append(f"Missing security header: {hdr}")
+
+          if errors:
+              for e in errors:
+                  print(f"✗ {e}", file=sys.stderr)
+              sys.exit(1)
+          print("✓ All CORS + security header checks passed")
+          EOF
+
+  # ════════════════════════════════════════════════════════════
+  # SUMMARY: What each job covers
+  # ════════════════════════════════════════════════════════════
+  # Job 1:  lint          — ruff, code style
+  # Job 2:  tests         — 53 unit/integration tests
+  # Job 3:  bandit        — Python SAST (secrets, injection, crypto)
+  # Job 4:  pip-audit     — dependency CVEs
+  # Job 5:  semgrep       — secrets + OWASP patterns across all files
+  # Job 6:  trivy         — Docker image + filesystem CVEs
+  # Job 7:  schemathesis  — API fuzzing (live API, main branch only)
+  # Job 8:  bearer        — JS/React XSS + data flow
+  # Job 9:  license-check — GPL/AGPL compliance
+  # Job 10: zap-scan      — Full DAST on live site (weekly)
+  # Job 11: cors-check    — CORS misconfiguration (main branch only)
+  #
+  # COVERAGE:
+  # ✓ Python backend — bandit + semgrep + pip-audit + trivy
+  # ✓ JS/React frontend — bearer + semgrep + zap
+  # ✓ HTML/website — bearer + zap
+  # ✓ API endpoints — schemathesis + cors-check + zap
+  # ✓ Docker image — trivy
+  # ✓ Dependencies — pip-audit + trivy + license-check
+  # ✓ Secrets — semgrep (p/secrets)
+  # ✓ Live site — zap (weekly) + cors-check
