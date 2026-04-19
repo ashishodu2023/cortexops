@@ -208,7 +208,7 @@ jobs:
             --header "X-API-Key: $CORTEXOPS_API_KEY" \
             --checks not_a_server_error \
             --max-examples 30 \
-            --hypothesis-suppress-health-check=too_slow \
+            --suppress-health-check=too_slow \
             --continue-on-failure \
             
 
@@ -417,11 +417,12 @@ jobs:
 
       - name: Deploy backend to Railway
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_DEPLOY_HOOK: ${{ secrets.RAILWAY_DEPLOY_HOOK }}
         run: |
-          npm install -g @railway/cli
-          railway environment production
-          railway up --detach
+          curl -s -X POST "$RAILWAY_DEPLOY_HOOK" \
+            -H "Content-Type: application/json" \
+            -d '{"ref": "${{ github.sha }}"}' \
+            && echo "✓ Railway deploy triggered"
 
       # Vercel auto-deploys from GitHub push — no manual step needed
       # Frontend deploy triggered automatically by Vercel GitHub integration
