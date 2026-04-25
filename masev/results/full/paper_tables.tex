@@ -1,0 +1,87 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AUTO-GENERATED LATEX TABLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{table}[t]
+\caption{Impact of coordination protocol on \framework{} dimensions (Payment Workflow, 100 trials per protocol).}
+\label{tab:protocol}
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Protocol} & \textbf{SR} & $\mathcal{C}$ & $\mathcal{Q}$ & $\mathcal{R}$ \\
+\midrule
+Centralized (Star) & 0.92 & 0.50 & 0.77 & \textbf{0.81} \\
+Decentralized (Graph) & 0.92 & \textbf{0.59} & 0.76 & 0.80 \\
+Hierarchical (Tree) & \textbf{0.97} & 0.50 & \textbf{0.96} & \textbf{0.81} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Sub-metric breakdown by protocol (Payment Workflow).}
+\label{tab:submetrics}
+\centering
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Protocol} & \textbf{Entropy} & \textbf{Redund.} & \textbf{Parallel.} & \textbf{MUR} & \textbf{Density} & \textbf{Overhead} \\
+\midrule
+Graph & 0.39 & 1.00 & 0.32 & 0.47 & 1.00 & 1.00 \\
+Star & 0.37 & 1.00 & 0.00 & 0.52 & 0.96 & 1.00 \\
+Tree & 0.37 & 1.00 & 0.00 & 0.92 & 1.00 & 1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Emergent behaviors detected in Payment Workflow (100 trials per protocol).}
+\label{tab:emergent_payment}
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Behavior} & \textbf{Star} & \textbf{Graph} & \textbf{Tree} \\
+\midrule
+Free-Riding & 0.00 & 0.00 & 0.00 \\
+Trust Polarization & 0.52 & 0.53 & \textbf{1.00} \\
+Spont. Specialization & 0.00 & 0.00 & 0.00 \\
+Leadership Emergence & 0.23 & \textbf{1.00} & \textbf{1.00} \\
+Info. Hoarding & 0.00 & \textbf{1.00} & \textbf{1.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+============================================================
+KEY FINDINGS FOR PAPER
+============================================================
+
+--- GRAPH topology ---
+  Task Success Rate: 0.920
+  Coordination:      0.585
+  Communication:     0.762
+  Role Adherence:    0.803
+  MUR:               0.470
+  Parallelism:       0.318
+  Top emergent:      leadership_emergence = 1.000
+
+--- STAR topology ---
+  Task Success Rate: 0.920
+  Coordination:      0.499
+  Communication:     0.770
+  Role Adherence:    0.808
+  MUR:               0.516
+  Parallelism:       0.000
+  Top emergent:      trust_polarization = 0.516
+
+--- TREE topology ---
+  Task Success Rate: 0.970
+  Coordination:      0.499
+  Communication:     0.964
+  Role Adherence:    0.808
+  MUR:               0.920
+  Parallelism:       0.000
+  Top emergent:      trust_polarization = 1.000
+
+CROSS-TOPOLOGY OBSERVATIONS:
+  Graph has +0.087 coordination vs star
+  Star has +0.008 communication vs graph
+  SR difference: +0.000

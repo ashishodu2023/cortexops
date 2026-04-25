@@ -1,0 +1,1033 @@
+{
+  "experiment": {
+    "model": "gpt-4o",
+    "topology": "tree",
+    "n_trials": 100,
+    "benchmark": "payment_workflow"
+  },
+  "report": {
+    "coordination": 0.498246693642846,
+    "communication": 0.979390614574775,
+    "role_adherence": 0.8086261680283411,
+    "task_success_rate": 0.97,
+    "sub_metrics": {
+      "coordination_entropy": 0.37061673410711526,
+      "redundancy_ratio": 1.0,
+      "parallelism_index": 0.0,
+      "message_utility_ratio": 0.955,
+      "information_density": 0.9988020485825837,
+      "communication_overhead": 1.0,
+      "behavioral_divergence": 0.19137383197165897,
+      "role_drift_rate": 0.0
+    },
+    "emergent_behaviors": {
+      "free_riding": 0.0,
+      "trust_polarization": 1.0,
+      "spontaneous_specialization": 0.0,
+      "leadership_emergence": 1.0,
+      "information_hoarding": 1.0
+    }
+  },
+  "trials": [
+    {
+      "trial": 0,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 1,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 2,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 3,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 4,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 5,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.5045013771428519,
+      "communication": 0.770798528008163,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 6,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 7,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 8,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 9,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 10,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 11,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 12,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 13,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 14,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 15,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 16,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 17,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 18,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 19,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.5045013771428519,
+      "communication": 0.770798528008163,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 20,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 21,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 22,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 23,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 24,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 25,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 26,
+      "scenario_id": "pay_007",
+      "task_success": false,
+      "coordination": 0.5045013771428519,
+      "communication": 0.770798528008163,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 27,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 28,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.5045013771428519,
+      "communication": 0.7712672043591737,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 29,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 30,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 31,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 32,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 33,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 34,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.5045013771428519,
+      "communication": 0.7712672043591737,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 35,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 36,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 37,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 38,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 39,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 40,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 41,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 42,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 43,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 44,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 45,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 46,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 47,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 48,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 49,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 50,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 51,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 52,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.5045013771428519,
+      "communication": 0.770798528008163,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 53,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 54,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 55,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 56,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 57,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 58,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 59,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 60,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.5045013771428519,
+      "communication": 0.770798528008163,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 61,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 62,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 63,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 64,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.5045013771428519,
+      "communication": 0.7712672043591737,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 65,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 66,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 67,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 68,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 69,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 70,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 71,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 72,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 73,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 74,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 75,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 76,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 77,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 78,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 79,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 80,
+      "scenario_id": "pay_001",
+      "task_success": false,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 81,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 82,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 83,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 84,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 85,
+      "scenario_id": "pay_006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 86,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 87,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 88,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 89,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 90,
+      "scenario_id": "pay_001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 91,
+      "scenario_id": "pay_002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 92,
+      "scenario_id": "pay_003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 93,
+      "scenario_id": "pay_004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 94,
+      "scenario_id": "pay_005",
+      "task_success": true,
+      "coordination": 0.5045013771428519,
+      "communication": 0.7712672043591737,
+      "role_adherence": 0.8035774137061197,
+      "n_actions": 7,
+      "n_messages": 2
+    },
+    {
+      "trial": 95,
+      "scenario_id": "pay_006",
+      "task_success": false,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 96,
+      "scenario_id": "pay_007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 97,
+      "scenario_id": "pay_008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 98,
+      "scenario_id": "pay_009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    },
+    {
+      "trial": 99,
+      "scenario_id": "pay_010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 1.0,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 1
+    }
+  ]
+}

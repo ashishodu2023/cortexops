@@ -1,0 +1,91 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AUTO-GENERATED LATEX TABLES FROM MASEV EXPERIMENTS
+% Paste these into your NeurIPS paper
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Table: Protocol Comparison
+\begin{table}[t]
+\caption{Impact of coordination protocol on \framework{} dimensions (Payment Workflow, 100 trials per protocol).}
+\label{tab:protocol}
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Protocol} & \textbf{SR} & $\mathcal{C}$ & $\mathcal{Q}$ & $\mathcal{R}$ \\
+\midrule
+Centralized (Star) & \textbf{0.97} & 0.50 & 0.72 & \textbf{0.81} \\
+Decentralized (Graph) & 0.95 & \textbf{0.59} & 0.71 & 0.80 \\
+Hierarchical (Tree) & \textbf{0.97} & 0.50 & \textbf{0.98} & \textbf{0.81} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Table: Sub-metric Breakdown
+\begin{table}[t]
+\caption{Sub-metric breakdown by protocol (Payment Workflow).}
+\label{tab:submetrics}
+\centering
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Protocol} & \textbf{Entropy} & \textbf{Redund.} & \textbf{Parallel.} & \textbf{MUR} & \textbf{Density} & \textbf{Overhead} \\
+\midrule
+Graph & 0.39 & 1.00 & 0.32 & 0.48 & 0.81 & 1.00 \\
+Star & 0.37 & 1.00 & 0.00 & 0.51 & 0.80 & 1.00 \\
+Tree & 0.37 & 1.00 & 0.00 & 0.95 & 1.00 & 1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Table: Emergent Behaviors
+\begin{table}[t]
+\caption{Emergent behaviors detected in Payment Workflow (100 trials per protocol).}
+\label{tab:emergent_payment}
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Behavior} & \textbf{Star} & \textbf{Graph} & \textbf{Tree} \\
+\midrule
+Free-Riding & 0.00 & 0.00 & 0.00 \\
+Trust Polarization & 0.51 & 0.52 & \textbf{1.00} \\
+Spont. Specialization & 0.00 & 0.00 & 0.00 \\
+Leadership Emergence & 0.23 & \textbf{1.00} & \textbf{1.00} \\
+Info. Hoarding & 0.00 & \textbf{1.00} & \textbf{1.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+============================================================
+KEY FINDINGS FOR PAPER
+============================================================
+
+--- GRAPH topology ---
+  Task Success Rate: 0.950
+  Coordination:      0.586
+  Communication:     0.710
+  Role Adherence:    0.803
+  MUR:               0.480
+  Parallelism:       0.323
+  Top emergent:      leadership_emergence = 1.000
+
+--- STAR topology ---
+  Task Success Rate: 0.970
+  Coordination:      0.499
+  Communication:     0.722
+  Role Adherence:    0.808
+  MUR:               0.513
+  Parallelism:       0.000
+  Top emergent:      trust_polarization = 0.513
+
+--- TREE topology ---
+  Task Success Rate: 0.970
+  Coordination:      0.498
+  Communication:     0.979
+  Role Adherence:    0.809
+  MUR:               0.955
+  Parallelism:       0.000
+  Top emergent:      trust_polarization = 1.000
+
+CROSS-TOPOLOGY OBSERVATIONS:
+  Graph has +0.088 coordination vs star
+  Star has +0.012 communication vs graph
+  SR difference: +0.020
