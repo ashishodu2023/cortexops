@@ -1,0 +1,64 @@
+\begin{table}[t]
+\caption{Comparison of evaluation approaches across benchmarks (best model configuration per benchmark, 100 trials each). SR = Success Rate. \framework{} dimensions: $\mathcal{C}$ = Coordination, $\mathcal{Q}$ = Communication, $\mathcal{R}$ = Role Adherence. Higher is better. Values show mean $\pm$ std.}
+\label{tab:main_results}
+\centering
+\begin{tabular}{@{}lc|ccc@{}}
+\toprule
+\textbf{Benchmark} & \textbf{SR} & $\mathcal{C}$ & $\mathcal{Q}$ & $\mathcal{R}$ \\
+\midrule
+Research Collab & 1.00$\pm$0.00 & 0.63$\pm$0.05 & 0.66$\pm$0.10 & 0.71$\pm$0.10 \\
+Minecraft Build & 0.93$\pm$0.25 & 0.69$\pm$0.00 & 0.32$\pm$0.00 & 0.34$\pm$0.00 \\
+DB Error Analysis & 1.00$\pm$0.00 & 0.92$\pm$0.04 & 0.50$\pm$0.19 & 0.53$\pm$0.03 \\
+Werewolf & 0.90$\pm$0.30 & 0.83$\pm$0.01 & 0.57$\pm$0.05 & 0.68$\pm$0.03 \\
+Payment Workflow & 1.00$\pm$0.00 & 0.59$\pm$0.00 & 0.75$\pm$0.03 & 0.80$\pm$0.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Impact of coordination protocol on \framework{} dimensions (averaged across all benchmarks and models, 100 trials each). Best per column in \textbf{bold}.}
+\label{tab:protocol}
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Protocol} & \textbf{SR} & $\mathcal{C}$ & $\mathcal{Q}$ & $\mathcal{R}$ \\
+\midrule
+Centralized (Star) & 0.84 & 0.71 & 0.56 & \textbf{0.61} \\
+Decentralized (Graph) & \textbf{0.86} & \textbf{0.73} & 0.56 & \textbf{0.61} \\
+Hierarchical (Tree) & 0.85 & 0.71 & \textbf{0.59} & \textbf{0.61} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{\framework{} scores by foundation model (averaged across all benchmarks and protocols).}
+\label{tab:permodel}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & $\mathcal{C}$ & $\mathcal{Q}$ & $\mathcal{R}$ & \textbf{SR} \\
+\midrule
+GPT-4o & 0.72 & 0.57 & 0.61 & 0.92 \\
+GPT-4o-mini & 0.72 & 0.57 & 0.61 & 0.85 \\
+Claude 3.5 Sonnet & 0.72 & 0.57 & 0.61 & 0.87 \\
+Llama 3.1 70B & 0.72 & 0.57 & 0.61 & 0.76 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Emergent behaviors detected across benchmarks (averaged over models and topologies, 100 trials each).}
+\label{tab:emergent}
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Behavior} & \textbf{Res.} & \textbf{Mine.} & \textbf{DB} & \textbf{Were.} & \textbf{Pay.} \\
+\midrule
+Free-Riding & 0.03 & \textbf{0.50} & 0.09 & 0.06 & 0.00 \\
+Trust Polarization & 0.47 & 0.50 & \textbf{0.75} & 0.58 & 0.68 \\
+Spont. Specialization & 0.10 & 0.00 & 0.00 & \textbf{0.27} & 0.00 \\
+Leadership Emergence & 0.27 & \textbf{1.00} & 0.48 & 0.13 & 0.74 \\
+Info. Hoarding & 0.48 & \textbf{1.00} & 0.91 & 0.40 & 0.67 \\
+\bottomrule
+\end{tabular}
+\end{table}
