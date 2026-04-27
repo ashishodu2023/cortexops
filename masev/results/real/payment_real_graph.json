@@ -1,0 +1,344 @@
+{
+  "experiment": {
+    "model": "claude-sonnet-4-6",
+    "topology": "graph",
+    "n_trials": 30,
+    "errors": 0,
+    "benchmark": "payment_workflow_REAL"
+  },
+  "report": {
+    "coordination": 0.4976280985714169,
+    "communication": 0.6638075302153206,
+    "role_adherence": 0.8091254953788902,
+    "task_success_rate": 0.8666666666666667,
+    "sub_metrics": {
+      "coordination_entropy": 0.3690702464285424,
+      "redundancy_ratio": 1.0,
+      "parallelism_index": 0.0,
+      "message_utility_ratio": 0.5,
+      "information_density": 0.6293584340510683,
+      "communication_overhead": 1.0,
+      "behavioral_divergence": 0.19087450462110953,
+      "role_drift_rate": 0.0
+    },
+    "emergent_behaviors": {
+      "free_riding": 0.0,
+      "trust_polarization": 0.5,
+      "spontaneous_specialization": 0.0,
+      "leadership_emergence": 0.25,
+      "information_hoarding": 1.0
+    }
+  },
+  "trial_means": {
+    "coordination": 0.4976280985714169,
+    "communication": 0.6638075302153206,
+    "role_adherence": 0.8091254953788902
+  },
+  "trial_stds": {
+    "coordination": 1.1102230246251565e-16,
+    "communication": 0.008975091272682173,
+    "role_adherence": 2.220446049250313e-16
+  },
+  "trials": [
+    {
+      "trial": 0,
+      "scenario_id": "r001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6685796272009611,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 1,
+      "scenario_id": "r002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6729488069191576,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 2,
+      "scenario_id": "r003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6419272996485232,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 3,
+      "scenario_id": "r004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6665490813553334,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 4,
+      "scenario_id": "r005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6600864063948393,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 5,
+      "scenario_id": "r006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.660131859779358,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 6,
+      "scenario_id": "r007",
+      "task_success": false,
+      "coordination": 0.497628098571417,
+      "communication": 0.6691478502005339,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 7,
+      "scenario_id": "r008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6749133246019483,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 8,
+      "scenario_id": "r009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6610984489321708,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 9,
+      "scenario_id": "r010",
+      "task_success": false,
+      "coordination": 0.497628098571417,
+      "communication": 0.6515741094946861,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 10,
+      "scenario_id": "r001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6667294967919588,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 11,
+      "scenario_id": "r002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.664265313372016,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 12,
+      "scenario_id": "r003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6656714057549834,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 13,
+      "scenario_id": "r004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6637394518591464,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 14,
+      "scenario_id": "r005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6635124750435353,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 15,
+      "scenario_id": "r006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6741635287180543,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 16,
+      "scenario_id": "r007",
+      "task_success": false,
+      "coordination": 0.497628098571417,
+      "communication": 0.6668058412149549,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 17,
+      "scenario_id": "r008",
+      "task_success": false,
+      "coordination": 0.497628098571417,
+      "communication": 0.6821268901228905,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 18,
+      "scenario_id": "r009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6526456560939551,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 19,
+      "scenario_id": "r010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6557296011596918,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 20,
+      "scenario_id": "r001",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6781363553833216,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 21,
+      "scenario_id": "r002",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6651228114962577,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 22,
+      "scenario_id": "r003",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6620582677423954,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 23,
+      "scenario_id": "r004",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6653223127126694,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 24,
+      "scenario_id": "r005",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.652783377841115,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 25,
+      "scenario_id": "r006",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6629614288918674,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 26,
+      "scenario_id": "r007",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6751502452418208,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 27,
+      "scenario_id": "r008",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6663410533219576,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 28,
+      "scenario_id": "r009",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6585323803126812,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    },
+    {
+      "trial": 29,
+      "scenario_id": "r010",
+      "task_success": true,
+      "coordination": 0.497628098571417,
+      "communication": 0.6454711988568307,
+      "role_adherence": 0.8091254953788904,
+      "n_actions": 6,
+      "n_messages": 4
+    }
+  ]
+}
