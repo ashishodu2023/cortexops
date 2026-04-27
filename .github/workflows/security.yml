@@ -349,57 +349,6 @@ jobs:
 
 
   # ════════════════════════════════════════════════════════════
-  # DEPLOY — Only runs after ALL security jobs pass
-  # Requires: lint, tests, bandit, pip-audit, semgrep, trivy,
-  #           bearer, license-check to all succeed
-  # ════════════════════════════════════════════════════════════
-  deploy:
-    name: Deploy to Railway + Vercel
-    runs-on: ubuntu-latest
-    needs:
-      - lint
-      - tests
-      - bandit
-      - pip-audit
-      - semgrep
-      - trivy
-      - bearer
-      - license-check
-    # Only deploy on push to main — not PRs, not schedule
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      needs.lint.result == 'success' &&
-      needs.tests.result == 'success' &&
-      needs.bandit.result == 'success' &&
-      needs.pip-audit.result == 'success' &&
-      needs.semgrep.result == 'success' &&
-      needs.trivy.result == 'success' &&
-      needs.bearer.result == 'success' &&
-      needs.license-check.result == 'success'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy backend to Railway
-        env:
-          RAILWAY_DEPLOY_HOOK: ${{ secrets.RAILWAY_DEPLOY_HOOK }}
-        run: |
-          curl -s -X POST "$RAILWAY_DEPLOY_HOOK" \
-            -H "Content-Type: application/json" \
-            -d '{"ref": "${{ github.sha }}"}' \
-            && echo "✓ Railway deploy triggered"
-
-      # Vercel auto-deploys from GitHub push — no manual step needed
-      # Frontend deploy triggered automatically by Vercel GitHub integration
-
-      - name: Notify deploy success
-        run: |
-          echo "✓ Deployed to production after all security checks passed"
-          echo "  Commit: ${{ github.sha }}"
-          echo "  Triggered by: ${{ github.actor }}"
-
-  # ════════════════════════════════════════════════════════════
   # SUMMARY: What each job covers
   # ════════════════════════════════════════════════════════════
   # Job 1:  lint          — ruff, code style
