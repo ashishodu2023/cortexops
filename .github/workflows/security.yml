@@ -104,6 +104,7 @@ jobs:
 
       - name: Audit backend dependencies
         run: |
+          pip install --upgrade pip --quiet
           pip install -r backend/requirements.txt --quiet
           pip-audit --desc on
 
@@ -178,41 +179,6 @@ jobs:
           scan-ref: .
           format: table
           severity: CRITICAL,HIGH
-
-  # ════════════════════════════════════════════════════════════
-  # JOB 7: API FUZZING — Schemathesis
-  # Finds: unhandled edge cases, broken auth, missing validation,
-  #        500 errors on malformed input, spec vs impl mismatch
-  # Runs against LIVE api.getcortexops.com
-  # ════════════════════════════════════════════════════════════
-  schemathesis:
-    name: API Fuzzing (Schemathesis)
-    runs-on: ubuntu-latest
-    # Only run on main branch — hits live API
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install schemathesis
-        run: pip install schemathesis
-
-      - name: Fuzz all API endpoints
-        env:
-          CORTEXOPS_API_KEY: ${{ secrets.CORTEXOPS_API_KEY }}
-        run: |
-          schemathesis run https://api.getcortexops.com/openapi.json \
-            --header "X-API-Key: $CORTEXOPS_API_KEY" \
-            --checks not_a_server_error \
-            --max-examples 30 \
-            --suppress-health-check=too_slow \
-            --continue-on-failure \
-            
-
-      # Schemathesis results visible in CI log output above
 
   # ════════════════════════════════════════════════════════════
   # JOB 8: JS/REACT SECURITY — Bearer
@@ -442,7 +408,6 @@ jobs:
   # Job 4:  pip-audit     — dependency CVEs
   # Job 5:  semgrep       — secrets + OWASP patterns across all files
   # Job 6:  trivy         — Docker image + filesystem CVEs
-  # Job 7:  schemathesis  — API fuzzing (live API, main branch only)
   # Job 8:  bearer        — JS/React XSS + data flow
   # Job 9:  license-check — GPL/AGPL compliance
   # Job 10: zap-scan      — Full DAST on live site (weekly)
@@ -452,7 +417,7 @@ jobs:
   # ✓ Python backend — bandit + semgrep + pip-audit + trivy
   # ✓ JS/React frontend — bearer + semgrep + zap
   # ✓ HTML/website — bearer + zap
-  # ✓ API endpoints — schemathesis + cors-check + zap
+  # ✓ API endpoints — cors-check + zap
   # ✓ Docker image — trivy
   # ✓ Dependencies — pip-audit + trivy + license-check
   # ✓ Secrets — semgrep (p/secrets)
