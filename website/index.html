@@ -696,6 +696,36 @@ window.showError = function(msg) {
 };
 
 // ── Checkout ─────────────────────────────────────────────────────
+window.startPayPalCheckout = async function() {
+  const email   = (document.getElementById('checkout-email').value || '').trim();
+  const project = (document.getElementById('checkout-project').value || '').trim();
+  document.getElementById('modal-error').style.display = 'none';
+  if (!email || !email.includes('@')) return window.showError('Please enter a valid email address.');
+  if (!project || project.length < 2)  return window.showError('Please enter a project name (min 2 chars).');
+  const btn = document.getElementById('paypal-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting to PayPal…'; }
+  try {
+    const r = await fetch(`${API}/v1/billing/paypal/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email, project })
+    });
+    if (!r.ok) {
+      let msg = 'Server error (' + r.status + ')';
+      try { const err = await r.json(); msg = err.detail || msg; } catch(e) {}
+      throw new Error(msg);
+    }
+    const data = await r.json();
+    if (!data.approval_url) throw new Error('No PayPal approval URL returned');
+    // Redirect to PayPal
+    window.location.href = data.approval_url;
+  } catch(err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Pay with PayPal'; }
+    window.showError(err.message + ' — email ashish@getcortexops.com if this persists.');
+    console.error('PayPal checkout error:', err);
+  }
+};
+
 window.startCheckout = async function() {
   const email   = (document.getElementById('checkout-email').value || '').trim();
   const project = (document.getElementById('checkout-project').value || '').trim();
@@ -765,8 +795,15 @@ window.addEventListener('load', async () => {
     console.warn('CortexOps API unreachable:', e.message);
   }
 
-  // Stripe success banner
+  // Stripe + PayPal success banner
   const params = new URLSearchParams(window.location.search);
+  if (params.get('paypal') === 'success') {
+    const b = document.getElementById('success-banner');
+    if (b) {
+      b.style.display = 'block';
+      b.textContent = 'PayPal subscription active — check your email for your CortexOps Pro API key.';
+    }
+  }
   if (params.get('checkout') === 'success') {
     const b = document.getElementById('success-banner');
     if (b) {

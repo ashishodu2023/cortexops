@@ -287,3 +287,267 @@ async def create_portal(
         return_url=f"{FRONTEND_URL}/#pricing",
     )
     return {"portal_url": sess.url}
+
+
+# ══════════════════════════════════════════════════════════════════
+# PAYPAL INTEGRATION
+# Account owner: wife's PayPal Business account (H-4 EAD authorized)
+# ══════════════════════════════════════════════════════════════════
+
+import httpx
+
+PAYPAL_CLIENT_ID     = os.getenv("PAYPAL_CLIENT_ID", "")
+PAYPAL_CLIENT_SECRET = os.getenv("PAYPAL_CLIENT_SECRET", "")
+PAYPAL_PLAN_ID       = os.getenv("PAYPAL_PLAN_ID", "")          # Monthly Pro subscription plan
+PAYPAL_WEBHOOK_ID    = os.getenv("PAYPAL_WEBHOOK_ID", "")       # For webhook verification
+PAYPAL_BASE_URL      = os.getenv("PAYPAL_BASE_URL", "https://api-m.paypal.com")  # sandbox: api-m.sandbox.paypal.com
+
+
+async def get_paypal_access_token() -> str:
+    """Get OAuth2 access token from PayPal."""
+    if not PAYPAL_CLIENT_ID or not PAYPAL_CLIENT_SECRET:
+        raise HTTPException(status_code=503, detail="PayPal not configured.")
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"{PAYPAL_BASE_URL}/v1/oauth2/token",
+            data={"grant_type": "client_credentials"},
+            auth=(PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET),
+            headers={"Accept": "application/json"},
+            timeout=10.0,
+        )
+    if r.status_code != 200:
+        logger.error("PayPal token error: %s", r.text)
+        raise HTTPException(status_code=503, detail="PayPal authentication failed.")
+    return r.json()["access_token"]
+
+
+# ── Schemas ──────────────────────────────────────────────────────
+
+class PayPalCheckoutRequest(BaseModel):
+    project: str
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if "@" not in v or len(v) > 254:
+            raise ValueError("Invalid email address")
+        return v
+
+    @field_validator("project")
+    @classmethod
+    def validate_project(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2 or len(v) > 64:
+            raise ValueError("project must be 2-64 characters")
+        return v
+
+
+class PayPalCheckoutResponse(BaseModel):
+    approval_url: str
+    subscription_id: str
+
+
+class PayPalWebhookVerification(BaseModel):
+    auth_algo: str
+    cert_url: str
+    transmission_id: str
+    transmission_sig: str
+    transmission_time: str
+    webhook_id: str
+    webhook_event: dict
+
+
+# ── Routes ───────────────────────────────────────────────────────
+
+@router.post(
+    "/paypal/checkout",
+    response_model=PayPalCheckoutResponse,
+    responses={
+        401: {"description": "Invalid or missing API key"},
+        503: {"description": "PayPal not configured"},
+        500: {"description": "Internal server error"},
+    },
+    summary="Create PayPal subscription checkout",
+)
+async def create_paypal_checkout(body: PayPalCheckoutRequest):
+    """
+    Create a PayPal subscription. Returns approval_url to redirect user to PayPal.
+    On approval, PayPal redirects to FRONTEND_URL/?paypal=success&sub={subscription_id}.
+    """
+    if not PAYPAL_PLAN_ID:
+        raise HTTPException(status_code=503, detail="PAYPAL_PLAN_ID not configured.")
+
+    token = await get_paypal_access_token()
+    idempotency_key = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"cortexops-{body.project}-{body.email}"))
+
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"{PAYPAL_BASE_URL}/v1/billing/subscriptions",
+            json={
+                "plan_id": PAYPAL_PLAN_ID,
+                "subscriber": {
+                    "email_address": body.email,
+                },
+                "custom_id": body.project,           # stored on subscription for webhook use
+                "application_context": {
+                    "brand_name": "CortexOps",
+                    "locale": "en-US",
+                    "shipping_preference": "NO_SHIPPING",
+                    "user_action": "SUBSCRIBE_NOW",
+                    "payment_method": {
+                        "payer_selected": "PAYPAL",
+                        "payee_preferred": "IMMEDIATE_PAYMENT_REQUIRED",
+                    },
+                    "return_url": f"{FRONTEND_URL}/?paypal=success&project={body.project}",
+                    "cancel_url": f"{FRONTEND_URL}/#pricing",
+                },
+            },
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "PayPal-Request-Id": idempotency_key,   # idempotency — safe to retry
+            },
+            timeout=15.0,
+        )
+
+    if r.status_code not in (200, 201):
+        logger.error("PayPal subscription create error %s: %s", r.status_code, r.text)
+        raise HTTPException(status_code=503, detail="PayPal subscription creation failed.")
+
+    data = r.json()
+    subscription_id = data.get("id", "")
+
+    # Extract approval URL for redirect
+    approval_url = next(
+        (link["href"] for link in data.get("links", []) if link.get("rel") == "approve"),
+        None,
+    )
+    if not approval_url:
+        raise HTTPException(status_code=503, detail="PayPal did not return approval URL.")
+
+    logger.info("PayPal subscription created: %s for project=%s", subscription_id, body.project)
+    return PayPalCheckoutResponse(approval_url=approval_url, subscription_id=subscription_id)
+
+
+@router.post(
+    "/paypal/webhook",
+    responses={
+        400: {"description": "Invalid webhook payload or signature"},
+        500: {"description": "Internal server error"},
+    },
+    summary="Handle PayPal subscription webhooks",
+)
+async def paypal_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Handle PayPal subscription lifecycle webhooks.
+    Events handled:
+      - BILLING.SUBSCRIPTION.ACTIVATED  → provision Pro API key
+      - BILLING.SUBSCRIPTION.CANCELLED  → downgrade to free
+      - BILLING.SUBSCRIPTION.SUSPENDED  → downgrade to free
+      - PAYMENT.SALE.COMPLETED          → log successful payment
+    """
+    body_bytes = await request.body()
+
+    # ── Verify webhook signature ──────────────────────────────────
+    if PAYPAL_WEBHOOK_ID:
+        token = await get_paypal_access_token()
+        async with httpx.AsyncClient() as client:
+            verify_r = await client.post(
+                f"{PAYPAL_BASE_URL}/v1/notifications/verify-webhook-signature",
+                json={
+                    "auth_algo":         request.headers.get("PAYPAL-AUTH-ALGO", ""),
+                    "cert_url":          request.headers.get("PAYPAL-CERT-URL", ""),
+                    "transmission_id":   request.headers.get("PAYPAL-TRANSMISSION-ID", ""),
+                    "transmission_sig":  request.headers.get("PAYPAL-TRANSMISSION-SIG", ""),
+                    "transmission_time": request.headers.get("PAYPAL-TRANSMISSION-TIME", ""),
+                    "webhook_id":        PAYPAL_WEBHOOK_ID,
+                    "webhook_event":     body_bytes.decode(),
+                },
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                timeout=10.0,
+            )
+        if verify_r.status_code != 200 or verify_r.json().get("verification_status") != "SUCCESS":
+            logger.warning("PayPal webhook signature verification failed")
+            raise HTTPException(status_code=400, detail="Invalid PayPal webhook signature.")
+    else:
+        logger.warning("PAYPAL_WEBHOOK_ID not set — skipping signature verification (dev mode)")
+
+    try:
+        event = body_bytes.decode()
+        import json as _json
+        payload = _json.loads(event)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload.")
+
+    event_type   = payload.get("event_type", "")
+    resource     = payload.get("resource", {})
+    subscription_id = resource.get("id", "")
+    project      = resource.get("custom_id", "") or resource.get("custom", "")
+
+    logger.info("PayPal webhook: event=%s subscription=%s project=%s", event_type, subscription_id, project)
+
+    # ── Handle events ─────────────────────────────────────────────
+    if event_type == "BILLING.SUBSCRIPTION.ACTIVATED":
+        # Provision Pro API key for this project
+        if not project:
+            logger.error("PayPal ACTIVATED webhook missing custom_id/project")
+            return {"status": "skipped", "reason": "no project identifier"}
+
+        # Idempotency: skip if Pro key already exists for this subscription
+        existing = await db.scalar(
+            select(ApiKey).where(
+                ApiKey.project == project,
+                ApiKey.tier == "pro",
+                ApiKey.is_active == True,
+            )
+        )
+        if existing:
+            logger.info("PayPal: Pro key already exists for project=%s — skipping", project)
+            return {"status": "already_provisioned"}
+
+        # Generate Pro API key
+        from ..auth import generate_api_key as _gen_key
+        raw_key, hashed = _gen_key()
+
+        api_key = ApiKey(
+            id=str(uuid.uuid4()),
+            project=project,
+            name=f"paypal-pro-{subscription_id[:12]}",
+            key_hash=hashed,
+            tier="pro",
+            scope="read_write",
+            is_active=True,
+        )
+        db.add(api_key)
+        await db.commit()
+
+        logger.info(
+            "PayPal Pro key provisioned: project=%s subscription=%s key=%s",
+            project, subscription_id, raw_key[:16] + "..."
+        )
+        # NOTE: email the raw_key to the user via Resend/SendGrid
+        # TODO: call send_pro_welcome_email(project=project, raw_key=raw_key)
+
+    elif event_type in ("BILLING.SUBSCRIPTION.CANCELLED", "BILLING.SUBSCRIPTION.SUSPENDED"):
+        # Downgrade Pro keys to free for this project
+        result = await db.execute(
+            select(ApiKey).where(
+                ApiKey.project == project,
+                ApiKey.tier == "pro",
+                ApiKey.is_active == True,
+            )
+        )
+        keys = result.scalars().all()
+        for key in keys:
+            key.tier = "free"
+        await db.commit()
+        logger.info("PayPal: downgraded %d Pro keys to free for project=%s", len(keys), project)
+
+    elif event_type == "PAYMENT.SALE.COMPLETED":
+        amount = resource.get("amount", {}).get("total", "unknown")
+        currency = resource.get("amount", {}).get("currency", "USD")
+        logger.info("PayPal payment received: %s %s for subscription=%s", amount, currency, subscription_id)
+
+    return {"status": "processed", "event_type": event_type}
