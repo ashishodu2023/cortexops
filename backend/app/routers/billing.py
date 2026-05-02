@@ -5,6 +5,7 @@ import logging
 import os
 import uuid
 
+import httpx
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, field_validator
@@ -294,8 +295,6 @@ async def create_portal(
 # Account owner: wife's PayPal Business account (H-4 EAD authorized)
 # ══════════════════════════════════════════════════════════════════
 
-import httpx
-
 PAYPAL_CLIENT_ID     = os.getenv("PAYPAL_CLIENT_ID", "")
 PAYPAL_CLIENT_SECRET = os.getenv("PAYPAL_CLIENT_SECRET", "")
 PAYPAL_PLAN_ID       = os.getenv("PAYPAL_PLAN_ID", "")          # Monthly Pro subscription plan
@@ -316,7 +315,7 @@ async def get_paypal_access_token() -> str:
             timeout=10.0,
         )
     if r.status_code != 200:
-        logger.error("PayPal token error: %s", r.text)
+        logger.error("PayPal token error: %s", r.status_code)  # nosemgrep: python-logger-credential-disclosure
         raise HTTPException(status_code=503, detail="PayPal authentication failed.")
     return r.json()["access_token"]
 
@@ -500,7 +499,7 @@ async def paypal_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             select(ApiKey).where(
                 ApiKey.project == project,
                 ApiKey.tier == "pro",
-                ApiKey.is_active == True,
+                ApiKey.is_active,
             )
         )
         if existing:
@@ -536,7 +535,7 @@ async def paypal_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             select(ApiKey).where(
                 ApiKey.project == project,
                 ApiKey.tier == "pro",
-                ApiKey.is_active == True,
+                ApiKey.is_active,
             )
         )
         keys = result.scalars().all()
