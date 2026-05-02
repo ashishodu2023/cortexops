@@ -257,7 +257,7 @@ footer{background:var(--gray-100);color:var(--gray-700);padding:48px 24px 24px;b
   <div class="hero-actions">
     <button class="btn-primary" onclick="openModal()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>
-      Start free trial
+      Get started →
     </button>
     <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener" class="btn-outline">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.09.66-.22.66-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85.004 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.16.58.67.48A10.02 10.02 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
@@ -287,7 +287,7 @@ results = <span class="cf">EvalSuite</span>.run(
   <div class="chip chip-amber">CI gate — blocks PRs</div>
   <div class="chip chip-red">No per-trace billing</div>
   <div class="chip chip-blue">MIT licensed · open source</div>
-  <div class="chip chip-green">14-day free trial</div>
+  <div class="chip chip-green">Pro plan</div>
 </div>
 
 <!-- DASHBOARD PREVIEW -->
@@ -503,7 +503,7 @@ max_latency_ms: 3000</div>
 <section id="pricing">
   <div class="section-label">Pricing</div>
   <h2>Start free.<br><strong>Scale with your agents.</strong></h2>
-  <p class="section-sub">No credit card required for free tier. Pro starts with a 14-day trial — cancel anytime.</p>
+  <p class="section-sub">No credit card required for free tier. Pro starts with a cancel anytime.</p>
   <div class="pricing-grid">
     <div class="price-card">
       <div class="price-tier">Free</div>
@@ -523,7 +523,7 @@ max_latency_ms: 3000</div>
       <div class="popular-badge">Most popular</div>
       <div class="price-tier">Pro</div>
       <div class="price-val">$49<span> / seat / mo</span></div>
-      <div class="price-desc">Hosted traces, live dashboard, Slack alerts. 14-day free trial.</div>
+      <div class="price-desc">Hosted traces, live dashboard, Slack alerts. Pro plan.</div>
       <div class="price-divider"></div>
       <ul class="price-feats">
         <li><span class="ok">✓</span> Everything in Free</li>
@@ -533,7 +533,7 @@ max_latency_ms: 3000</div>
         <li><span class="ok">✓</span> LLM-as-judge scoring</li>
         <li><span class="ok">✓</span> Prompt version history</li>
       </ul>
-      <button class="btn-price-primary" onclick="openModal()">Start 14-day trial →</button>
+      <button class="btn-price-primary" onclick="openModal()">Start Pro →</button>
       <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--gray-500)">Secured by Stripe · Cancel anytime</div>
     </div>
     <div class="price-card">
@@ -642,8 +642,8 @@ results = <span class="cf">EvalSuite</span>.run(
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">×</button>
     <div id="modal-form">
-      <h3>Start your Pro trial</h3>
-      <p>14 days free, then $49/seat/month. No card charged today. Cancel anytime.</p>
+      <h3>Start your Pro subscription</h3>
+      <p>$49/month. Cancel anytime. Your API key arrives by email after payment.</p>
       <div class="modal-error" id="modal-error"></div>
       <div class="field">
         <label>Work email</label>
@@ -654,14 +654,24 @@ results = <span class="cf">EvalSuite</span>.run(
         <input type="text" id="checkout-project" placeholder="payments-agent" autocomplete="off">
       </div>
       <button class="modal-submit" id="checkout-btn" onclick="startCheckout()">Continue to Stripe →</button>
-      <div class="stripe-badge">
+      <div style="text-align:center;margin:10px 0;color:#9ca3af;font-size:13px;display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;height:1px;background:#e5e7eb"></div>
+        <span>or pay with</span>
+        <div style="flex:1;height:1px;background:#e5e7eb"></div>
+      </div>
+      <button id="paypal-btn" onclick="window.startPayPalCheckout()"
+        style="width:100%;padding:12px;background:#FFC439;color:#003087;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#003087"><path d="M7.5 8.5h2.25c1.38 0 2.498.63 2.498 2.07 0 1.815-1.222 2.93-2.998 2.93H8.126L7.5 17H5.5L7.5 8.5zm1.5 1.5l-.5 2.5H9.4c.83 0 1.35-.45 1.35-1.3 0-.8-.48-1.2-1.25-1.2H9zm7.067-1.522c.492.315.844.825.983 1.39.367 1.55-.577 3.087-2.123 3.41-.09.018-.18.033-.274.044-.06.008-.12.013-.18.017-.18.012-.362.017-.544.012l-1.024-.022-.307 1.955-.01.063a.5.5 0 01-.494.43h-1.2a.25.25 0 01-.247-.29l1.02-6.468a.5.5 0 01.494-.43h2.318c.22 0 .434.018.643.053.257.043.507.116.741.22l.014.006z"/></svg>
+        Pay with PayPal
+      </button>
+      <div class="stripe-badge" style="margin-top:12px;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-        Secured by Stripe. We never see your card details.
+        Secured by Stripe or PayPal. Cancel anytime.
       </div>
     </div>
     <div class="modal-success" id="modal-success">
       <div class="check">✓</div>
-      <h4>Redirecting to Stripe…</h4>
+      <h4>Redirecting to payment…</h4>
       <p>Your API key arrives by email immediately after payment.</p>
     </div>
   </div>
