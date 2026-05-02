@@ -178,7 +178,7 @@ h2 strong{color:var(--blue);font-weight:600}
 .modal-submit:hover:not(:disabled){box-shadow:var(--shadow-2);background:var(--blue-dark)}
 .modal-submit:disabled{opacity:.5;cursor:not-allowed}
 .modal-error{background:var(--red-light);color:var(--red);font-size:13px;padding:10px 14px;border-radius:4px;margin-bottom:16px;display:none;border:1px solid rgba(197,34,31,.2)}
-.stripe-badge{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:11px;color:var(--gray-500)}
+.payment-badge{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:11px;color:var(--gray-500)}
 .modal-success{display:none;text-align:center;padding:16px 0}
 .modal-success .check{width:56px;height:56px;border-radius:50%;background:var(--green-light);border:2px solid rgba(19,115,51,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;color:var(--green)}
 .modal-success h4{font-family:var(--sans);font-size:20px;font-weight:400;margin-bottom:8px;color:var(--gray-900)}
@@ -219,7 +219,7 @@ footer{background:var(--gray-100);color:var(--gray-700);padding:48px 24px 24px;b
 </head>
 <body>
 
-<!-- SUCCESS BANNER (Stripe redirect) -->
+<!-- SUCCESS BANNER -->
 <div id="success-banner"></div>
 
 <!-- NAV -->
@@ -534,7 +534,7 @@ max_latency_ms: 3000</div>
         <li><span class="ok">✓</span> Prompt version history</li>
       </ul>
       <button class="btn-price-primary" onclick="openModal()">Start Pro →</button>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--gray-500)">Secured by Stripe · Cancel anytime</div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--gray-500)">Secured by PayPal · Cancel anytime</div>
     </div>
     <div class="price-card">
       <div class="price-tier">Enterprise</div>
@@ -632,7 +632,7 @@ results = <span class="cf">EvalSuite</span>.run(
     <div class="footer-divider"></div>
     <div class="footer-bottom">
       <span>© 2026 CortexOps. MIT licensed.</span>
-      <span>Built by a PayPal AI engineer · Payments by Stripe</span>
+      <span>Built by a PayPal AI engineer · Payments by PayPal</span>
     </div>
   </div>
 </footer>
@@ -653,25 +653,19 @@ results = <span class="cf">EvalSuite</span>.run(
         <label>Project name</label>
         <input type="text" id="checkout-project" placeholder="payments-agent" autocomplete="off">
       </div>
-      <button class="modal-submit" id="checkout-btn" onclick="startCheckout()">Continue to Stripe →</button>
-      <div style="text-align:center;margin:10px 0;color:#9ca3af;font-size:13px;display:flex;align-items:center;gap:8px;">
-        <div style="flex:1;height:1px;background:#e5e7eb"></div>
-        <span>or pay with</span>
-        <div style="flex:1;height:1px;background:#e5e7eb"></div>
-      </div>
       <button id="paypal-btn" onclick="window.startPayPalCheckout()"
         style="width:100%;padding:12px;background:#FFC439;color:#003087;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#003087"><path d="M7.5 8.5h2.25c1.38 0 2.498.63 2.498 2.07 0 1.815-1.222 2.93-2.998 2.93H8.126L7.5 17H5.5L7.5 8.5zm1.5 1.5l-.5 2.5H9.4c.83 0 1.35-.45 1.35-1.3 0-.8-.48-1.2-1.25-1.2H9zm7.067-1.522c.492.315.844.825.983 1.39.367 1.55-.577 3.087-2.123 3.41-.09.018-.18.033-.274.044-.06.008-.12.013-.18.017-.18.012-.362.017-.544.012l-1.024-.022-.307 1.955-.01.063a.5.5 0 01-.494.43h-1.2a.25.25 0 01-.247-.29l1.02-6.468a.5.5 0 01.494-.43h2.318c.22 0 .434.018.643.053.257.043.507.116.741.22l.014.006z"/></svg>
         Pay with PayPal
       </button>
-      <div class="stripe-badge" style="margin-top:12px;">
+      <div class="payment-badge" style="margin-top:12px;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-        Secured by Stripe or PayPal. Cancel anytime.
+        Secured by PayPal. Cancel anytime.
       </div>
     </div>
     <div class="modal-success" id="modal-success">
       <div class="check">✓</div>
-      <h4>Redirecting to payment…</h4>
+      <h4>Redirecting to PayPal…</h4>
       <p>Your API key arrives by email immediately after payment.</p>
     </div>
   </div>
@@ -744,7 +738,7 @@ window.startCheckout = async function() {
   if (!project || project.length < 2)  return window.showError('Please enter a project name (min 2 chars).');
   const btn = document.getElementById('checkout-btn');
   btn.disabled = true;
-  btn.textContent = 'Connecting to Stripe…';
+  btn.textContent = 'Connecting to PayPal…';
   try {
     const r = await fetch(`${API}/v1/billing/checkout`, {
       method: 'POST',
@@ -763,12 +757,12 @@ window.startCheckout = async function() {
     setTimeout(() => { window.location.href = data.checkout_url; }, 1000);
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = 'Continue to Stripe →';
+    btn.textContent = 'Pay with PayPal';
     const msg = err.message || 'Unknown error';
     if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) {
       window.showError('Cannot reach API. Check your connection and try again, or email ashish@getcortexops.com');
-    } else if (msg.includes('503') || msg.includes('STRIPE_PRICE_ID')) {
-      window.showError('Stripe not configured. Email ashish@getcortexops.com to activate Pro.');
+    } else if (msg.includes('503') || msg.includes('PAYPAL_PLAN_ID')) {
+      window.showError('Payment not configured. Email ashish@getcortexops.com to activate Pro.');
     } else {
       window.showError(msg + ' — email ashish@getcortexops.com if this persists.');
     }
@@ -805,7 +799,7 @@ window.addEventListener('load', async () => {
     console.warn('CortexOps API unreachable:', e.message);
   }
 
-  // Stripe + PayPal success banner
+  // PayPal success banner
   const params = new URLSearchParams(window.location.search);
   if (params.get('paypal') === 'success') {
     const b = document.getElementById('success-banner');
@@ -818,7 +812,7 @@ window.addEventListener('load', async () => {
     const b = document.getElementById('success-banner');
     if (b) {
       b.style.display = 'block';
-      b.textContent = 'Subscription active — check your email for your API key · Pro access is now live.';
+      b.textContent = 'PayPal subscription active — check your email for your CortexOps Pro API key.';
     }
   }
 });
