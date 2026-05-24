@@ -162,7 +162,9 @@ def cmd_eval_judge(args: argparse.Namespace) -> int:
 
     icon = "✓ PASS" if result.passed else "✗ FAIL"
     print(f"\nLLM Judge Result: {icon}")
-    print(f"  Score:     {result.score:.3f} (threshold: {RUBRICS.get(args.rubric or 'task_completion').pass_threshold:.2f})")
+    rubric_obj   = RUBRICS.get(args.rubric or 'task_completion')
+    threshold    = rubric_obj.pass_threshold if rubric_obj else 0.70
+    print(f"  Score:     {result.score:.3f} (threshold: {threshold:.2f})")
     print(f"  Model:     {result.model}  ({result.latency_ms}ms)")
     print(f"  Reasoning: {result.reasoning}")
     if args.verbose:
