@@ -127,6 +127,86 @@ def cmd_version(_: argparse.Namespace) -> int:
     return 0
 
 
+
+
+def cmd_dataset_create(args: argparse.Namespace) -> int:
+    """cortexops dataset create --name my-dataset --output dataset.yaml"""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from cortexops.dataset import GoldenDataset
+
+    ds = GoldenDataset(name=args.name, description=args.description or "")
+    ds.save(args.output)
+    print(f"Created dataset: {args.output}")
+    print(f"  Add cases by editing the YAML file or using ds.add() in Python.")
+    return 0
+
+
+def cmd_eval_judge(args: argparse.Namespace) -> int:
+    """cortexops eval judge --input <str> --output <str> --rubric task_completion"""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from cortexops.judge import LLMJudge, RUBRICS
+
+    api_key = args.api_key or os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        print("Error: OPENAI_API_KEY not set. Pass --api-key or set the env var.", file=sys.stderr)
+        return 1
+
+    judge = LLMJudge(api_key=api_key, model=args.model or "gpt-4o-mini")
+    result = judge.evaluate(
+        case_id="cli-eval",
+        input=args.input,
+        output=args.output,
+        rubric=args.rubric or "task_completion",
+        expected=args.expected,
+    )
+
+    icon = "✓ PASS" if result.passed else "✗ FAIL"
+    print(f"\nLLM Judge Result: {icon}")
+    print(f"  Score:     {result.score:.3f} (threshold: {RUBRICS.get(args.rubric or 'task_completion').pass_threshold:.2f})")
+    print(f"  Model:     {result.model}  ({result.latency_ms}ms)")
+    print(f"  Reasoning: {result.reasoning}")
+    if args.verbose:
+        print(f"  Criteria:  {result.criteria_scores}")
+
+    return 0 if result.passed else 1
+
+
+def cmd_eval_run_with_judge(args: argparse.Namespace) -> int:
+    """cortexops eval run --dataset d.yaml --judge --fail-on task_completion<0.90"""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from cortexops.dataset import GoldenDataset
+
+    ds = GoldenDataset.load(args.dataset)
+    print(f"CortexOps eval gate")
+    print(f"  dataset : {args.dataset} ({len(ds)} cases)")
+    print(f"  project : {args.project or ds.name}")
+    if args.fail_on:
+        print(f"  fail-on : {args.fail_on}")
+    if args.judge:
+        print(f"  judge   : LLM-as-judge ({args.model or 'gpt-4o-mini'})")
+    print()
+
+    def passthrough_agent(inp):
+        return {"output": f"[no agent] input: {inp}"}
+
+    try:
+        agent = _load_agent(args.agent) if getattr(args, "agent", None) else passthrough_agent
+        result = ds.run(
+            agent=agent,
+            fail_on=args.fail_on,
+            verbose=True,
+            use_judge=getattr(args, "judge", False),
+            judge_rubric=getattr(args, "rubric", "task_completion"),
+            judge_api_key=os.getenv("OPENAI_API_KEY"),
+        )
+        result.print_report()
+        return 0 if result.passed() else 1
+    except Exception as e:
+        print(f"\nEval failed: {e}", file=sys.stderr)
+        return 1
+
+
+
 def _load_agent(agent_path: str):
     """Load an agent from a dotted path like 'mymodule:my_agent'."""
     if ":" not in agent_path:
