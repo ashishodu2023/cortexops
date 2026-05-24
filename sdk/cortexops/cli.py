@@ -137,14 +137,14 @@ def cmd_dataset_create(args: argparse.Namespace) -> int:
     ds = GoldenDataset(name=args.name, description=args.description or "")
     ds.save(args.output)
     print(f"Created dataset: {args.output}")
-    print(f"  Add cases by editing the YAML file or using ds.add() in Python.")
+    print("  Add cases by editing the YAML file or using ds.add() in Python.")
     return 0
 
 
 def cmd_eval_judge(args: argparse.Namespace) -> int:
     """cortexops eval judge --input <str> --output <str> --rubric task_completion"""
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-    from cortexops.judge import LLMJudge, RUBRICS
+    from cortexops.judge import RUBRICS, LLMJudge
 
     api_key = args.api_key or os.getenv("OPENAI_API_KEY", "")
     if not api_key:
@@ -179,7 +179,7 @@ def cmd_eval_run_with_judge(args: argparse.Namespace) -> int:
     from cortexops.dataset import GoldenDataset
 
     ds = GoldenDataset.load(args.dataset)
-    print(f"CortexOps eval gate")
+    print("CortexOps eval gate")
     print(f"  dataset : {args.dataset} ({len(ds)} cases)")
     print(f"  project : {args.project or ds.name}")
     if args.fail_on:

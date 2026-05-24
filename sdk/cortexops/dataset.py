@@ -25,7 +25,7 @@ class EvalCase:
     metadata: dict = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, d: dict) -> "EvalCase":
+    def from_dict(cls, d: dict) -> EvalCase:
         return cls(
             id=str(d.get("id", uuid.uuid4().hex[:8])),
             input=d["input"],
@@ -77,7 +77,7 @@ class GoldenDataset:
         context: str | None = None,
         tags: list[str] | None = None,
         id: str | None = None,
-    ) -> "GoldenDataset":
+    ) -> GoldenDataset:
         """Add a test case. Returns self for chaining."""
         self.cases.append(EvalCase(
             id=id or f"case-{len(self.cases)+1:03d}",
@@ -88,7 +88,7 @@ class GoldenDataset:
         ))
         return self
 
-    def add_from_trace(self, trace: dict, expected: str | None = None) -> "GoldenDataset":
+    def add_from_trace(self, trace: dict, expected: str | None = None) -> GoldenDataset:
         """
         Seed a dataset case from a production trace.
         The trace input becomes the test input.
@@ -102,7 +102,7 @@ class GoldenDataset:
         ))
         return self
 
-    def filter(self, tag: str) -> "GoldenDataset":
+    def filter(self, tag: str) -> GoldenDataset:
         """Return a new dataset with only cases matching a tag."""
         filtered = GoldenDataset(
             name=f"{self.name}[{tag}]",
@@ -127,7 +127,7 @@ class GoldenDataset:
             yaml.dump(data, f, allow_unicode=True, sort_keys=False)
 
     @classmethod
-    def load(cls, path: str | Path) -> "GoldenDataset":
+    def load(cls, path: str | Path) -> GoldenDataset:
         """Load dataset from YAML or JSON."""
         path = Path(path)
         with open(path) as f:
@@ -157,7 +157,7 @@ class GoldenDataset:
         use_judge: bool = False,
         judge_rubric: str = "task_completion",
         judge_api_key: str | None = None,
-    ) -> "DatasetRunResult":
+    ) -> DatasetRunResult:
         """
         Run the dataset against an agent and return results.
 

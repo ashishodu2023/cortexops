@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..auth import get_current_key_info
 from ..db import get_db
 from ..tiers import TierInfo, require_pro
-from ..models.records import EvalDataset as EvalDatasetRecord, EvalRun as EvalRunRecord
+from ..models.records import EvalDataset as EvalDatasetRecord
 
 router = APIRouter(prefix="/v1/eval", tags=["eval"])
 
