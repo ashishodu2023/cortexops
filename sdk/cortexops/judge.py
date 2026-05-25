@@ -9,8 +9,6 @@ import json
 import os
 import textwrap
 from dataclasses import dataclass, field
-from typing import Any
-
 
 
 @dataclass
