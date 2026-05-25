@@ -9,8 +9,8 @@ import json
 import os
 import textwrap
 from dataclasses import dataclass, field
+from typing import Any
 
-import httpx
 
 
 @dataclass
@@ -245,6 +245,13 @@ class LLMJudge:
         """).strip()
 
     def _call_model(self, prompt: str) -> str:
+        try:
+            import httpx
+        except ImportError as exc:
+            raise ImportError(
+                "httpx is required for LLM judge API calls. "
+                "Install it with: pip install cortexops[llm]"
+            ) from exc
         response = httpx.post(
             f"{self.base_url}/chat/completions",
             headers={
