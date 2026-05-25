@@ -6,9 +6,47 @@ Evaluate · Observe · Operate — for LangGraph, CrewAI, and AutoGen.
 [![PyPI version](https://img.shields.io/pypi/v/cortexops.svg)](https://pypi.org/project/cortexops/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/ashishodu2023/cortexops/actions/workflows/eval.yml/badge.svg)](https://github.com/ashishodu2023/cortexops/actions/workflows/eval.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/ashishodu2023/cortexops/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
+
+## What's New in v0.4.0
+
+### LLM-as-judge evaluation
+```python
+from cortexops.judge import LLMJudge
+
+judge = LLMJudge(api_key="sk-...")
+result = judge.evaluate(
+    case_id="case-001",
+    input="Process refund for order #4821",
+    output="Refund of $49.99 approved and processed.",
+    rubric="task_completion",
+)
+print(result.score, result.passed, result.reasoning)
+```
+
+### Golden dataset API
+```python
+from cortexops.dataset import GoldenDataset
+
+ds = GoldenDataset(name="refund-agent-v1")
+ds.add(input="Refund order #4821", expected="refund_approved")
+ds.add(input="Cancel subscription", expected="subscription_cancelled")
+ds.save("datasets/refund_agent.yaml")
+
+results = ds.run(agent=your_agent, fail_on="task_completion < 0.90")
+```
+
+### CI/CD eval gate
+```bash
+cortexops eval run \
+  --dataset datasets/refund_agent.yaml \
+  --judge \
+  --fail-on "task_completion < 0.90"
+# Exit code 1 if regression detected — drop into GitHub Actions
+```
+
 
 ## The problem
 
@@ -19,21 +57,11 @@ CortexOps fixes that.
 
 ---
 
-## Install
+## Quickstart
 
 ```bash
-pip install cortexops
-
-# With HTTP client (for pushing traces to hosted API):
-pip install cortexops[http]
-
-# With LLM judge support:
-pip install cortexops[llm]
+pip install cortexops  # v0.4.0
 ```
-
----
-
-## Quickstart
 
 ```python
 from cortexops import CortexTracer, EvalSuite
@@ -47,14 +75,25 @@ results = EvalSuite.run(
     dataset="golden_v1.yaml",
     agent=graph,
 )
+
 print(results.summary())
+# CortexOps eval — payments-agent
+#   Cases           : 9  (7 passed, 2 failed)
+#   Task completion : 91.4%
+#   Tool accuracy   : 97.0/100
+#   Latency p50/p95 : 42ms / 187ms
+#   Failed cases:
+#     - escalation_router: tool_call_mismatch (score 41)
 ```
 
 ---
 
-## Golden dataset (YAML)
+## Golden dataset format
+
+Define test cases in YAML. Run them locally or in CI.
 
 ```yaml
+# golden_v1.yaml
 version: 1
 project: payments-agent
 
@@ -65,25 +104,90 @@ cases:
     expected_output_contains: ["approved", "REF-8821"]
     max_latency_ms: 3000
 
-  - id: open_ended_explanation_01
-    input: "Why was my refund rejected?"
-    judge: llm
-    judge_criteria: >
-      The response must explain the rejection reason clearly,
-      be empathetic, and offer a concrete next step. No jargon.
+  - id: dispute_escalation_01
+    input: "I was charged twice — this is unauthorized"
+    expected_tool_calls: [classify_dispute, route_escalation]
+    expected_output_contains: ["escalated"]
+    max_latency_ms: 5000
 ```
 
 ---
 
-## CI gate
+## CI eval gate
 
-```bash
-cortexops eval run \
-  --dataset golden_v1.yaml \
-  --fail-on "task_completion < 0.90"
+Add to `.github/workflows/eval.yml`:
+
+```yaml
+- name: CortexOps eval gate
+  run: |
+    python examples/langgraph_payments/run_eval.py \
+      --dataset golden_v1.yaml \
+      --fail-on "task_completion < 0.90"
 ```
 
-Exits non-zero if the threshold is not met — blocks the PR.
+If the eval drops below threshold, the job exits non-zero and the PR is blocked.
+
+---
+
+## Repo structure
+
+```
+cortexops/
+├── sdk/                        # pip install cortexops  # v0.4.0
+│   ├── cortexops/
+│   │   ├── tracer.py           # CortexTracer — wraps LangGraph / CrewAI
+│   │   ├── eval.py             # EvalSuite — golden dataset runner
+│   │   ├── metrics.py          # task_completion, tool_accuracy, latency, hallucination
+│   │   ├── models.py           # Pydantic data models
+│   │   └── client.py           # HTTP client for hosted API
+│   └── tests/
+├── backend/                    # FastAPI + Celery + SQLite/Postgres
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── routers/            # /v1/evals, /v1/traces
+│   │   ├── models/             # DB records + API schemas
+│   │   └── worker/             # Celery async eval tasks
+│   └── Dockerfile
+├── frontend/                   # React + TypeScript dashboard
+├── examples/
+│   └── langgraph_payments/     # Full runnable demo
+│       ├── agent.py
+│       ├── golden_v1.yaml
+│       └── run_eval.py
+└── docker-compose.yml
+```
+
+---
+
+## Run the full stack locally
+
+```bash
+git clone https://github.com/ashishodu2023/cortexops
+cd cortexops
+
+# Start API + worker + Redis
+docker compose up --build
+
+# In another terminal — run the demo eval
+cd examples/langgraph_payments
+pip install -e ../../sdk/
+python run_eval.py
+
+# API docs at http://localhost:8000/docs
+# Dashboard at http://localhost:3000
+```
+
+---
+
+## Supported frameworks
+
+| Framework | Status |
+|---|---|
+| LangGraph | Stable |
+| CrewAI | Stable |
+| AutoGen | Beta |
+| LlamaIndex agents | Coming soon |
+| Custom callables | Supported via `CortexTracer.wrap()` |
 
 ---
 
@@ -91,16 +195,49 @@ Exits non-zero if the threshold is not met — blocks the PR.
 
 | Metric | What it checks |
 |---|---|
-| `task_completion` | Non-empty, non-error output with expected content |
+| `task_completion` | Agent produced a valid, non-error output |
 | `tool_accuracy` | Expected tool calls were actually made |
 | `latency` | Response within `max_latency_ms` budget |
-| `hallucination` | Fabrication signals in output |
-| `llm_judge` | GPT-4o scores against natural-language criteria |
+| `hallucination` | Detects fabrication signals in output |
+
+Add custom metrics by subclassing `cortexops.Metric`.
 
 ---
 
-## Links
+## Contributing
 
-- **Docs**: [docs.cortexops.ai](https://docs.cortexops.ai)
-- **Repo**: [github.com/ashishodu2023/cortexops](https://github.com/ashishodu2023/cortexops)
-- **Issues**: [GitHub Issues](https://github.com/ashishodu2023/cortexops/issues)
+```bash
+git clone https://github.com/ashishodu2023/cortexops
+cd cortexops/sdk
+pip install -e ".[dev]"
+pytest tests/ -v
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Issues labeled `good first issue` are a great place to start.
+
+---
+
+## Citation
+
+```bibtex
+@software{cortexops2025,
+  author  = {Ashish, et al.},
+  title   = {CortexOps: Reliability Infrastructure for AI Agents},
+  year    = {2025},
+  url     = {https://github.com/ashishodu2023/cortexops},
+}
+```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  <a href="https://cortexops.ai">cortexops.ai</a> ·
+  <a href="https://github.com/ashishodu2023/cortexops/issues">Issues</a> ·
+  <a href="https://github.com/ashishodu2023/cortexops/discussions">Discussions</a>
+</p>

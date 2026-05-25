@@ -250,7 +250,7 @@ footer{background:var(--gray-100);color:var(--gray-700);padding:48px 24px 24px;b
 <div class="hero">
   <div class="hero-chip">
     <div class="hero-chip-dot"></div>
-    <span class="hero-chip-text">v0.3.0 live on PyPI — pip install cortexops</span>
+    <span class="hero-chip-text">v0.4.0 live on PyPI — pip install cortexops</span>
   </div>
   <h1>Stop shipping agents<br><strong>you can't trust</strong></h1>
   <p class="hero-sub">Evaluate, observe, and gate LangGraph and CrewAI agents before they reach production. Built by a Senior AI Engineer at PayPal.</p>
@@ -273,6 +273,7 @@ agent  = tracer.wrap(your_langgraph_app)   <span class="cm"># zero refactoring</
 
 results = <span class="cf">EvalSuite</span>.run(
     dataset=<span class="cs">"golden_v1.yaml"</span>,
+    judge=<span class="cs">"llm"</span>,          <span class="cc"># LLM-as-judge semantic scoring</span>
     agent=agent,
     fail_on=<span class="cs">"task_completion &lt; 0.90"</span>,  <span class="cm"># CI gate</span>
 )
