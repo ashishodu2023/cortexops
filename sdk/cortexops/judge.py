@@ -9,7 +9,6 @@ import json
 import os
 import textwrap
 from dataclasses import dataclass, field
-from typing import Any
 
 import httpx
 
@@ -373,12 +372,17 @@ class LLMJudgeMetric:
         if not criteria_kw:
             return 100.0, None, "No criteria keywords to match"
 
-        overlap = len(criteria_kw & output_kw) / len(criteria_kw)
-        score   = min(100.0, overlap * 150.0)   # generous scaling
-        detail  = f"Heuristic: {len(criteria_kw & output_kw)}/{len(criteria_kw)} criteria keywords matched"
+        # Stem-based matching: "assist" matches "assistance", "refund" matches "refunding"
+        def stems_match(kw: str, word_set: set) -> bool:
+            stem = kw[:5]  # 5-char prefix is a reliable stem for English
+            return kw in word_set or any(w.startswith(stem) or kw.startswith(w[:5]) for w in word_set)
+
+        matched = sum(1 for kw in criteria_kw if stems_match(kw, output_kw))
+        overlap = matched / len(criteria_kw)
+        score   = min(100.0, overlap * 150.0)  # generous scaling
+        detail  = f"Heuristic: {matched}/{len(criteria_kw)} criteria keywords matched (stem)"
         failed_key = "llm_judge_heuristic" if score < 50.0 else None
         return score, failed_key, detail
 
 
 # LLMJudge alias kept for backward compatibility
-LLMJudge = LLMJudgeMetric
