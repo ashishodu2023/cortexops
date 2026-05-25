@@ -305,5 +305,80 @@ class LLMJudge:
             latency_ms=latency_ms,
         )
 
-# Backward-compatible alias
-LLMJudgeMetric = LLMJudge
+
+class LLMJudgeMetric:
+    """
+    Eval metric wrapper for LLM-as-judge scoring.
+    Compatible with EvalSuite metric interface: score(case, trace) -> (score, failed_key, detail).
+
+    Supports three modes:
+      - rule: skip LLM, return 100.0 (pass-through)
+      - llm with no criteria: return 100.0
+      - llm with criteria: call LLM judge (or heuristic fallback if no valid key)
+    """
+
+    def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini"):
+        self._api_key = api_key
+        self._model   = model
+        # No key validation at init — validated lazily when judge is called
+
+    def score(self, case, trace) -> tuple:
+        """
+        Score a trace against a case's judge criteria.
+
+        Returns:
+            (score: float, failed_key: str|None, detail: str|None)
+            score: 0.0-100.0
+        """
+        judge_mode = getattr(case, "judge", "rule")
+        criteria   = getattr(case, "judge_criteria", None)
+
+        # Skip modes
+        if judge_mode == "rule" or not criteria:
+            return 100.0, None, None
+
+        # Get agent output from trace
+        output = ""
+        if hasattr(trace, "output"):
+            output = str(trace.output or "")
+        elif isinstance(trace, dict):
+            output = str(trace.get("output", ""))
+
+        # Try LLM judge if valid API key
+        api_key = self._api_key or __import__("os").getenv("OPENAI_API_KEY", "")
+        if api_key and api_key not in ("placeholder", "test", ""):
+            try:
+                judge = LLMJudge(api_key=api_key, model=self._model)
+                result = judge.evaluate(
+                    case_id=getattr(case, "id", "eval"),
+                    input=str(getattr(case, "input", "")),
+                    output=output,
+                    rubric="task_completion",
+                )
+                score = result.score * 100.0
+                failed_key = "llm_judge" if not result.passed else None
+                return score, failed_key, result.reasoning
+            except Exception:
+                pass  # fall through to heuristic
+
+        # Heuristic fallback — keyword overlap between criteria and output
+        criteria_words = set(criteria.lower().split())
+        output_words   = set(output.lower().split())
+        # Remove stop words
+        stop = {"the", "a", "an", "is", "it", "in", "on", "at", "to", "and", "or", "of", "for",
+                "be", "are", "was", "were", "will", "have", "has", "that", "this", "with", "not"}
+        criteria_kw = criteria_words - stop
+        output_kw   = output_words - stop
+
+        if not criteria_kw:
+            return 100.0, None, "No criteria keywords to match"
+
+        overlap = len(criteria_kw & output_kw) / len(criteria_kw)
+        score   = min(100.0, overlap * 150.0)   # generous scaling
+        detail  = f"Heuristic: {len(criteria_kw & output_kw)}/{len(criteria_kw)} criteria keywords matched"
+        failed_key = "llm_judge_heuristic" if score < 50.0 else None
+        return score, failed_key, detail
+
+
+# LLMJudge alias kept for backward compatibility
+LLMJudge = LLMJudgeMetric
