@@ -9,6 +9,7 @@ import json
 import os
 import textwrap
 from dataclasses import dataclass, field
+from typing import Any
 
 import httpx
 
@@ -303,3 +304,6 @@ class LLMJudge:
             model=self.model,
             latency_ms=latency_ms,
         )
+
+# Backward-compatible alias
+LLMJudgeMetric = LLMJudge

@@ -34,7 +34,7 @@ from .models import (
 )
 from .tracer import CortexTracer
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "CortexTracer",
