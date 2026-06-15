@@ -201,6 +201,33 @@ python run_eval.py
 Add custom metrics by subclassing `cortexops.Metric`.
 
 ---
+## Roadmap
+
+### v0.5.0 — coming soon
+- [ ] Trace waterfall dashboard view (visual node timeline)
+- [ ] Prompt version tracking in SDK (`tracer.set_prompt(name, version)`)
+- [ ] Slack webhook alerts on quality regression
+- [ ] Auto email on Pro key provision (remove manual step)
+- [ ] Trace sampling configuration (`sample_rate=0.1`)
+- [ ] pytest plugin for eval gates (`@cortexops.eval_gate(...)`)
+
+### v0.6.0
+- [ ] Google ADK native tracing
+- [ ] Azure OpenAI tracing example
+- [ ] OpenTelemetry Jaeger export example
+- [ ] Cost tracking per eval run (judge API cost)
+- [ ] GitHub Actions job summary output
+
+### v1.0.0
+- [ ] Multi-tenant dashboard
+- [ ] SOC 2 compliance mode (audit logs, data residency)
+- [ ] Enterprise SSO (SAML/OIDC)
+- [ ] LangGraph Studio integration
+- [ ] Automated eval case generation from production failures
+
+Want to work on any of these? See [open issues](https://github.com/ashishodu2023/cortexops/issues) or open a [discussion](https://github.com/ashishodu2023/cortexops/discussions).
+
+---
 
 ## Contributing
 
