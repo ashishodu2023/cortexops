@@ -1,116 +1,291 @@
 # Contributing to CortexOps
 
-Thank you for your interest in contributing. CortexOps is an early-stage open-source project and we welcome all contributions — bug fixes, new metrics, documentation, and examples.
+Thank you for your interest in contributing. CortexOps is an open-source AI agent observability platform — tracing, evaluation, and monitoring for LLM agents in production. Every contribution, large or small, makes it better for the engineers who depend on it.
 
 ---
 
-## Local dev setup
+## Quick start
+
+1. Find an issue: [github.com/ashishodu2023/cortexops/issues](https://github.com/ashishodu2023/cortexops/issues)
+2. Filter by **good first issue** if you are new to the codebase
+3. Comment "I'll take this one" so others know it is claimed
+4. Fork the repo, make your changes, open a PR
+
+That is it. No CLA, no approval process for small changes.
+
+---
+
+## What we need help with
+
+### Good first issues (1-4 hours)
+- Framework examples: Gemini, Azure OpenAI, DSPy, Smolagents, Haystack
+- Documentation: quickstart tutorial, environment variable reference, why-observability guide
+- Docker Compose for self-hosted deployment
+- OpenTelemetry export examples: Jaeger, Grafana Tempo
+- Error message improvements
+- Type hint coverage
+
+### Intermediate (4-8 hours)
+- pytest plugin for eval gates
+- Trace sampling configuration
+- GitHub Actions job summary output
+- LLM judge cost tracking
+
+Browse all open issues: [github.com/ashishodu2023/cortexops/issues](https://github.com/ashishodu2023/cortexops/issues)
+
+---
+
+## Development setup
+
+### Prerequisites
+
+- Python 3.10 or later
+- Node.js 18+ (for frontend only)
+- Docker (for integration tests)
+- A CortexOps API key — free at [getcortexops.com](https://getcortexops.com)
+
+### Clone and install
 
 ```bash
-git clone https://github.com/ashishodu2023/cortexops
+git clone https://github.com/ashishodu2023/cortexops.git
 cd cortexops
 
-# SDK (core library)
+# Install SDK in development mode
 cd sdk
 pip install -e ".[dev]"
+cd ..
+
+# Install backend dependencies
+cd backend
+pip install -r requirements.txt
+cd ..
+```
+
+### Run tests
+
+```bash
+# SDK tests
+cd sdk
 pytest tests/ -v
 
-# Backend (FastAPI + Celery)
-cd ../backend
-pip install -r requirements.txt
+# Backend tests
+cd backend
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ -v --cov=cortexops --cov-report=term-missing
+```
+
+### Lint and format
+
+```bash
+# Run ruff (linter + formatter)
+cd sdk
+ruff check cortexops/ --line-length 121
+ruff format cortexops/ --line-length 121
+
+# Backend
+cd backend
+ruff check app/ --line-length 121
+```
+
+All CI checks must pass before a PR is merged. Run lint locally before pushing to save time.
+
+### Run the backend locally
+
+```bash
+cd backend
+cp .env.example .env
+# Edit .env with your local settings
+
 uvicorn app.main:app --reload --port 8000
-
-# Run the example
-cd ../examples/langgraph_payments
-python run_eval.py
+# API docs: http://localhost:8000/docs
 ```
 
 ---
 
-## Project structure
+## Repository structure
 
 ```
-sdk/cortexops/          Core library — tracer, eval, metrics, CLI
-  tracer.py             CortexTracer — wraps LangGraph / CrewAI / callable
-  eval.py               EvalSuite — golden dataset runner
-  metrics.py            Built-in metrics (task_completion, tool_accuracy, etc.)
-  judge.py              LLM-as-judge metric (GPT-4o / any OpenAI-compatible API)
-  cli.py                cortexops CLI
-  models.py             Pydantic data models
-
-backend/app/            FastAPI service
-  routers/evals.py      POST /v1/evals, GET /v1/evals/{run_id}
-  routers/traces.py     POST /v1/traces, GET /v1/traces
-  routers/prompts.py    POST /v1/prompts, GET /v1/prompts/diff
-  routers/keys.py       POST /v1/keys, DELETE /v1/keys/{id}
-  services/alerting.py  Slack + webhook alerting
-  worker/tasks.py       Celery async eval execution
-
-examples/               Runnable demos
-  langgraph_payments/   LangGraph payments agent + 9-case golden dataset
+cortexops/
+├── sdk/                    ← Python SDK (pip install cortexops)
+│   ├── cortexops/
+│   │   ├── __init__.py     ← Public API surface
+│   │   ├── tracer.py       ← CortexTracer — main instrumentation class
+│   │   ├── eval.py         ← EvalSuite — evaluation framework
+│   │   ├── judge.py        ← LLMJudge, LLMJudgeMetric — LLM-as-judge
+│   │   ├── dataset.py      ← GoldenDataset — eval dataset management
+│   │   └── cli.py          ← cortexops CLI commands
+│   └── tests/              ← SDK test suite (pytest)
+│
+├── backend/                ← FastAPI backend (api.getcortexops.com)
+│   ├── app/
+│   │   ├── main.py         ← FastAPI app and router registration
+│   │   ├── routers/        ← API route handlers
+│   │   ├── models/         ← SQLAlchemy models
+│   │   └── auth.py         ← API key authentication
+│   └── tests/              ← Backend test suite
+│
+├── examples/               ← Working examples (add yours here)
+│   ├── langgraph_basic/    ← Reference implementation
+│   ├── crewai_basic/
+│   └── ...
+│
+├── .github/
+│   └── workflows/
+│       ├── security.yml    ← Security + quality CI pipeline
+│       └── ...
+│
+└── CONTRIBUTING.md         ← You are here
 ```
 
 ---
 
-## How to add a custom metric
+## Adding a framework example
 
-Subclass `cortexops.Metric` and implement `score()`:
+The most common contribution is a new framework example. Follow this pattern:
 
-```python
-from cortexops import Metric, EvalCase, Trace, FailureKind
+### 1. Create the directory
 
-class CitationMetric(Metric):
-    name = "citations"
-
-    def score(self, case: EvalCase, trace: Trace):
-        output = trace.output.get("output", "")
-        has_citation = "[source:" in output.lower()
-        if not has_citation:
-            return 40.0, FailureKind.OUTPUT_FORMAT, "Response missing citation"
-        return 100.0, None, None
+```bash
+mkdir examples/your_framework_basic
+cd examples/your_framework_basic
 ```
 
-Then pass it to `EvalSuite.run()`:
+### 2. Create the agent file
 
 ```python
-EvalSuite.run(dataset="golden.yaml", agent=my_agent, extra_metrics=[CitationMetric()])
+# examples/your_framework_basic/agent.py
+
+from cortexops import CortexTracer
+import os
+
+tracer = CortexTracer(
+    api_key=os.getenv("CORTEXOPS_API_KEY", ""),
+    project="your-framework-example",
+)
+
+# Your framework-specific agent code here
+# Wrap the entry point with tracer.wrap()
+agent = tracer.wrap(your_agent_object)
+
+if __name__ == "__main__":
+    result = agent.run("Hello, world!")
+    print(result)
 ```
+
+### 3. Add a requirements file
+
+```
+# examples/your_framework_basic/requirements.txt
+cortexops>=0.4.0
+your-framework>=x.y.z
+```
+
+### 4. Write a README
+
+```markdown
+# Your Framework + CortexOps
+
+Three lines to trace a [Your Framework] agent.
+
+## Setup
+
+pip install -r requirements.txt
+export CORTEXOPS_API_KEY=your-key  # free at getcortexops.com
+
+## Run
+
+python agent.py
+
+## What you will see
+
+A trace in your CortexOps dashboard showing every step
+of the agent execution.
+```
+
+### 5. Test it
+
+Run the example from scratch in a clean virtual environment. If it works from zero setup, it is ready to PR.
 
 ---
 
 ## Pull request checklist
 
-- [ ] `pytest sdk/tests/ -v` passes (18/18)
-- [ ] New metrics include at least 2 test cases
-- [ ] New backend routes include a schema in `models/schemas.py`
-- [ ] Commit messages follow: `type(scope): description` — e.g. `feat(metrics): add citation metric`
-- [ ] Update `README.md` if adding a user-visible feature
+Before opening a PR:
 
----
+- [ ] Tests pass locally: `pytest tests/ -v`
+- [ ] Lint passes: `ruff check . --line-length 121`
+- [ ] New code has test coverage (for SDK and backend changes)
+- [ ] README or docs updated if behaviour changed
+- [ ] Example is tested from a clean environment (for example contributions)
 
-## Good first issues
+PR title format:
 
-Label: `good first issue`
-
-- Add `CrewAI` example in `examples/crewai_customer_support/`
-- Add `AutoGen` example in `examples/autogen_research/`
-- Add `planAdherence` metric that checks whether the agent followed its stated plan
-- Add CLI `cortexops dashboard` command that opens the local web UI
-- Write docs for the LLM-as-judge metric with example criteria
-- Add `pytest-asyncio` tests for the FastAPI routes
+```
+feat: add Gemini Google ADK tracing example
+fix: improve error message on invalid API key
+docs: add quickstart tutorial
+chore: bump python-multipart to 0.0.27
+```
 
 ---
 
 ## Code style
 
-- Python: `ruff check` — no exceptions. Run `ruff check --fix` before committing.
-- TypeScript: `eslint` + `prettier`.
-- No `print()` in SDK code — use `logging`.
-- All Pydantic models use `model_config = {"from_attributes": True}` for ORM compatibility.
+- Python 3.10+ syntax throughout
+- Type hints on all public functions
+- Docstrings on all public classes and methods
+- No line longer than 121 characters (ruff enforces this)
+- Imports sorted by ruff (run `ruff check --fix` to auto-sort)
+- No `print()` in library code — use `logging` instead
+- Prefer `deque` over `list` for stack implementations
 
 ---
 
-## Contact
+## Tests
 
-Open an issue for bugs or feature requests.  
-For security vulnerabilities, email `security@cortexops.ai` — do not open a public issue.
+Every SDK change needs a test. Tests live in `sdk/tests/`.
+
+```python
+# sdk/tests/test_your_feature.py
+
+def test_your_feature_does_what_it_should():
+    from cortexops import YourNewClass
+    result = YourNewClass().do_thing()
+    assert result.worked == True
+```
+
+Run the full test suite before pushing:
+
+```bash
+cd sdk && pytest tests/ -v --tb=short
+```
+
+The CI runs tests on Python 3.10, 3.11, and 3.12. If you are fixing a bug, add a test that would have caught it.
+
+---
+
+## Security
+
+If you find a security vulnerability, do not open a public issue. Email [contact@getcortexops.com](mailto:contact@getcortexops.com) directly. We will respond within 48 hours.
+
+---
+
+## Questions
+
+- Open a [GitHub Discussion](https://github.com/ashishodu2023/cortexops/discussions) for design questions
+- Comment on the issue you are working on for implementation questions
+- Email [contact@getcortexops.com](mailto:contact@getcortexops.com) for anything else
+
+---
+
+## Recognition
+
+Every contributor is added to the CONTRIBUTORS section of the README after their first merged PR. Significant contributions are acknowledged in release notes.
+
+---
+
+Built by engineers who ship AI agents to production. We are glad you are here.
+
+— Ashish Verma, CortexOps
