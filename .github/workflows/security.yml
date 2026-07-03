@@ -192,9 +192,20 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Install Bearer
+        env:
+          BEARER_VERSION: "1.49.0"
         run: |
-          curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh
-          echo "$HOME/.bearer/bin" >> $GITHUB_PATH
+          curl -fsSL \
+            -o bearer.tar.gz \
+            https://github.com/Bearer/bearer/releases/download/v${BEARER_VERSION}/bearer_${BEARER_VERSION}_linux_amd64.tar.gz
+
+      - name: Extract Bearer
+        run: |
+          tar -xzf bearer.tar.gz
+          chmod +x bearer
+          mkdir -p "$HOME/.local/bin"
+          mv bearer "$HOME/.local/bin/"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Scan frontend React
         run: bearer scan frontend-new/ --exit-code 0 --format json > bearer-frontend.json || true
