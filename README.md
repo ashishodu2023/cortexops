@@ -11,24 +11,19 @@
 **Reliability infrastructure for AI agents.**  
 Evaluate · Observe · Operate — for LangGraph, CrewAI, and AutoGen.
 
-[![PyPI version](https://img.shields.io/pypi/v/cortexops.svg)](https://pypi.org/project/cortexops/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![CI](https://github.com/ashishodu2023/cortexops/actions/workflows/eval.yml/badge.svg)](https://github.com/ashishodu2023/cortexops/actions/workflows/eval.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-![Trace Waterfall](docs/images/trace_waterfall.png)     
+![Trace Waterfall](docs/images/trace_waterfall.png)
 
 ## Architecture
 
-![Architecture](docs/images/architecture.png)          
+![Architecture](docs/images/architecture.png)
 
 ## Supported Frameworks
 
-![Frameworks](docs/images/frameworks.png)               
+![Frameworks](docs/images/frameworks.png)
 
 ## Tests
 
-![Tests](docs/images/tests.png)                         
+![Tests](docs/images/tests.png)
 
 
 [Website](https://getcortexops.com) · [PyPI](https://pypi.org/project/cortexops) · [Docs](https://github.com/ashishodu2023/cortexops)
