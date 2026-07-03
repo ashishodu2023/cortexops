@@ -1,7 +1,5 @@
 # CortexOps
 
-# CortexOps
-
 [![CI](https://github.com/ashishodu2023/cortexops/actions/workflows/security.yml/badge.svg)](https://github.com/ashishodu2023/cortexops/actions/workflows/security.yml)
 [![PyPI version](https://img.shields.io/pypi/v/cortexops.svg)](https://pypi.org/project/cortexops/)
 [![Python](https://img.shields.io/pypi/pyversions/cortexops.svg)](https://pypi.org/project/cortexops/)
