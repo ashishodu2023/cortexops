@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import random as _random
 import time
 import uuid
 from collections.abc import Callable
@@ -90,7 +91,11 @@ class CortexTracer:
         self.api_url     = _resolve_api_url(api_url)
         # Environment: arg > env var > "development"
         self.environment = environment or os.getenv(_ENV_ENV, "development")
+        # Validate and store sample rate (0.0 = trace nothing, 1.0 = trace everything)
+        if not 0.0 <= sample_rate <= 1.0:
+            raise ValueError(f"sample_rate must be between 0.0 and 1.0, got {sample_rate}")
         self.sample_rate = sample_rate
+        self.sample_errors = True  # always trace failures regardless of sample_rate
         self.local_store = local_store
         self._traces: list[Trace] = []
         self._current_trace: Trace | None = None
@@ -617,9 +622,29 @@ class CortexTracer:
 
 
     def _run_traced(self, fn: Callable, input: dict, framework: str) -> Any:
-        import random
-        if self.sample_rate < 1.0 and random.random() > self.sample_rate:
+        # Head-based sampling: decide whether to trace this run.
+        # Errors are always traced (if sample_errors=True) so you never
+        # miss a failure even at low sample rates.
+        sampled = self.sample_rate >= 1.0 or _random.random() < self.sample_rate
+
+        if not sampled and not self.sample_errors:
+            # Not sampled and not capturing errors — run untraced
             return fn()
+
+        if not sampled and self.sample_errors:
+            # Not sampled, but we still want to catch errors.
+            # Run with lightweight error-only capture.
+            try:
+                return fn()
+            except Exception as exc:
+                # An error occurred — capture it even though not sampled
+                trace = Trace(project=self.project, input=input)
+                trace.status = RunStatus.FAILED
+                trace.failure_kind = FailureKind.UNKNOWN
+                trace.failure_detail = str(exc)
+                trace.metadata = {"sampled": False, "captured_reason": "error"}
+                self._traces.append(trace)
+                raise
 
         trace = Trace(project=self.project, input=input)
         self._current_trace = trace
