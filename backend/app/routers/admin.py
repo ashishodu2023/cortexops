@@ -3,6 +3,7 @@ Admin endpoints — internal use only.
 All endpoints require INTERNAL_API_KEY header.
 Never expose these to end users.
 """
+from sqlalchemy import func, select
 from __future__ import annotations
 
 import os
@@ -203,13 +204,14 @@ async def admin_list_projects(
         select(Project).order_by(Project.created_at.desc()).limit(limit)
     )
     projects = result.scalars().all()
-
     out = []
     for p in projects:
-        keys_result = await db.execute(
-            select(ApiKey).where(ApiKey.project == p.name, ApiKey.is_active)
+        count_result = await db.execute(
+            select(func.count())
+            .select_from(ApiKey)
+            .where(ApiKey.project == p.name, ApiKey.is_active)
         )
-        active_keys = len(keys_result.scalars().all())
+        active_keys = count_result.scalar_one()
         out.append({
             "id": p.id,
             "name": p.name,
@@ -217,7 +219,6 @@ async def admin_list_projects(
             "created_at": p.created_at.isoformat(),
             "active_keys": active_keys,
         })
-
     return {"projects": out, "total": len(out)}
 
 
