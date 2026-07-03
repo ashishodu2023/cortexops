@@ -1,5 +1,15 @@
 # CortexOps
 
+# CortexOps
+
+[![CI](https://github.com/ashishodu2023/cortexops/actions/workflows/security.yml/badge.svg)](https://github.com/ashishodu2023/cortexops/actions/workflows/security.yml)
+[![PyPI version](https://img.shields.io/pypi/v/cortexops.svg)](https://pypi.org/project/cortexops/)
+[![Python](https://img.shields.io/pypi/pyversions/cortexops.svg)](https://pypi.org/project/cortexops/)
+[![Downloads](https://img.shields.io/pypi/dm/cortexops.svg)](https://pypi.org/project/cortexops/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen.svg)](https://github.com/ashishodu2023/cortexops/actions)
+[![Frameworks](https://img.shields.io/badge/frameworks-12-blue.svg)](https://getcortexops.com)
+
 **Reliability infrastructure for AI agents.**  
 Evaluate · Observe · Operate — for LangGraph, CrewAI, and AutoGen.
 
