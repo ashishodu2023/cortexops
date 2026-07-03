@@ -3,7 +3,6 @@ Admin endpoints — internal use only.
 All endpoints require INTERNAL_API_KEY header.
 Never expose these to end users.
 """
-from sqlalchemy import func, select
 from __future__ import annotations
 
 import os
@@ -11,7 +10,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select,func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_db
