@@ -191,20 +191,47 @@ function LoginScreen({onLogin}){
   );
 }
 
+const NAV=[
+  ["overview","Overview"],
+  ["projects","Projects"],
+  ["traces","Traces"],
+  ["evaluations","Evaluations"],
+  ["prompts","Prompt Versions"],
+  ["datasets","Datasets"],
+  ["metrics","Metrics"],
+  ["alerts","Alerts"],
+  ["api-keys","API Keys"],
+  ["usage","Usage"],
+  ["settings","Settings"],
+];
+
+function EmptyState({title,body,hint}){
+  return(
+    <div style={{padding:"48px 24px",textAlign:"center",color:M.gray600}}>
+      <div style={{fontSize:16,fontWeight:500,color:M.gray900,marginBottom:8}}>{title}</div>
+      <div style={{fontSize:14,maxWidth:420,margin:"0 auto",lineHeight:1.55}}>{body}</div>
+      {hint&&<div style={{fontFamily:M.mono,fontSize:13,color:M.gray500,marginTop:12}}>{hint}</div>}
+    </div>
+  );
+}
+
+function PanelCard({title,children}){
+  return(
+    <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,padding:18,boxShadow:M.shadow1}}>
+      <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".07em",fontWeight:600,marginBottom:10}}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
 export default function App(){
   const[apiKey,setApiKey]=useState(()=>localStorage.getItem("cxo_key")||"");
   const[project,setProject]=useState(()=>localStorage.getItem("cxo_project")||"payments-agent");
-  const[tab,setTab]=useState("traces");
-  const tabs=[
-    ["traces","Traces"],
-    ["evals","Evals"],
-    ["monitoring","Monitoring"],
-    ["prompts","Prompts"],
-    ["errors","Errors"],
-  ];
+  const[tab,setTab]=useState("overview");
   const[filter,setFilter]=useState("all");
   const[live,setLive]=useState(true);
   const[selected,setSelected]=useState(null);
+  const[projectDraft,setProjectDraft]=useState(()=>localStorage.getItem("cxo_project")||"payments-agent");
   const ref=useRef(null);
 
   const tPath=apiKey?`/v1/traces?project=${encodeURIComponent(project)}&limit=100${filter!=="all"?`&status=${filter}`:""}`:null;
@@ -220,7 +247,7 @@ export default function App(){
 
   useEffect(()=>{if(project)localStorage.setItem("cxo_project",project);},[project]);
 
-  const login=(k,p)=>{setApiKey(k);setProject(p);localStorage.setItem("cxo_key",k);localStorage.setItem("cxo_project",p);};
+  const login=(k,p)=>{setApiKey(k);setProject(p);setProjectDraft(p);localStorage.setItem("cxo_key",k);localStorage.setItem("cxo_project",p);};
   const logout=()=>{setApiKey("");localStorage.removeItem("cxo_key");};
 
   if(!apiKey)return<><style>{G}</style><LoginScreen onLogin={login}/></>;
@@ -234,203 +261,255 @@ export default function App(){
   const sorted=[...traces].sort((a,b)=>b.total_latency_ms-a.total_latency_ms);
   const p95=sorted.length>0?Math.round(sorted[Math.floor(sorted.length*0.05)]?.total_latency_ms||0):0;
   const tcColor=avgLat>1000?M.red:avgLat>500?M.amber:M.green;
+  const successRate=traces.length>0?(((traces.length-failed)/traces.length)*100).toFixed(1):"—";
+  const maskedKey=apiKey.length>12?`${apiKey.slice(0,8)}…${apiKey.slice(-4)}`:apiKey;
+  const activeLabel=NAV.find(([id])=>id===tab)?.[1]||"Overview";
+
+  const metricTiles=(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12}}>
+      <Tile label="Task completion" value={latest?`${(latest.task_completion_rate*100).toFixed(1)}`:"—"} unit="%" color={M.green}
+        spark={evals.slice(0,10).reverse().map(e=>(e.task_completion_rate||0)*100)} loading={eLoad}
+        delta={prev?`${Math.abs((latest.task_completion_rate-prev.task_completion_rate)*100).toFixed(1)}%`:undefined}
+        deltaUp={prev&&latest.task_completion_rate>=prev.task_completion_rate}/>
+      <Tile label="Error rate" value={errRate} unit="%" color={parseFloat(errRate)>5?M.red:M.green} spark={traces.slice(0,20).reverse().map(t=>t.status==="failed"?100:0)} loading={tLoad}/>
+      <Tile label="Avg latency" value={avgLat} unit="ms" color={tcColor} spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}/>
+      <Tile label="P95 latency" value={p95} unit="ms" color={p95>2000?M.red:p95>1000?M.amber:M.blue} spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}/>
+      <Tile label="Total traces" value={traces.length} color={M.blue} spark={traces.slice(0,20).map(()=>1)} loading={tLoad}/>
+    </div>
+  );
 
   return(
     <>
       <style>{G}</style>
-      <div style={{display:"flex",flexDirection:"column",height:"100vh",background:M.gray50}}>
-        {/* Top app bar */}
-        <div style={{background:M.blue,height:56,display:"flex",alignItems:"center",padding:"0 20px",gap:14,flexShrink:0,boxShadow:"0 2px 4px rgba(0,0,0,.2)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:24,height:24,background:"white",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1.5 Q10.5 7 7 12.5" stroke={M.blue} strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M4 1.5 Q8 7 4 12.5" stroke={M.blue} strokeWidth="1.5" strokeLinecap="round" opacity=".4"/>
-                <circle cx="7" cy="1.5" r="1.3" fill={M.blue}/><circle cx="7" cy="12.5" r="1.3" fill={M.blue}/>
-              </svg>
+      <div style={{display:"flex",height:"100vh",background:M.gray50}}>
+        {/* Left nav */}
+        <aside style={{width:220,background:M.white,borderRight:`1px solid ${M.gray200}`,display:"flex",flexDirection:"column",flexShrink:0}}>
+          <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${M.gray200}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+              <div style={{width:28,height:28,background:M.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1.5 Q10.5 7 7 12.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M4 1.5 Q8 7 4 12.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity=".4"/>
+                  <circle cx="7" cy="1.5" r="1.3" fill="white"/><circle cx="7" cy="12.5" r="1.3" fill="white"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{fontSize:14,fontWeight:600,color:M.gray900}}>CortexOps</div>
+                <div style={{fontSize:11,color:M.gray500}}>Dashboard</div>
+              </div>
             </div>
-            <span style={{fontSize:16,fontWeight:500,color:"white"}}>CortexOps</span>
+            <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project</div>
+            <div style={{fontFamily:M.mono,fontSize:12,color:M.gray800,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:4,padding:"6px 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{project}</div>
           </div>
-          <div style={{width:1,height:20,background:"rgba(255,255,255,.3)"}}/>
-          <input value={project} onChange={e=>setProject(e.target.value)}
-            style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",borderRadius:4,color:"white",fontSize:13,padding:"4px 10px",width:150,fontFamily:M.mono,outline:"none"}}/>
-          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:12}}>
-            <div onClick={()=>setLive(l=>!l)} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:live?"#34A853":"rgba(255,255,255,.4)",animation:live?"pulse 1.5s infinite":"none"}}/>
-              <span style={{fontSize:12,color:live?"#34A853":"rgba(255,255,255,.6)",fontWeight:500}}>{live?"Live · 5s":"Paused"}</span>
+          <nav style={{flex:1,overflow:"auto",padding:"10px 8px"}} aria-label="Dashboard">
+            {NAV.map(([id,label])=>(
+              <button key={id} onClick={()=>setTab(id)}
+                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",textAlign:"left",background:tab===id?M.blueLight:"transparent",color:tab===id?M.blue:M.gray700,border:"none",borderRadius:6,padding:"9px 12px",fontSize:13,fontWeight:tab===id?600:500,cursor:"pointer",fontFamily:M.sans,marginBottom:2}}>
+                <span>{label}</span>
+                {id==="alerts"&&failed>0&&<span style={{background:M.red,color:"white",borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:600}}>{failed}</span>}
+              </button>
+            ))}
+          </nav>
+          <div style={{padding:"12px 14px",borderTop:`1px solid ${M.gray200}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,cursor:"pointer"}} onClick={()=>setLive(l=>!l)}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:live?"#34A853":M.gray400,animation:live?"pulse 1.5s infinite":"none"}}/>
+              <span style={{fontSize:12,color:live?M.green:M.gray500,fontWeight:500}}>{live?"Live · 5s":"Paused"}</span>
             </div>
-            <button onClick={()=>{rT();rE();}} style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",borderRadius:4,color:"white",fontSize:13,padding:"4px 10px",cursor:"pointer"}}>↻</button>
-            <button onClick={logout} style={{background:"none",border:"none",color:"rgba(255,255,255,.7)",fontSize:13,cursor:"pointer"}}>Sign out</button>
+            <button onClick={logout} style={{background:"none",border:"none",color:M.gray600,fontSize:12,cursor:"pointer",padding:0}}>Sign out</button>
           </div>
-        </div>
+        </aside>
 
-        {/* Metric tiles */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,padding:"16px 20px",flexShrink:0}}>
-          <Tile label="Task completion" value={latest?`${(latest.task_completion_rate*100).toFixed(1)}`:"—"} unit="%" color={M.green}
-            spark={evals.slice(0,10).reverse().map(e=>(e.task_completion_rate||0)*100)} loading={eLoad}
-            delta={prev?`${Math.abs((latest.task_completion_rate-prev.task_completion_rate)*100).toFixed(1)}%`:undefined}
-            deltaUp={prev&&latest.task_completion_rate>=prev.task_completion_rate}/>
-          <Tile label="Error rate" value={errRate} unit="%" color={parseFloat(errRate)>5?M.red:M.green} spark={traces.slice(0,20).reverse().map(t=>t.status==="failed"?100:0)} loading={tLoad}/>
-          <Tile label="Avg latency" value={avgLat} unit="ms" color={tcColor} spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}/>
-          <Tile label="P95 latency" value={p95} unit="ms" color={p95>2000?M.red:p95>1000?M.amber:M.blue} spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}/>
-          <Tile label="Total traces" value={traces.length} color={M.blue} spark={traces.slice(0,20).map(()=>1)} loading={tLoad}/>
-        </div>
+        {/* Main */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+          <header style={{height:56,background:M.white,borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",padding:"0 20px",gap:12,flexShrink:0}}>
+            <h1 style={{fontSize:18,fontWeight:600,color:M.gray900,margin:0}}>{activeLabel}</h1>
+            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+              <button onClick={()=>{rT();rE();}} style={{background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:4,color:M.gray700,fontSize:13,padding:"6px 10px",cursor:"pointer"}}>↻ Refresh</button>
+              <a href="https://getcortexops.com" style={{fontSize:13,color:M.blue,textDecoration:"none"}}>Marketing site</a>
+            </div>
+          </header>
 
-        <div style={{display:"flex",flex:1,overflow:"hidden"}}>
-          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:M.white,borderTop:`1px solid ${M.gray200}`}}>
-            {/* Tabs */}
-            <div style={{display:"flex",alignItems:"center",padding:"0 20px",height:48,borderBottom:`1px solid ${M.gray200}`,gap:4}}>
-              {tabs.map(([t,label])=>(
-                <button key={t} onClick={()=>setTab(t)}
-                  style={{background:tab===t?M.blueLight:"transparent",color:tab===t?M.blue:M.gray600,border:"none",borderRadius:4,padding:"6px 14px",fontSize:14,fontWeight:tab===t?600:400,cursor:"pointer",fontFamily:M.sans}}>
-                  {label}
-                  {t==="errors"&&failed>0&&<span style={{marginLeft:6,background:M.red,color:"white",borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:600}}>{failed}</span>}
-                </button>
-              ))}
-              {tab==="traces"&&(
-                <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+          <div style={{flex:1,overflow:"auto",padding:20}}>
+            {tab==="overview"&&(
+              <div style={{display:"grid",gap:16}}>
+                {metricTiles}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
+                  <PanelCard title="Health score"><div style={{fontSize:28,fontWeight:600,color:M.green,fontFamily:M.mono}}>{successRate}{successRate!=="—"?"%":""}</div></PanelCard>
+                  <PanelCard title="Eval gate"><div style={{fontSize:28,fontWeight:600,color:latest?(latest.task_completion_rate>=.9?M.green:M.red):M.gray500,fontFamily:M.mono}}>{latest?(latest.task_completion_rate>=.9?"Passing":"Failing"):"—"}</div></PanelCard>
+                  <PanelCard title="Regressions"><div style={{fontSize:28,fontWeight:600,color:!latest?.regressions?M.green:M.amber,fontFamily:M.mono}}>{latest?.regressions??"—"}</div></PanelCard>
+                </div>
+                <PanelCard title="Recent traces">
+                  {traces.slice(0,5).map(t=>(
+                    <div key={t.trace_id} onClick={()=>{setSelected(t);setTab("traces");}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${M.gray200}`,cursor:"pointer"}}>
+                      <StatusDot status={t.status}/>
+                      <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500}}>{t.trace_id?.slice(0,8)}</span>
+                      <span style={{flex:1,fontSize:13}}>{t.case_id||"live trace"}</span>
+                      <LatencyChip ms={t.total_latency_ms||0}/>
+                    </div>
+                  ))}
+                  {traces.length===0&&<div style={{fontSize:13,color:M.gray500}}>No traces yet</div>}
+                </PanelCard>
+              </div>
+            )}
+
+            {tab==="projects"&&(
+              <div style={{maxWidth:520,display:"grid",gap:14}}>
+                <PanelCard title="Active project">
+                  <div style={{fontSize:14,color:M.gray700,marginBottom:12}}>Switch the project used for traces, evaluations, and metrics.</div>
+                  <input value={projectDraft} onChange={e=>setProjectDraft(e.target.value)}
+                    style={{width:"100%",border:`1px solid ${M.gray300}`,borderRadius:4,padding:"10px 12px",fontFamily:M.mono,fontSize:14,marginBottom:12}}/>
+                  <button onClick={()=>setProject(projectDraft.trim()||project)}
+                    style={{background:M.blue,color:"white",border:"none",borderRadius:4,padding:"10px 14px",fontWeight:600,cursor:"pointer"}}>Save project</button>
+                </PanelCard>
+                <PanelCard title="Current">
+                  <div style={{fontFamily:M.mono,fontSize:14}}>{project}</div>
+                  <div style={{fontSize:13,color:M.gray600,marginTop:8}}>{traces.length} traces · {evals.length} eval runs loaded</div>
+                </PanelCard>
+              </div>
+            )}
+
+            {tab==="traces"&&(
+              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,overflow:"hidden"}}>
+                <div style={{display:"flex",alignItems:"center",padding:"10px 16px",borderBottom:`1px solid ${M.gray200}`,gap:8}}>
                   {["all","completed","failed"].map(s=>(
                     <button key={s} onClick={()=>setFilter(s)}
-                      style={{background:filter===s?M.blueLight:"transparent",border:`1px solid ${filter===s?M.blue:M.gray300}`,borderRadius:4,color:filter===s?M.blue:M.gray600,fontSize:12,padding:"4px 12px",cursor:"pointer",fontFamily:M.sans}}>{s}</button>
+                      style={{background:filter===s?M.blueLight:"transparent",border:`1px solid ${filter===s?M.blue:M.gray300}`,borderRadius:4,color:filter===s?M.blue:M.gray600,fontSize:12,padding:"4px 12px",cursor:"pointer"}}>{s}</button>
                   ))}
                 </div>
-              )}
-            </div>
-            {/* Column headers */}
-            {tab==="traces"&&(
-              <div style={{display:"flex",alignItems:"center",gap:12,padding:"6px 20px",borderBottom:`1px solid ${M.gray200}`,background:M.gray50}}>
-                {["","ID","Case","Latency","Failure","Time"].map((h,i)=>(
-                  <span key={i} style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,minWidth:i===0?8:i===1?64:i===3?70:i===4?100:i===5?80:undefined,flex:i===2?1:undefined}}>{h}</span>
+                <div style={{display:"flex",alignItems:"center",gap:12,padding:"6px 16px",borderBottom:`1px solid ${M.gray200}`,background:M.gray50}}>
+                  {["","ID","Case","Latency","Failure","Time"].map((h,i)=>(
+                    <span key={i} style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,minWidth:i===0?8:i===1?64:i===3?70:i===4?100:i===5?80:undefined,flex:i===2?1:undefined}}>{h}</span>
+                  ))}
+                </div>
+                {traces.length===0&&!tLoad&&<EmptyState title="No traces yet" body="Instrument your agent and send traces to this project." hint="pip install cortexops"/>}
+                {traces.map((t,i)=>(
+                  <div key={t.trace_id} onClick={()=>setSelected(t)}
+                    style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderBottom:`1px solid ${M.gray200}`,cursor:"pointer",animation:`slideIn .15s ease ${Math.min(i,8)*.03}s both`}}
+                    onMouseEnter={e=>e.currentTarget.style.background=M.gray50}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <StatusDot status={t.status}/>
+                    <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500,minWidth:64}}>{t.trace_id?.slice(0,8)}</span>
+                    <span style={{flex:1,fontSize:14,color:M.gray900}}>{t.case_id||"live trace"}</span>
+                    <LatencyChip ms={t.total_latency_ms||0}/>
+                    <span style={{minWidth:100,fontSize:12}}>
+                      {t.failure_kind?<span style={{background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4,fontFamily:M.mono,fontSize:11}}>{t.failure_kind.replace("FailureKind.","")}</span>:<span style={{color:M.gray400}}>—</span>}
+                    </span>
+                    <span style={{fontSize:12,color:M.gray500,minWidth:80,textAlign:"right"}}>{t.created_at?new Date(t.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"}):""}</span>
+                  </div>
                 ))}
               </div>
             )}
-            {/* Lists */}
-            <div style={{flex:1,overflow:"auto"}}>
-              {tab==="traces"&&(
-                <>
-                  {traces.length===0&&!tLoad&&<div style={{padding:"48px 20px",textAlign:"center",color:M.gray600}}><div style={{fontSize:15,marginBottom:8}}>No traces yet</div><div style={{fontFamily:M.mono,fontSize:13,color:M.gray500}}>pip install cortexops</div></div>}
-                  {traces.map((t,i)=>(
-                    <div key={t.trace_id} onClick={()=>setSelected(t)}
-                      style={{display:"flex",alignItems:"center",gap:12,padding:"10px 20px",borderBottom:`1px solid ${M.gray200}`,cursor:"pointer",animation:`slideIn .15s ease ${Math.min(i,8)*.03}s both`,transition:"background .1s"}}
-                      onMouseEnter={e=>e.currentTarget.style.background=M.gray50}
-                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                      <StatusDot status={t.status}/>
-                      <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500,minWidth:64}}>{t.trace_id?.slice(0,8)}</span>
-                      <span style={{flex:1,fontSize:14,color:M.gray900}}>{t.case_id||"live trace"}</span>
-                      <LatencyChip ms={t.total_latency_ms||0}/>
-                      <span style={{minWidth:100,fontSize:12}}>
-                        {t.failure_kind?<span style={{background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4,fontFamily:M.mono,fontSize:11}}>{t.failure_kind.replace("FailureKind.","")}</span>:<span style={{color:M.gray400}}>—</span>}
-                      </span>
-                      <span style={{fontSize:12,color:M.gray500,minWidth:80,textAlign:"right"}}>{t.created_at?new Date(t.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"}):""}</span>
-                    </div>
-                  ))}
-                </>
-              )}
-              {tab==="evals"&&(
-                <>
-                  {evals.length===0&&!eLoad&&<div style={{padding:"48px 20px",textAlign:"center",color:M.gray600}}><div style={{fontSize:15,marginBottom:8}}>No eval runs yet</div><div style={{fontFamily:M.mono,fontSize:13,color:M.gray500}}>cortexops eval run --dataset golden_v1.yaml</div></div>}
-                  {evals.map((run,i)=>(
-                    <div key={run.run_id} style={{padding:"14px 20px",borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                        <StatusDot status={run.status||"completed"}/>
-                        <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500}}>{run.run_id?.slice(0,8)}</span>
-                        <div style={{flex:1,height:6,background:M.gray200,borderRadius:3,overflow:"hidden"}}>
-                          <div style={{width:`${(run.task_completion_rate||0)*100}%`,height:"100%",background:run.task_completion_rate>=.9?M.green:run.task_completion_rate>=.7?M.amber:M.red,borderRadius:3}}/>
-                        </div>
-                        <span style={{fontFamily:M.mono,fontSize:13,color:M.green,fontWeight:600}}>{((run.task_completion_rate||0)*100).toFixed(0)}%</span>
-                        <span style={{fontSize:13,color:M.gray600}}>{run.passed}/{run.total_cases} pass</span>
-                        {run.regressions>0&&<span style={{fontSize:11,background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4}}>{run.regressions} regression</span>}
-                      </div>
-                      <div style={{display:"flex",gap:20,paddingLeft:18}}>
-                        {[["Tool accuracy",`${(run.tool_accuracy||0).toFixed(0)}/100`],["P95",`${Math.round(run.latency_p95_ms||0)}ms`],["Cases",`${run.total_cases}`]].map(([l,v])=>(
-                          <span key={l} style={{fontSize:12,color:M.gray600}}>{l}: <span style={{color:M.gray900,fontFamily:M.mono}}>{v}</span></span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-              {tab==="errors"&&(
-                <>
-                  {traces.filter(t=>t.status==="failed").length===0&&<div style={{padding:"48px 20px",textAlign:"center"}}><div style={{fontSize:15,fontWeight:500,color:M.green,marginBottom:6}}>No errors</div><div style={{fontSize:13,color:M.gray600}}>All traces healthy</div></div>}
-                  {traces.filter(t=>t.status==="failed").map((t,i)=>(
-                    <div key={t.trace_id} onClick={()=>setSelected(t)}
-                      style={{padding:"12px 20px",borderBottom:`1px solid ${M.gray200}`,borderLeft:`4px solid ${M.red}`,cursor:"pointer",transition:"background .1s"}}
-                      onMouseEnter={e=>e.currentTarget.style.background=M.redLight}
-                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-                        <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500}}>{t.trace_id?.slice(0,8)}</span>
-                        <span style={{flex:1,fontSize:14,color:M.gray900}}>{t.case_id||"live trace"}</span>
-                        <span style={{fontSize:11,background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4,fontFamily:M.mono}}>{t.failure_kind?.replace("FailureKind.","")||"UNKNOWN"}</span>
-                      </div>
-                      {t.failure_detail&&<div style={{fontSize:12,color:M.gray600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.failure_detail}</div>}
-                    </div>
-                  ))}
-                </>
-              )}
-              {tab==="monitoring"&&(
-                <div style={{padding:"28px 20px",display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
-                  {[["Health score",traces.length?`${(((traces.length-failed)/traces.length)*100).toFixed(1)}%`:"—",M.green],["Latency watch",`${avgLat}ms avg`,tcColor],["Drift monitor",latest?.regressions?"Needs review":"Stable",latest?.regressions?M.amber:M.green]].map(([l,v,c])=>(
-                    <div key={l} style={{border:`1px solid ${M.gray200}`,borderRadius:8,padding:18,boxShadow:M.shadow1}}>
-                      <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".07em",fontWeight:600,marginBottom:8}}>{l}</div>
-                      <div style={{fontSize:24,fontWeight:600,color:c,fontFamily:M.mono}}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {tab==="prompts"&&(
-                <div style={{padding:"48px 20px",textAlign:"center",color:M.gray600}}>
-                  <div style={{fontSize:15,fontWeight:500,color:M.gray900,marginBottom:8}}>Prompt versions</div>
-                  <div style={{fontSize:13}}>Track prompt changes, connect them to eval runs, and roll back regressions.</div>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Right sidebar */}
-          <div style={{width:220,borderLeft:`1px solid ${M.gray200}`,background:M.white,padding:"16px 14px",flexShrink:0,overflow:"auto",display:"flex",flexDirection:"column",gap:20}}>
-            <div>
-              <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600,marginBottom:10}}>Health</div>
-              {[["Success rate",traces.length>0?`${(((traces.length-failed)/traces.length)*100).toFixed(1)}%`:"—",failed/traces.length<.05],
-                ["Eval gate",latest?(latest.task_completion_rate>=.9?"Passing":"Failing"):"—",latest?.task_completion_rate>=.9],
-                ["Regressions",latest?.regressions??"—",!latest?.regressions]
-              ].map(([l,v,ok])=>(
-                <div key={l} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${M.gray200}`}}>
-                  <span style={{fontSize:12,color:M.gray600}}>{l}</span>
-                  <span style={{fontSize:13,fontFamily:M.mono,color:ok?M.green:M.red,fontWeight:600}}>{String(v)}</span>
+            {tab==="evaluations"&&(
+              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,overflow:"hidden"}}>
+                {evals.length===0&&!eLoad&&<EmptyState title="No evaluations yet" body="Run golden datasets in CI or locally to populate this view." hint='cortexops eval run --dataset golden_v1.yaml'/>}
+                {evals.map((run,i)=>(
+                  <div key={run.run_id} style={{padding:"14px 16px",borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                      <StatusDot status={run.status||"completed"}/>
+                      <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500}}>{run.run_id?.slice(0,8)}</span>
+                      <div style={{flex:1,height:6,background:M.gray200,borderRadius:3,overflow:"hidden"}}>
+                        <div style={{width:`${(run.task_completion_rate||0)*100}%`,height:"100%",background:run.task_completion_rate>=.9?M.green:run.task_completion_rate>=.7?M.amber:M.red,borderRadius:3}}/>
+                      </div>
+                      <span style={{fontFamily:M.mono,fontSize:13,color:M.green,fontWeight:600}}>{((run.task_completion_rate||0)*100).toFixed(0)}%</span>
+                      <span style={{fontSize:13,color:M.gray600}}>{run.passed}/{run.total_cases} pass</span>
+                      {run.regressions>0&&<span style={{fontSize:11,background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4}}>{run.regressions} regression</span>}
+                    </div>
+                    <div style={{display:"flex",gap:20,paddingLeft:18}}>
+                      {[["Tool accuracy",`${(run.tool_accuracy||0).toFixed(0)}/100`],["P95",`${Math.round(run.latency_p95_ms||0)}ms`],["Cases",`${run.total_cases}`]].map(([l,v])=>(
+                        <span key={l} style={{fontSize:12,color:M.gray600}}>{l}: <span style={{color:M.gray900,fontFamily:M.mono}}>{v}</span></span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {tab==="prompts"&&(
+              <EmptyState title="Prompt Versions" body="Track prompt changes, connect them to eval runs, and roll back regressions when quality drops." hint="Coming online with hosted prompt history"/>
+            )}
+
+            {tab==="datasets"&&(
+              <EmptyState title="Datasets" body="Versioned golden cases for CI and local eval runs. Store cases as YAML and gate merges on score." hint="cortexops eval run --dataset golden_v1.yaml"/>
+            )}
+
+            {tab==="metrics"&&(
+              <div style={{display:"grid",gap:16}}>
+                {metricTiles}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
+                  <PanelCard title="Health score"><div style={{fontSize:24,fontWeight:600,color:M.green,fontFamily:M.mono}}>{successRate}{successRate!=="—"?"%":""}</div></PanelCard>
+                  <PanelCard title="Latency watch"><div style={{fontSize:24,fontWeight:600,color:tcColor,fontFamily:M.mono}}>{avgLat}ms avg</div></PanelCard>
+                  <PanelCard title="Drift monitor"><div style={{fontSize:24,fontWeight:600,color:latest?.regressions?M.amber:M.green,fontFamily:M.mono}}>{latest?.regressions?"Needs review":"Stable"}</div></PanelCard>
                 </div>
-              ))}
-            </div>
-            <div>
-              <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600,marginBottom:10}}>Failures</div>
-              {["TIMEOUT","HALLUCINATION","TOOL_CALL_MISMATCH","OUTPUT_FORMAT","UNKNOWN"].map(k=>{
-                const n=traces.filter(t=>t.failure_kind?.includes(k)).length;
-                if(!n)return null;
-                return(<div key={k} style={{display:"flex",justifyContent:"space-between",padding:"4px 0"}}><span style={{fontSize:11,color:M.gray600,fontFamily:M.mono}}>{k.slice(0,13)}</span><span style={{fontSize:12,color:M.red,fontWeight:600}}>{n}</span></div>);
-              })}
-              {!traces.some(t=>t.failure_kind)&&<div style={{fontSize:12,color:M.gray400}}>No failures</div>}
-            </div>
-            <div>
-              <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600,marginBottom:10}}>Latency dist.</div>
-              {[["<200ms",t=>t.total_latency_ms<200],["200–500ms",t=>t.total_latency_ms>=200&&t.total_latency_ms<500],["500ms–1s",t=>t.total_latency_ms>=500&&t.total_latency_ms<1000],[">1s",t=>t.total_latency_ms>=1000]].map(([l,fn])=>{
-                const n=traces.filter(fn).length;
-                const pct=traces.length>0?(n/traces.length)*100:0;
-                const c=l===">1s"?M.red:l==="500ms–1s"?M.amber:M.green;
-                return(<div key={l} style={{marginBottom:8}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                    <span style={{fontSize:11,color:M.gray600}}>{l}</span>
-                    <span style={{fontSize:11,fontFamily:M.mono,color:M.gray600}}>{n}</span>
+              </div>
+            )}
+
+            {tab==="alerts"&&(
+              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,overflow:"hidden"}}>
+                {traces.filter(t=>t.status==="failed").length===0&&<EmptyState title="No alerts" body="All traces are healthy. Failures and quality drops will appear here."/>}
+                {traces.filter(t=>t.status==="failed").map(t=>(
+                  <div key={t.trace_id} onClick={()=>setSelected(t)}
+                    style={{padding:"12px 16px",borderBottom:`1px solid ${M.gray200}`,borderLeft:`4px solid ${M.red}`,cursor:"pointer"}}
+                    onMouseEnter={e=>e.currentTarget.style.background=M.redLight}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                      <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500}}>{t.trace_id?.slice(0,8)}</span>
+                      <span style={{flex:1,fontSize:14,color:M.gray900}}>{t.case_id||"live trace"}</span>
+                      <span style={{fontSize:11,background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4,fontFamily:M.mono}}>{t.failure_kind?.replace("FailureKind.","")||"UNKNOWN"}</span>
+                    </div>
+                    {t.failure_detail&&<div style={{fontSize:12,color:M.gray600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.failure_detail}</div>}
                   </div>
-                  <div style={{height:4,background:M.gray200,borderRadius:2,overflow:"hidden"}}>
-                    <div style={{width:`${pct}%`,height:"100%",background:c,borderRadius:2}}/>
-                  </div>
-                </div>);
-              })}
-            </div>
-            <div style={{marginTop:"auto",paddingTop:12,borderTop:`1px solid ${M.gray200}`}}>
-              <div style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>{API.replace("https://","")}</div>
-              <div style={{fontSize:11,color:M.gray500,marginTop:2}}>{project}</div>
-            </div>
+                ))}
+              </div>
+            )}
+
+            {tab==="api-keys"&&(
+              <div style={{maxWidth:520,display:"grid",gap:14}}>
+                <PanelCard title="Active API key">
+                  <div style={{fontFamily:M.mono,fontSize:14,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:4,padding:"10px 12px"}}>{maskedKey}</div>
+                  <div style={{fontSize:13,color:M.gray600,marginTop:10}}>Keys are stored only in this browser. Rotate keys from your account email or contact support.</div>
+                </PanelCard>
+                <PanelCard title="Session">
+                  <button onClick={logout} style={{background:M.redLight,color:M.red,border:`1px solid rgba(197,34,31,.2)`,borderRadius:4,padding:"10px 14px",fontWeight:600,cursor:"pointer"}}>Sign out and clear key</button>
+                </PanelCard>
+              </div>
+            )}
+
+            {tab==="usage"&&(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
+                <PanelCard title="Traces loaded"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{traces.length}</div></PanelCard>
+                <PanelCard title="Eval runs loaded"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{evals.length}</div></PanelCard>
+                <PanelCard title="Failed traces"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono,color:failed?M.red:M.green}}>{failed}</div></PanelCard>
+                <PanelCard title="Plan">
+                  <div style={{fontSize:16,fontWeight:600,marginBottom:6}}>Pro-ready</div>
+                  <div style={{fontSize:13,color:M.gray600}}>Usage limits and billing details appear here for hosted Pro accounts.</div>
+                  <a href="https://getcortexops.com/#pricing" style={{display:"inline-block",marginTop:12,color:M.blue,fontSize:13}}>View pricing</a>
+                </PanelCard>
+              </div>
+            )}
+
+            {tab==="settings"&&(
+              <div style={{maxWidth:520,display:"grid",gap:14}}>
+                <PanelCard title="Project">
+                  <input value={projectDraft} onChange={e=>setProjectDraft(e.target.value)}
+                    style={{width:"100%",border:`1px solid ${M.gray300}`,borderRadius:4,padding:"10px 12px",fontFamily:M.mono,fontSize:14,marginBottom:12}}/>
+                  <button onClick={()=>setProject(projectDraft.trim()||project)}
+                    style={{background:M.blue,color:"white",border:"none",borderRadius:4,padding:"10px 14px",fontWeight:600,cursor:"pointer"}}>Save</button>
+                </PanelCard>
+                <PanelCard title="Live refresh">
+                  <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:14}}>
+                    <input type="checkbox" checked={live} onChange={e=>setLive(e.target.checked)}/>
+                    Poll traces and evaluations every 5 seconds
+                  </label>
+                </PanelCard>
+                <PanelCard title="API">
+                  <div style={{fontFamily:M.mono,fontSize:13,color:M.gray700}}>{API}</div>
+                </PanelCard>
+                <PanelCard title="Account">
+                  <button onClick={logout} style={{background:M.gray100,border:`1px solid ${M.gray300}`,borderRadius:4,padding:"10px 14px",cursor:"pointer"}}>Sign out</button>
+                </PanelCard>
+              </div>
+            )}
           </div>
         </div>
       </div>

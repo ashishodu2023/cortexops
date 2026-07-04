@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CortexOps for Haystack — Agent Observability &amp; Eval Gate</title>
+<meta name="description" content="Observe Haystack pipelines and agents with traces, evaluations, and production monitoring. pip install cortexops">
+<link rel="canonical" href="https://www.getcortexops.com/haystack/">
+<meta name="theme-color" content="#0B0F1A">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.getcortexops.com/haystack/">
+<meta property="og:title" content="CortexOps for Haystack — Agent Observability &amp; Eval Gate">
+<meta property="og:description" content="Observe Haystack pipelines and agents with traces, evaluations, and production monitoring. pip install cortexops">
+<meta property="og:image" content="https://www.getcortexops.com/og-image.png">
+<meta property="og:site_name" content="CortexOps">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CortexOps for Haystack — Agent Observability &amp; Eval Gate">
+<meta name="twitter:description" content="Observe Haystack pipelines and agents with traces, evaluations, and production monitoring. pip install cortexops">
+<meta name="twitter:image" content="https://www.getcortexops.com/og-image.png">
+
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<div class="success-banner" id="success-banner" role="status"></div>
+<nav class="nav" aria-label="Primary">
+  <a class="nav-brand" href="../">
+    <div class="nav-mark"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M10 2.5 Q14 10 10 17.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M6 2.5 Q10.5 10 6 17.5" stroke="white" stroke-width="1.8" stroke-linecap="round" opacity=".45"/>
+        <circle cx="10" cy="2.5" r="1.8" fill="white"/>
+        <circle cx="10" cy="17.5" r="1.8" fill="white"/>
+      </svg></div>
+    <span>CortexOps</span>
+  </a>
+  <div class="nav-links">
+    <a href="../#trusted">Trusted by</a>
+    <a href="../#frameworks">Frameworks</a>
+    <a href="../#dashboard">Dashboard</a>
+    <a href="../#pricing">Pricing</a>
+    <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
+    <a href="../#demo" class="btn sm">View Live Demo</a>
+  </div>
+</nav>
+<main>
+  <section class="wrap page-hero">
+    <div class="badge"><span class="badge-dot" aria-hidden="true"></span>Haystack · CortexOps</div>
+    <h1 class="hero-title">Ship reliable Haystack agents.<br>Every time.</h1>
+    <p class="hero-copy">Observe Haystack pipelines and agents with traces, evaluations, and production monitoring.</p>
+    <div class="hero-actions">
+      <a href="https://app.getcortexops.com" class="btn" target="_blank" rel="noopener">Open dashboard</a>
+      <span class="install-chip">$ pip install cortexops</span>
+      <a href="../#pricing" class="btn ghost">View pricing</a>
+    </div>
+  </section>
+
+  <section class="wrap section tight">
+    <div class="section-head">
+      <div class="eyebrow">Instrument in one line</div>
+      <h2 class="section-title">Works with your Haystack stack.</h2>
+    </div>
+    <div class="code-box">from cortexops import CortexTracer
+
+tracer = CortexTracer(project="haystack-pipeline")
+pipeline = tracer.wrap(your_haystack_pipeline)
+
+result = pipeline.run({"query": "refund status REF-8821"})</div>
+  </section>
+
+  <section class="wrap section">
+    <div class="section-head">
+      <div class="eyebrow">Why CortexOps</div>
+      <h2 class="section-title">Built for Haystack agent execution.</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="card">
+        <h3>Pipeline traces</h3>
+        <p>Capture component-level latency and failures.</p>
+      </div>
+      <div class="card">
+        <h3>Quality gates</h3>
+        <p>Block deploys when eval scores drop.</p>
+      </div>
+      <div class="card">
+        <h3>Open source SDK</h3>
+        <p>Start free, upgrade to Pro for hosted traces.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <div class="section-head">
+      <div class="eyebrow">Dashboard</div>
+      <h2 class="section-title">Traces, evals, and alerts in one console.</h2>
+      <p class="section-copy">Use Overview, Projects, Traces, Evaluations, Prompt Versions, Datasets, Metrics, Alerts, API Keys, Usage, and Settings at app.getcortexops.com.</p>
+    </div>
+    <div style="text-align:center">
+      <a href="https://app.getcortexops.com" class="btn" target="_blank" rel="noopener">Open dashboard</a>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <div class="section-head">
+      <div class="eyebrow">Supported Frameworks</div>
+      <h2 class="section-title">Also works with</h2>
+    </div>
+    <div class="related-grid">
+      <a class="framework-item" href="/langgraph/">LangGraph</a>
+      <a class="framework-item" href="/crewai/">CrewAI</a>
+      <a class="framework-item" href="/google-adk/">Google ADK</a>
+      <a class="framework-item" href="/openai-agents/">OpenAI Agents SDK</a>
+      <a class="framework-item" href="/autogen/">AutoGen</a>
+      <a class="framework-item" href="/pydantic-ai/">PydanticAI</a>
+      <a class="framework-item" href="/agno/">Agno</a>
+      <a class="framework-item" href="/llamaindex/">LlamaIndex</a>
+    </div>
+  </section>
+
+  <section class="wrap section" id="cta">
+    <div class="cta-band">
+      <h2 class="section-title">Start with Haystack today.</h2>
+      <p class="section-copy">Developers love demos. Install the SDK, wrap your agent, and open the live dashboard.</p>
+      <div class="cta-actions">
+        <a href="https://docs.getcortexops.com" class="btn" target="_blank" rel="noopener">Read the docs</a>
+        <a href="https://app.getcortexops.com" class="btn ghost" target="_blank" rel="noopener">Open dashboard</a>
+        <a href="../#pricing" class="btn ghost">Pricing</a>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="wrap">
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">CortexOps</div>
+      <p class="footer-desc">Reliability infrastructure for AI agents. Trace, evaluate, monitor, and alert before users feel the regression.</p>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <a href="../#dashboard">Dashboard</a>
+      <a href="../#why">Why CortexOps</a>
+      <a href="../#pricing">Pricing</a>
+      <a href="https://app.getcortexops.com" target="_blank" rel="noopener">Open app</a>
+    </div>
+    <div>
+      <h4>Frameworks</h4>
+      <a href="../langgraph/">LangGraph</a>
+      <a href="../crewai/">CrewAI</a>
+      <a href="../google-adk/">Google ADK</a>
+      <a href="../openai-agents/">OpenAI Agents SDK</a>
+      <a href="../autogen/">AutoGen</a>
+      <a href="../pydantic-ai/">PydanticAI</a>
+      <a href="../agno/">Agno</a>
+      <a href="../llamaindex/">LlamaIndex</a>
+      <a href="../haystack/">Haystack</a>
+    </div>
+    <div>
+      <h4>Developers</h4>
+      <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
+      <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://pypi.org/project/cortexops/" target="_blank" rel="noopener">Python SDK</a>
+      <a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">API reference</a>
+      <a href="https://github.com/ashishodu2023/cortexops/issues" target="_blank" rel="noopener">Roadmap</a>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <a href="https://api.getcortexops.com/health" target="_blank" rel="noopener">Status</a>
+      <a href="mailto:contact@getcortexops.com?subject=Security">Security</a>
+      <a href="mailto:contact@getcortexops.com?subject=Privacy">Privacy</a>
+      <a href="mailto:contact@getcortexops.com?subject=Terms">Terms</a>
+      <a href="https://github.com/ashishodu2023/cortexops/blob/main/sdk/LICENSE" target="_blank" rel="noopener">MIT License</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 CortexOps · MIT licensed</span>
+    <span>Built by a PayPal AI engineer · Payments by PayPal</span>
+  </div>
+</footer><div class="modal-overlay" id="modal" onclick="closeModal(event)" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+    <div id="modal-form">
+      <h3 id="modal-title">Start your Pro subscription</h3>
+      <p>$49/month. Cancel anytime. Your API key arrives by email after payment.</p>
+      <div class="modal-error" id="modal-error" role="alert"></div>
+      <div class="field">
+        <label for="checkout-email">Work email</label>
+        <input type="email" id="checkout-email" placeholder="you@company.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="checkout-project">Project name</label>
+        <input type="text" id="checkout-project" placeholder="payments-agent" autocomplete="off">
+      </div>
+      <button id="paypal-btn" onclick="window.startPayPalCheckout()"
+        style="width:100%;padding:12px;background:#FFC439;color:#003087;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        Pay with PayPal
+      </button>
+      <div class="payment-badge" style="margin-top:12px;">Secured by PayPal. Cancel anytime.</div>
+    </div>
+    <div class="modal-success" id="modal-success">
+      <div class="check">✓</div>
+      <h4>Redirecting to PayPal…</h4>
+      <p>Your API key arrives by email immediately after payment.</p>
+    </div>
+  </div>
+</div>
+<script src="../site.js"></script>
+</body>
+</html>
