@@ -488,8 +488,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{
   <div class="nav-links">
     <a href="#social-proof">Customers</a>
     <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
-    <a href="#features">Blog</a>
-    <a href="https://github.com/ashishodu2023/cortexops/releases" target="_blank" rel="noopener">Changelog</a>
+    <a href="https://github.com/ashishodu2023/cortexops/releases" target="_blank" rel="noopener">Blog</a>
+    <a href="https://docs.getcortexops.com/#changelog" target="_blank" rel="noopener">Changelog</a>
     <a href="#demo" class="btn sm">View Live Demo</a>
   </div>
 </nav>
@@ -648,27 +648,27 @@ agent = tracer.wrap(graph)</div>
       <h2 class="section-title">Here is why every AI engineering team needs CortexOps.</h2>
     </div>
     <div class="feature-grid">
-      <div class="card">
+      <div class="card" id="trace-explorer">
         <div class="feature-icon" style="background:rgba(26,115,232,.14);color:#1A73E8">●</div>
         <h3>Trace Explorer</h3>
         <p>Full agent waterfall with nodes, tools, branches, latency, state, and failure context.</p>
       </div>
-      <div class="card">
+      <div class="card" id="evaluation">
         <div class="feature-icon" style="background:rgba(19,115,51,.14);color:#137333">●</div>
         <h3>Evaluation</h3>
         <p>LLM-as-judge scoring, golden datasets, pass rates, regressions, and semantic quality checks.</p>
       </div>
-      <div class="card">
+      <div class="card" id="monitoring">
         <div class="feature-icon" style="background:rgba(176,96,0,.14);color:#B06000">●</div>
         <h3>Monitoring</h3>
         <p>Production health, latency, drift, anomaly, and cost signals in one operational view.</p>
       </div>
-      <div class="card">
+      <div class="card" id="prompt-version">
         <div class="feature-icon" style="background:rgba(123,79,158,.14);color:#7B4F9E">●</div>
         <h3>Prompt Version</h3>
         <p>Track every prompt change against evals and traces so teams can roll back regressions.</p>
       </div>
-      <div class="card">
+      <div class="card" id="alerts">
         <div class="feature-icon" style="background:rgba(197,34,31,.14);color:#C5221F">●</div>
         <h3>Alerts</h3>
         <p>Route failures, drift, latency spikes, and quality drops to the channels your team already uses.</p>
@@ -781,7 +781,7 @@ agent = tracer.wrap(graph)</div>
           <li>VPC or self-hosted deploy</li>
           <li>Dedicated support</li>
         </ul>
-        <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Enterprise%20Inquiry" class="btn ghost">Contact sales</a>
+        <a href="mailto:contact@getcortexops.com?subject=CortexOps%20Enterprise%20Inquiry" class="btn ghost">Contact sales</a>
       </div>
     </div>
   </section>
@@ -839,34 +839,36 @@ agent = tracer.wrap(graph)</div>
     </div>
     <div>
       <h4>Product</h4>
-      <a href="#features">Trace Explorer</a>
-      <a href="#features">Evaluation</a>
-      <a href="#features">Monitoring</a>
-      <a href="#features">Prompt Version</a>
-      <a href="#features">Alerts</a>
+      <a href="#trace-explorer">Trace Explorer</a>
+      <a href="#evaluation">Evaluation</a>
+      <a href="#monitoring">Monitoring</a>
+      <a href="#prompt-version">Prompt Version</a>
+      <a href="#alerts">Alerts</a>
       <a href="#pricing">Pricing</a>
+      <a href="https://app.getcortexops.com" target="_blank" rel="noopener">Dashboard</a>
     </div>
     <div>
       <h4>Developers</h4>
       <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
       <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener">GitHub</a>
       <a href="https://pypi.org/project/cortexops/" target="_blank" rel="noopener">Python SDK</a>
+      <a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">API reference</a>
       <a href="https://github.com/ashishodu2023/cortexops/issues" target="_blank" rel="noopener">Roadmap</a>
     </div>
     <div>
       <h4>Company</h4>
       <a href="#social-proof">Customers</a>
-      <a href="#features">Blog</a>
-      <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Inquiry">Contact</a>
+      <a href="https://github.com/ashishodu2023/cortexops/releases" target="_blank" rel="noopener">Blog</a>
+      <a href="mailto:contact@getcortexops.com?subject=CortexOps%20Inquiry">Contact</a>
       <a href="https://www.linkedin.com/in/ashishodu2023/" target="_blank" rel="noopener">LinkedIn</a>
     </div>
     <div>
       <h4>Legal</h4>
       <a href="https://api.getcortexops.com/health" target="_blank" rel="noopener">Status</a>
-      <a href="mailto:ashish@getcortexops.com?subject=Security">Security</a>
-      <a href="mailto:ashish@getcortexops.com?subject=Privacy">Privacy</a>
-      <a href="mailto:ashish@getcortexops.com?subject=Terms">Terms</a>
-      <a href="https://github.com/ashishodu2023/cortexops/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+      <a href="mailto:contact@getcortexops.com?subject=Security">Security</a>
+      <a href="mailto:contact@getcortexops.com?subject=Privacy">Privacy</a>
+      <a href="mailto:contact@getcortexops.com?subject=Terms">Terms</a>
+      <a href="https://github.com/ashishodu2023/cortexops/blob/main/sdk/LICENSE" target="_blank" rel="noopener">MIT License</a>
     </div>
   </div>
   <div class="footer-bottom">
@@ -971,7 +973,7 @@ window.startPayPalCheckout = async function() {
       btn.disabled = false;
       btn.innerHTML = 'Pay with PayPal';
     }
-    window.showError(err.message + ' — email ashish@getcortexops.com if this persists.');
+    window.showError(err.message + ' — email contact@getcortexops.com if this persists.');
     console.error('PayPal checkout error:', err);
   }
 };
