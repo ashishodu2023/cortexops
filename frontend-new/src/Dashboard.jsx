@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 
 const API = import.meta.env?.VITE_API_URL || "https://api.getcortexops.com";
 
@@ -20,12 +21,90 @@ const M = {
 const G=`
 @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 body{background:${M.gray50};color:${M.gray900};font-family:${M.sans};-webkit-font-smoothing:antialiased}
+a,button,input,summary{outline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid #60A5FA}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:${M.gray100}}
 ::-webkit-scrollbar-thumb{background:${M.gray300};border-radius:2px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes slideIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scan{0%{transform:translateX(-120%);opacity:0}30%,70%{opacity:1}100%{transform:translateX(120%);opacity:0}}
+@keyframes grow{from{transform:scaleX(.35)}to{transform:scaleX(1)}}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.landing{min-height:100vh;background:#0B0F1A;color:white;display:flex;flex-direction:column}
+.landing-wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.landing-nav{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;border-bottom:1px solid rgba(255,255,255,.09);background:rgba(11,15,26,.86);backdrop-filter:blur(14px);position:sticky;top:0;z-index:5}
+.landing-links{display:flex;align-items:center;gap:22px;font-size:14px;color:rgba(255,255,255,.68)}
+.landing-links a{color:inherit;text-decoration:none}
+.landing-btn{display:inline-flex;align-items:center;justify-content:center;background:${M.blue};color:white;text-decoration:none;border:none;border-radius:7px;padding:12px 18px;font-weight:700;cursor:pointer;box-shadow:0 14px 30px rgba(26,115,232,.28)}
+.landing-btn.ghost{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);box-shadow:none}
+.hero-grid{padding:76px 28px 34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,520px);gap:54px;align-items:center}
+.hero-title{font-size:58px;line-height:1.02;letter-spacing:-.045em;font-weight:700;margin-bottom:22px}
+.hero-copy{font-size:18px;line-height:1.65;color:rgba(255,255,255,.68);max-width:560px;margin-bottom:28px}
+.hero-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:24px}
+.install-chip{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:12px 14px;font-family:${M.mono};font-size:13px;color:rgba(255,255,255,.86)}
+.proof-row{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:rgba(255,255,255,.7)}
+.proof-row span{display:inline-flex;align-items:center;gap:7px}
+.proof-row span:before{content:"";width:6px;height:6px;border-radius:50%;background:#2DD4A7}
+.demo-card{background:#111726;border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;box-shadow:0 36px 90px rgba(0,0,0,.45);position:relative}
+.section{padding:72px 0}
+.section.tight{padding-top:0}
+.section-head{margin-bottom:30px}
+.eyebrow{color:#60A5FA;font-size:12px;font-family:${M.mono};font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.section-title{font-size:34px;line-height:1.1;letter-spacing:-.03em;margin-bottom:12px}
+.section-copy{color:rgba(255,255,255,.62);font-size:16px;line-height:1.6;max-width:620px}
+.trust-grid,.framework-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.trust-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.trust-item,.framework-item{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:13px 10px;text-align:center;font-family:${M.mono};font-size:12px;color:rgba(255,255,255,.72)}
+.steps-grid,.feature-grid,.pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.landing-card{background:#111726;border:1px solid rgba(255,255,255,.11);border-radius:10px;padding:20px 18px;color:rgba(255,255,255,.82)}
+.landing-card h3{font-size:17px;margin-bottom:8px;color:white}
+.landing-card p{font-size:14px;line-height:1.55;color:rgba(255,255,255,.62)}
+.code-box{margin-top:14px;background:#0B0F1A;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:13px;font-family:${M.mono};font-size:12px;line-height:1.65;color:rgba(255,255,255,.82);overflow:auto}
+.feature-icon{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;margin-bottom:14px;font-weight:700}
+.compare-wrap{overflow:auto;border:1px solid rgba(255,255,255,.11);border-radius:10px}
+.compare-table{width:100%;border-collapse:collapse;min-width:720px;background:#111726}
+.compare-table th,.compare-table td{padding:14px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,.09);font-size:14px}
+.compare-table th{color:rgba(255,255,255,.62);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.compare-table tr:last-child td{border-bottom:none}
+.yes{color:#2DD4A7;font-weight:700}.partial{color:#F5B23D}.no{color:rgba(255,255,255,.38)}
+.price-card{display:flex;flex-direction:column;min-height:390px}
+.price-card.featured{border-color:#60A5FA;box-shadow:0 0 0 1px rgba(96,165,250,.55),0 28px 70px rgba(26,115,232,.16)}
+.price-amount{font-size:36px;font-weight:700;letter-spacing:-.03em;margin:8px 0}
+.price-card ul{list-style:none;margin:18px 0 24px;display:grid;gap:9px;flex:1}
+.price-card li{color:rgba(255,255,255,.68);font-size:14px}
+.price-card li:before{content:"✓";color:#2DD4A7;margin-right:8px}
+.faq-list{max-width:780px;margin:0 auto}
+.faq-item{border-bottom:1px solid rgba(255,255,255,.11)}
+.faq-item summary{cursor:pointer;list-style:none;padding:20px 0;font-weight:700;display:flex;justify-content:space-between;gap:18px}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary:after{content:"⌄";color:rgba(255,255,255,.42)}
+.faq-item[open] summary:after{transform:rotate(180deg)}
+.faq-item:not([open]) div{display:none}
+.faq-item[open] div{display:block;color:rgba(255,255,255,.62);font-size:14px;line-height:1.65;padding:0 0 20px}
+.cta-band{background:linear-gradient(135deg,#172033,#111726);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:46px 32px;text-align:center}
+.footer-grid{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:28px;border-top:1px solid rgba(255,255,255,.09);padding:38px 0}
+.footer-grid h4{font-size:12px;color:rgba(255,255,255,.42);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.footer-grid a{display:block;color:rgba(255,255,255,.62);text-decoration:none;font-size:14px;padding:4px 0}
+.login-panel{position:fixed;right:24px;bottom:24px;background:${M.white};color:${M.gray900};border-radius:8px;padding:22px 24px;width:360px;box-shadow:0 20px 70px rgba(0,0,0,.35);border:1px solid ${M.gray200};z-index:6}
+@media (max-width:900px){
+  .landing-nav{padding:0 20px}.landing-links a:not(.landing-btn){display:none}
+  .hero-grid{grid-template-columns:1fr;padding-top:52px}.hero-title{font-size:42px}
+  .trust-grid,.framework-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .steps-grid,.feature-grid,.pricing-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr 1fr}.login-panel{position:static;width:auto;margin:0 20px 24px}
+}
+@media (max-width:560px){
+  .landing-wrap{padding:0 20px}.hero-grid{padding-left:20px;padding-right:20px}
+  .hero-title{font-size:34px}.hero-copy{font-size:16px}
+  .trust-grid,.framework-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}.section{padding:52px 0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
 `;
 
 function useFetch(apiKey,path){
@@ -141,6 +220,23 @@ function WaterfallPanel({trace,onClose}){
 function LoginScreen({onLogin}){
   const[key,setKey]=useState("");const[proj,setProj]=useState("payments-agent");
   const[err,setErr]=useState("");const[loading,setLoading]=useState(false);
+  const[pricingCycle,setPricingCycle]=useState("monthly");
+  const frameworks=["LangGraph","CrewAI","OpenAI Agents","PydanticAI","Google ADK","Smolagents","LlamaIndex","Haystack","AutoGen","DSPy","Agno","+ any callable"];
+  const features=[
+    ["Trace Explorer","Full agent waterfall with nodes, tools, branches, latency, state, and failure context.","#1A73E8"],
+    ["Evaluation","LLM-as-judge scoring, golden datasets, pass rates, regressions, and semantic quality checks.","#137333"],
+    ["Monitoring","Production health, latency, drift, anomaly, and cost signals in one operational view.","#B06000"],
+    ["Prompt Version","Track every prompt change against evals and traces so teams can roll back regressions.","#7B4F9E"],
+    ["CI/CD Gates","GitHub Actions-ready eval gates that fail builds when quality drops below your bar.","#1A73E8"],
+    ["Alerts","Route failures, drift, latency spikes, and quality drops to the channels your team already uses.","#C5221F"],
+  ];
+  const faqs=[
+    ["Which frameworks do you support?","CortexOps supports LangGraph, CrewAI, OpenAI Agents SDK, PydanticAI, Google ADK, Smolagents, LlamaIndex, Haystack, AutoGen, DSPy, Agno, and any callable wrapper."],
+    ["How is this different from LangSmith or Langfuse?","Those tools are strongest around LLM calls. CortexOps is designed around agent execution: nodes, tools, state transitions, eval gates, monitoring, and alerts."],
+    ["Can we self-host?","Yes. CortexOps is open source and MIT licensed, with a Python SDK and deployment paths for teams that need control over data."],
+    ["Does it work in CI?","Yes. The eval command can run in GitHub Actions and fail a build when score, regression, latency, or task-completion thresholds are missed."],
+    ["Do developers get a live demo?","Yes. The hero preview and dashboard are designed to show the product motion before a user connects their API key."],
+  ];
   const submit=async()=>{
     if(!key.startsWith("cxo-")){setErr("Key must start with cxo-");return;}
     setLoading(true);
@@ -149,24 +245,228 @@ function LoginScreen({onLogin}){
     finally{setLoading(false);}
   };
   return(
-    <div style={{minHeight:"100vh",background:M.gray50,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:M.white,borderRadius:8,padding:"36px 40px",width:"100%",maxWidth:420,boxShadow:M.shadow2}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:32}}>
-          <div style={{width:36,height:36,background:M.blue,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+    <div className="landing">
+      <div className="landing-nav">
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:32,height:32,background:M.blue,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M10 2.5 Q14 10 10 17.5" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
-              <path d="M6 2.5 Q10.5 10 6 17.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity=".4"/>
+              <path d="M6 2.5 Q10.5 10 6 17.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity=".45"/>
               <circle cx="10" cy="2.5" r="1.8" fill="white"/>
               <circle cx="10" cy="17.5" r="1.8" fill="white"/>
             </svg>
           </div>
-          <div>
-            <div style={{fontSize:18,fontWeight:600,color:M.gray900}}>CortexOps</div>
-            <div style={{fontSize:12,color:M.gray600}}>Agent observability</div>
-          </div>
+          <div style={{fontSize:17,fontWeight:700}}>CortexOps</div>
         </div>
+        <div className="landing-links">
+          <a href="#social-proof">Customers</a>
+          <a href="#how">Docs</a>
+          <a href="#features">Blog</a>
+          <a href="https://github.com/ashishodu2023/cortexops/releases">Changelog</a>
+          <a href="#demo" className="landing-btn" style={{padding:"9px 14px"}}>View Live Demo</a>
+        </div>
+      </div>
+
+      <main style={{flex:1}}>
+        <section className="landing-wrap hero-grid">
+          <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:.45,ease:"easeOut"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(45,212,167,.12)",border:"1px solid rgba(45,212,167,.22)",color:"#2DD4A7",borderRadius:99,padding:"6px 12px",fontSize:12,fontFamily:M.mono,marginBottom:22}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:"#2DD4A7",animation:"pulse 1.8s infinite"}}/>
+              Open source reliability infrastructure
+            </div>
+            <h1 className="hero-title">
+              Ship Reliable AI Agents.<br/>Every Time.
+            </h1>
+            <p className="hero-copy">
+              Here is why every AI engineering team needs CortexOps. Trace every node, evaluate every change, monitor production health, and catch regressions before users do.
+            </p>
+            <div className="hero-actions">
+              <a href="#demo" className="landing-btn">View Live Demo</a>
+              <span className="install-chip">$ pip install cortexops</span>
+            </div>
+            <div className="proof-row">
+              {["Open Source","MIT License","12 Frameworks","CI Ready"].map(item=><span key={item}>{item}</span>)}
+            </div>
+          </motion.div>
+
+          <motion.div id="demo" className="demo-card" initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{duration:.5,ease:"easeOut",delay:.08}}>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 35%, rgba(96,165,250,.10) 50%, transparent 65%)",animation:"scan 4s ease-in-out infinite",pointerEvents:"none"}}/>
+            <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(255,255,255,.1)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{fontFamily:M.mono,fontSize:13,color:"rgba(255,255,255,.9)"}}>Hero Dashboard</div>
+              <div style={{display:"flex",gap:8}}>
+                <span style={{background:"rgba(45,212,167,.12)",color:"#2DD4A7",borderRadius:99,padding:"4px 9px",fontSize:11,fontWeight:700,animation:"breathe 2.2s infinite"}}>Success badge</span>
+                <span style={{background:"rgba(242,109,109,.12)",color:"#F26D6D",borderRadius:99,padding:"4px 9px",fontSize:11,fontWeight:700}}>Failure badge</span>
+              </div>
+            </div>
+            <div style={{padding:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+                {[["Node","running...","#F5B23D"],["Latency","updating","#60A5FA"],["Health Score","changing","#2DD4A7"]].map(([l,v,c])=>(
+                  <div key={l} style={{background:"#0B0F1A",border:"1px solid rgba(255,255,255,.1)",borderRadius:8,padding:"10px 11px"}}>
+                    <div style={{fontSize:10,color:"rgba(255,255,255,.44)",fontFamily:M.mono,marginBottom:4}}>{l}</div>
+                    <div style={{fontSize:13,color:c,fontFamily:M.mono,fontWeight:700}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              {[
+                ["classify_intent","78%","#1A73E8","1.18s"],
+                ["tool call animated","32%","#7B4F9E","active"],
+                ["evaluate_policy","52%","#0E8A6D","890ms"],
+                ["tool: issue_refund","88%","#D14343","2.01s"],
+              ].map(([name,width,color,time],i)=>(
+                <div key={name} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+                  <div style={{width:132,fontSize:12,fontFamily:name.startsWith("tool")?M.mono:M.sans,color:name.includes("issue")?"#F26D6D":"rgba(255,255,255,.72)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                    {name}
+                  </div>
+                  <div style={{flex:1,height:22,background:"#172033",borderRadius:5,position:"relative",overflow:"hidden"}}>
+                    <div style={{width,background:color,height:14,borderRadius:4,position:"absolute",top:4,left:i*12,animation:`grow ${1+i*.18}s ease both`,display:"flex",alignItems:"center",paddingLeft:7,fontSize:10,fontFamily:M.mono,fontWeight:700}}>{time}</div>
+                  </div>
+                </div>
+              ))}
+              <div style={{marginTop:12,background:"rgba(242,109,109,.12)",border:"1px solid rgba(242,109,109,.25)",borderRadius:8,padding:"10px 12px",fontFamily:M.mono,fontSize:11,color:"#F26D6D",animation:"slideIn .4s ease both"}}>
+                Trace expanding... PaymentGatewayTimeout after tool call
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        <section className="landing-wrap section tight" id="social-proof">
+          <div className="trust-grid">
+            {["Open Source","MIT","Python SDK","GitHub Actions","Works with LangGraph","Works with CrewAI"].map(item=>(
+              <div key={item} className="trust-item">{item}</div>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-wrap section" id="frameworks">
+          <div className="section-head">
+            <div className="eyebrow">Works with your stack</div>
+            <h2 className="section-title">One integration. Every framework.</h2>
+            <p className="section-copy">Instrument the agent framework your team already uses, without rewrites or lock-in.</p>
+          </div>
+          <div className="framework-grid">{frameworks.map(item=><div key={item} className="framework-item">{item}</div>)}</div>
+        </section>
+
+        <section className="landing-wrap section" id="how">
+          <div className="section-head">
+            <div className="eyebrow">How it works</div>
+            <h2 className="section-title">Trace. Evaluate. Monitor.</h2>
+            <p className="section-copy">Three production disciplines that turn opaque agent behavior into a system your team can operate.</p>
+          </div>
+          <div className="steps-grid">
+            <div className="landing-card"><h3>1. Trace every run</h3><p>Wrap your agent once and capture nodes, tools, state, latency, and failure details.</p><div className="code-box">from cortexops import CortexTracer<br/>tracer = CortexTracer(project="agent")<br/>agent = tracer.wrap(graph)</div></div>
+            <div className="landing-card"><h3>2. Gate on quality</h3><p>Run golden datasets in CI and stop regressions before they reach production.</p><div className="code-box">cortexops eval run \<br/>&nbsp;&nbsp;--dataset gold.yaml \<br/>&nbsp;&nbsp;--fail-on "score &lt; 0.9"</div></div>
+            <div className="landing-card"><h3>3. Watch production</h3><p>Monitor health, drift, latency, and alerts after your agents are live.</p><div className="code-box">tracer.monitor(<br/>&nbsp;&nbsp;alert="slack",<br/>&nbsp;&nbsp;on="quality_drop"<br/>)</div></div>
+          </div>
+        </section>
+
+        <section className="landing-wrap section" id="features">
+          <div className="section-head">
+            <div className="eyebrow">Platform</div>
+            <h2 className="section-title">Here is why every AI engineering team needs CortexOps.</h2>
+          </div>
+          <div className="feature-grid">
+            {features.map(([title,body,color])=>(
+              <motion.div key={title} className="landing-card" whileHover={{y:-3}} transition={{duration:.18}}>
+                <div className="feature-icon" style={{background:`${color}22`,color}}>●</div>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-wrap section" id="compare">
+          <div className="section-head">
+            <div className="eyebrow">Why teams switch</div>
+            <h2 className="section-title">Built for agents, not just LLM calls.</h2>
+          </div>
+          <div className="compare-wrap">
+            <table className="compare-table">
+              <thead><tr><th>Capability</th><th>CortexOps</th><th>LangSmith</th><th>Langfuse</th><th>Arize Phoenix</th></tr></thead>
+              <tbody>
+                <tr><td>Agent execution tracing</td><td className="yes">Full waterfall</td><td className="partial">LangChain focused</td><td className="partial">LLM calls</td><td className="partial">Span tree</td></tr>
+                <tr><td>Framework support</td><td className="yes">12 frameworks</td><td className="partial">LangChain</td><td className="partial">Via SDK</td><td className="partial">Several</td></tr>
+                <tr><td>CI/CD eval gate</td><td className="yes">First-class CLI</td><td className="partial">Partial</td><td className="no">Manual</td><td className="partial">Scripted</td></tr>
+                <tr><td>Open source</td><td className="yes">MIT</td><td className="no">No</td><td className="yes">Yes</td><td className="partial">Elastic v2</td></tr>
+                <tr><td>Production alerts</td><td className="yes">Quality, drift, latency</td><td className="partial">Limited</td><td className="partial">Limited</td><td className="yes">Yes</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="landing-wrap section" id="pricing">
+          <div className="section-head">
+            <div className="eyebrow">Pricing</div>
+            <h2 className="section-title">Start free. Scale when you are ready.</h2>
+            <div style={{display:"inline-flex",gap:4,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.12)",borderRadius:8,padding:4,marginTop:16}}>
+              {["monthly","yearly"].map(cycle=>(
+                <button
+                  key={cycle}
+                  type="button"
+                  aria-pressed={pricingCycle===cycle}
+                  onClick={()=>setPricingCycle(cycle)}
+                  style={{background:pricingCycle===cycle?M.blue:"transparent",color:pricingCycle===cycle?"white":"rgba(255,255,255,.65)",border:"none",borderRadius:6,padding:"7px 13px",fontWeight:700,cursor:"pointer"}}
+                >
+                  {cycle==="monthly"?"Monthly":"Yearly"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="pricing-grid">
+            {[
+              ["Free","$0","For side projects and evaluation.",["Core tracing","Local eval runs","Python SDK","Community support"],false,"Start free"],
+              ["Pro",pricingCycle==="monthly"?"$49 / mo":"$490 / yr","For teams shipping agents to production.",["Unlimited traces","LLM-as-judge evals","Drift monitoring","GitHub Actions gates","Priority support"],true,"Start free trial"],
+              ["Enterprise","Custom","For compliance, scale, and private deployment.",["Everything in Pro","SSO / SAML","VPC or self-hosted deploy","Dedicated support"],false,"Contact sales"],
+            ].map(([name,price,desc,items,featured,cta])=>(
+              <div key={name} className={`landing-card price-card ${featured?"featured":""}`}>
+                <h3>{name}</h3><div className="price-amount">{price}</div><p>{desc}</p>
+                <ul>{items.map(item=><li key={item}>{item}</li>)}</ul>
+                <a href="#demo" className={`landing-btn ${featured?"":"ghost"}`}>{cta}</a>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-wrap section" id="faq">
+          <div className="section-head" style={{textAlign:"center"}}>
+            <div className="eyebrow">FAQ</div>
+            <h2 className="section-title">Questions, answered.</h2>
+          </div>
+          <div className="faq-list">
+            {faqs.map(([q,a])=><details key={q} className="faq-item"><summary>{q}</summary><div>{a}</div></details>)}
+          </div>
+        </section>
+
+        <section className="landing-wrap section">
+          <div className="cta-band">
+            <h2 className="section-title">Ship agents you can trust.</h2>
+            <p className="section-copy" style={{margin:"0 auto 22px"}}>Developers love demos. Start with the live preview, then connect your first project when you are ready.</p>
+            <div style={{display:"flex",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
+              <a href="#demo" className="landing-btn">View Live Demo</a>
+              <a href="https://github.com/ashishodu2023/cortexops" className="landing-btn ghost">View on GitHub</a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="landing-wrap">
+        <div className="footer-grid">
+          <div><h3 style={{marginBottom:10}}>CortexOps</h3><p style={{color:"rgba(255,255,255,.55)",lineHeight:1.6}}>Reliability infrastructure for AI agents. Trace, evaluate, monitor, and alert before users feel the regression.</p></div>
+          <div><h4>Product</h4>{["Trace Explorer","Evaluation","Monitoring","Prompt Version","Alerts"].map(item=><a key={item} href="#features">{item}</a>)}</div>
+          <div><h4>Developers</h4><a href="#how">Docs</a><a href="https://github.com/ashishodu2023/cortexops">GitHub</a><a href="https://pypi.org/project/cortexops/">Python SDK</a><a href="https://github.com/ashishodu2023/cortexops/releases">Changelog</a></div>
+          <div><h4>Company</h4><a href="#social-proof">Customers</a><a href="#features">Blog</a><a href="https://github.com/ashishodu2023/cortexops/issues">Roadmap</a><a href="#faq">Status</a></div>
+          <div><h4>Legal</h4><a href="#faq">Security</a><a href="#faq">Privacy</a><a href="#faq">Terms</a><a href="https://github.com/ashishodu2023/cortexops/blob/main/LICENSE">MIT License</a></div>
+        </div>
+        <div style={{borderTop:"1px solid rgba(255,255,255,.09)",padding:"20px 0 28px",display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap",color:"rgba(255,255,255,.45)",fontSize:13}}>
+          <span>© 2026 CortexOps · MIT licensed</span><span>Built for engineers shipping AI agents</span>
+        </div>
+      </footer>
+
+      <div className="login-panel">
+        <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Open dashboard</div>
+        <div style={{fontSize:13,color:M.gray600,marginBottom:18}}>Use your CortexOps API key to enter the live console.</div>
         {[["API Key",key,setKey,"cxo-...","password"],["Project",proj,setProj,"payments-agent","text"]].map(([l,v,s,p,t])=>(
-          <div key={l} style={{marginBottom:16}}>
+          <div key={l} style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,fontWeight:500,color:M.gray700,marginBottom:6}}>{l}</label>
             <input value={v} onChange={e=>s(e.target.value)} placeholder={p} type={t}
               onKeyDown={e=>e.key==="Enter"&&submit()}
@@ -176,16 +476,11 @@ function LoginScreen({onLogin}){
             />
           </div>
         ))}
-        {err&&<div style={{background:M.redLight,color:M.red,fontSize:13,padding:"8px 12px",borderRadius:4,marginBottom:16,border:"1px solid rgba(197,34,31,.2)"}}>{err}</div>}
+        {err&&<div style={{background:M.redLight,color:M.red,fontSize:13,padding:"8px 12px",borderRadius:4,marginBottom:14,border:"1px solid rgba(197,34,31,.2)"}}>{err}</div>}
         <button onClick={submit} disabled={loading||!key}
-          style={{width:"100%",background:M.blue,color:"white",border:"none",borderRadius:4,padding:12,fontSize:15,fontWeight:500,cursor:loading||!key?"not-allowed":"pointer",opacity:loading||!key?.5:1,boxShadow:M.shadow1}}>
-          {loading?"Connecting…":"Open dashboard →"}
+          style={{width:"100%",background:M.blue,color:"white",border:"none",borderRadius:4,padding:12,fontSize:15,fontWeight:500,cursor:loading||!key?"not-allowed":"pointer",opacity:(loading||!key)?0.5:1,boxShadow:M.shadow1}}>
+          {loading?"Connecting...":"Open dashboard"}
         </button>
-        <p style={{color:M.gray500,fontSize:12,marginTop:16,textAlign:"center"}}>
-          <a href="https://getcortexops.com" style={{color:M.blue}}>getcortexops.com</a>
-          {" · "}
-          <a href="https://getcortexops.com/?trial=1" style={{color:M.blue}}>Get Pro key</a>
-        </p>
       </div>
     </div>
   );
@@ -195,6 +490,13 @@ export default function App(){
   const[apiKey,setApiKey]=useState(()=>localStorage.getItem("cxo_key")||"");
   const[project,setProject]=useState(()=>localStorage.getItem("cxo_project")||"payments-agent");
   const[tab,setTab]=useState("traces");
+  const tabs=[
+    ["traces","Trace Explorer"],
+    ["evals","Evaluation"],
+    ["monitoring","Monitoring"],
+    ["prompts","Prompt Version"],
+    ["errors","Alerts"],
+  ];
   const[filter,setFilter]=useState("all");
   const[live,setLive]=useState(true);
   const[selected,setSelected]=useState(null);
@@ -273,10 +575,10 @@ export default function App(){
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:M.white,borderTop:`1px solid ${M.gray200}`}}>
             {/* Tabs */}
             <div style={{display:"flex",alignItems:"center",padding:"0 20px",height:48,borderBottom:`1px solid ${M.gray200}`,gap:4}}>
-              {["traces","evals","errors"].map(t=>(
+              {tabs.map(([t,label])=>(
                 <button key={t} onClick={()=>setTab(t)}
-                  style={{background:tab===t?M.blueLight:"transparent",color:tab===t?M.blue:M.gray600,border:"none",borderRadius:4,padding:"6px 16px",fontSize:14,fontWeight:tab===t?600:400,cursor:"pointer",fontFamily:M.sans}}>
-                  {t.charAt(0).toUpperCase()+t.slice(1)}
+                  style={{background:tab===t?M.blueLight:"transparent",color:tab===t?M.blue:M.gray600,border:"none",borderRadius:4,padding:"6px 14px",fontSize:14,fontWeight:tab===t?600:400,cursor:"pointer",fontFamily:M.sans}}>
+                  {label}
                   {t==="errors"&&failed>0&&<span style={{marginLeft:6,background:M.red,color:"white",borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:600}}>{failed}</span>}
                 </button>
               ))}
@@ -360,6 +662,22 @@ export default function App(){
                     </div>
                   ))}
                 </>
+              )}
+              {tab==="monitoring"&&(
+                <div style={{padding:"28px 20px",display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
+                  {[["Health score",traces.length?`${(((traces.length-failed)/traces.length)*100).toFixed(1)}%`:"—",M.green],["Latency watch",`${avgLat}ms avg`,tcColor],["Drift monitor",latest?.regressions?"Needs review":"Stable",latest?.regressions?M.amber:M.green]].map(([l,v,c])=>(
+                    <div key={l} style={{border:`1px solid ${M.gray200}`,borderRadius:8,padding:18,boxShadow:M.shadow1}}>
+                      <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".07em",fontWeight:600,marginBottom:8}}>{l}</div>
+                      <div style={{fontSize:24,fontWeight:600,color:c,fontFamily:M.mono}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {tab==="prompts"&&(
+                <div style={{padding:"48px 20px",textAlign:"center",color:M.gray600}}>
+                  <div style={{fontSize:15,fontWeight:500,color:M.gray900,marginBottom:8}}>Prompt Version</div>
+                  <div style={{fontSize:13}}>Track prompt changes, connect them to eval runs, and roll back regressions.</div>
+                </div>
               )}
             </div>
           </div>
