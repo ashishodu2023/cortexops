@@ -134,21 +134,21 @@ class CortexTracer:
         # CrewAI
         if name == "Crew" and "crewai" in module:
             return "crewai"
-        # OpenAI Agents SDK — Agent class
-        if name == "Agent" and "agents" in module:
-            return "openai_agents"
+        # Google ADK (before OpenAI Agents — module path contains "agents")
+        if "google" in module and "adk" in module:
+            return "google_adk"
         # PydanticAI — Agent class
         if name == "Agent" and "pydantic_ai" in module:
             return "pydantic_ai"
+        # OpenAI Agents SDK — top-level `agents` package only
+        if name == "Agent" and (module == "agents" or module.startswith("agents.")):
+            return "openai_agents"
         # Agno / Phidata
         if "agno" in module or "phi" in module:
             return "agno"
         # AutoGen — ConversableAgent, AssistantAgent, UserProxyAgent
         if "autogen" in module and hasattr(agent, "initiate_chat"):
             return "autogen"
-        # Google ADK
-        if "google" in module and "adk" in module:
-            return "google_adk"
         # Smolagents (HuggingFace)
         if "smolagents" in module and hasattr(agent, "run"):
             return "smolagents"
