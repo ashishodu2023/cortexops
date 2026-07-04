@@ -9,7 +9,7 @@
 <meta name="description" content="CortexOps catches AI agent regressions before they reach production. Golden dataset evals, CI gate, trace observability, and Slack alerts for LangGraph, CrewAI, and AutoGen. pip install cortexops">
 <meta name="keywords" content="LangGraph evaluation, CrewAI observability, AI agent testing, agent eval gate, LangGraph CI, AI agent regression testing, agent reliability, cortexops">
 <link rel="canonical" href="https://www.getcortexops.com/">
-<meta name="theme-color" content="#1A73E8">
+<meta name="theme-color" content="#0B0F1A">
 
 <!-- Open Graph (LinkedIn, Slack previews) -->
 <meta property="og:type" content="website">
@@ -54,668 +54,850 @@
 </script>
 
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
-
-<!-- Favicon -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="shortcut icon" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/favicon.svg">
 
-<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
 
 <style>
 :root{
-  --blue:#1A73E8;--blue-dark:#1557B0;--blue-light:#E8F0FE;
-  --green:#137333;--green-light:#E6F4EA;
-  --red:#C5221F;--red-light:#FCE8E6;
-  --amber:#B06000;--amber-light:#FEF3CD;
-  --gray-50:#FAFAFA;--gray-100:#F1F3F4;--gray-200:#E8EAED;
-  --gray-300:#DADCE0;--gray-500:#9AA0A6;--gray-600:#80868B;
-  --gray-700:#5F6368;--gray-800:#3C4043;--gray-900:#202124;
-  --white:#FFFFFF;
+  --bg:#0B0F1A;
+  --surface:#111726;
+  --surface-2:#172033;
+  --blue:#1A73E8;
+  --blue-soft:#60A5FA;
+  --green:#2DD4A7;
+  --green-deep:#137333;
+  --amber:#B06000;
+  --amber-soft:#F5B23D;
+  --red:#C5221F;
+  --red-soft:#F26D6D;
+  --purple:#7B4F9E;
+  --text:rgba(255,255,255,.92);
+  --muted:rgba(255,255,255,.62);
+  --faint:rgba(255,255,255,.42);
+  --line:rgba(255,255,255,.11);
+  --line-soft:rgba(255,255,255,.09);
   --sans:'Google Sans','Segoe UI',Roboto,sans-serif;
-  --body:'Roboto',sans-serif;
   --mono:'Roboto Mono','Courier New',monospace;
-  --shadow-1:0 1px 2px rgba(60,64,67,.3),0 1px 3px rgba(60,64,67,.15);
-  --shadow-2:0 1px 2px rgba(60,64,67,.3),0 2px 6px rgba(60,64,67,.15);
-  --shadow-3:0 4px 8px rgba(60,64,67,.3),0 8px 16px rgba(60,64,67,.15);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;scroll-padding-top:64px}
-body{font-family:var(--body);background:var(--gray-50);color:var(--gray-900);-webkit-font-smoothing:antialiased}
-a{color:var(--blue);text-decoration:none}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+}
+a{color:var(--blue-soft);text-decoration:none}
 a:hover{text-decoration:underline}
-code{font-family:var(--mono);font-size:.875em;background:var(--gray-100);color:var(--gray-900);padding:2px 6px;border-radius:4px;border:1px solid var(--gray-200)}
+img{max-width:100%}
 
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;background:var(--blue);display:flex;align-items:center;padding:0 24px;justify-content:space-between;box-shadow:0 2px 4px rgba(0,0,0,.2)}
-.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-logo-mark{width:32px;height:32px;background:white;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.nav-logo-text{font-family:var(--sans);font-size:20px;font-weight:500;color:white;letter-spacing:.15px}
-.nav-links{display:flex;align-items:center;gap:8px}
-.nav-links a{font-family:var(--sans);font-size:14px;font-weight:500;color:rgba(255,255,255,.87);padding:8px 12px;border-radius:4px;transition:background .15s;text-decoration:none}
-.nav-links a:hover{background:rgba(255,255,255,.15);text-decoration:none}
-.nav-cta{background:white;color:var(--blue);font-family:var(--sans);font-size:14px;font-weight:600;padding:8px 20px;border-radius:4px;border:none;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow-1)}
-.nav-cta:hover{box-shadow:var(--shadow-2)}
+a,button,input,summary{outline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{
+  outline:2px solid var(--blue-soft);
+}
 
-/* HERO */
-.hero{background:white;padding:80px 24px 64px;text-align:center;border-bottom:1px solid var(--gray-200);margin-top:64px}
-.hero-chip{display:inline-flex;align-items:center;gap:8px;background:var(--blue-light);border-radius:99px;padding:6px 16px;margin-bottom:28px}
-.hero-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--blue)}
-.hero-chip-text{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--blue)}
-.hero h1{font-family:var(--sans);font-size:clamp(36px,6vw,56px);font-weight:400;color:var(--gray-900);line-height:1.1;letter-spacing:-.5px;max-width:780px;margin:0 auto 16px}
-.hero h1 strong{color:var(--blue);font-weight:600}
-.hero-sub{font-size:18px;color:var(--gray-700);max-width:560px;margin:0 auto 36px;line-height:1.6;font-weight:400}
-.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-primary{background:var(--blue);color:white;font-family:var(--sans);font-size:15px;font-weight:500;padding:13px 28px;border-radius:4px;border:none;cursor:pointer;box-shadow:var(--shadow-1);transition:box-shadow .15s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
-.btn-primary:hover{box-shadow:var(--shadow-2);background:var(--blue-dark);color:white;text-decoration:none}
-.btn-outline{background:white;color:var(--blue);font-family:var(--sans);font-size:15px;font-weight:500;padding:13px 28px;border-radius:4px;border:1px solid var(--gray-300);cursor:pointer;transition:box-shadow .15s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
-.btn-outline:hover{box-shadow:var(--shadow-1);text-decoration:none}
-.hero-code{background:#F8F9FA;border-radius:8px;padding:20px 24px;text-align:left;max-width:600px;margin:48px auto 0;box-shadow:var(--shadow-2);border:1px solid var(--gray-200);border-left:4px solid var(--blue)}
-.code-label{font-size:11px;font-family:var(--mono);color:var(--gray-500);margin-bottom:12px;font-weight:500}
-pre{font-family:var(--mono);font-size:13px;line-height:1.8;overflow-x:auto;color:var(--gray-900)}
-.ck{color:#1557B0}.cf{color:#137333}.cs{color:#C5221F}.cm{color:#80868B}.cv{color:#3C4043}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.section{padding:72px 0}
+.section.tight{padding-top:0}
+.section-head{margin-bottom:30px}
+.eyebrow{
+  color:var(--blue-soft);
+  font-size:12px;
+  font-family:var(--mono);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-bottom:12px;
+}
+.section-title{
+  font-size:34px;
+  line-height:1.1;
+  letter-spacing:-.03em;
+  margin-bottom:12px;
+  font-weight:700;
+}
+.section-copy{
+  color:var(--muted);
+  font-size:16px;
+  line-height:1.6;
+  max-width:620px;
+}
 
-/* CHIPS BAR */
-.chips-bar{background:white;padding:16px 24px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;border-bottom:1px solid var(--gray-200)}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:99px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:default}
-.chip-blue{background:var(--blue-light);color:var(--blue)}
-.chip-green{background:var(--green-light);color:var(--green)}
-.chip-amber{background:var(--amber-light);color:var(--amber)}
-.chip-red{background:var(--red-light);color:var(--red)}
+/* Nav */
+.nav{
+  position:sticky;
+  top:0;
+  z-index:50;
+  height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 32px;
+  border-bottom:1px solid var(--line-soft);
+  background:rgba(11,15,26,.86);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.nav-brand{display:flex;align-items:center;gap:12px;color:var(--text);text-decoration:none}
+.nav-brand:hover{text-decoration:none}
+.nav-mark{
+  width:32px;height:32px;background:var(--blue);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.nav-brand span{font-size:17px;font-weight:700}
+.nav-links{display:flex;align-items:center;gap:22px;font-size:14px;color:var(--muted)}
+.nav-links a{color:inherit;text-decoration:none}
+.nav-links a:hover{color:var(--text);text-decoration:none}
 
-/* SECTIONS */
-section{padding:72px 24px;max-width:1100px;margin:0 auto}
-.section-label{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
-h2{font-family:var(--sans);font-size:clamp(28px,4vw,40px);font-weight:400;color:var(--gray-900);margin-bottom:12px;line-height:1.2}
-h2 strong{color:var(--blue);font-weight:600}
-.section-sub{font-size:17px;color:var(--gray-700);max-width:580px;line-height:1.6;margin-bottom:48px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--blue);color:white;text-decoration:none;border:none;
+  border-radius:7px;padding:12px 18px;font-weight:700;cursor:pointer;
+  box-shadow:0 14px 30px rgba(26,115,232,.28);font-family:var(--sans);font-size:14px;
+}
+.btn:hover{text-decoration:none;filter:brightness(1.05)}
+.btn.ghost{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:none;
+  color:var(--text);
+}
+.btn.sm{padding:9px 14px}
 
-/* MATERIAL CARDS */
-.card{background:white;border-radius:8px;box-shadow:var(--shadow-2);padding:28px;transition:box-shadow .2s}
-.card:hover{box-shadow:var(--shadow-3)}
-.card-icon{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-.card-title{font-family:var(--sans);font-size:16px;font-weight:500;color:var(--gray-900);margin-bottom:8px}
-.card-body{font-size:14px;color:var(--gray-700);line-height:1.6}
-.cards-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.cards-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+/* Hero */
+.hero{
+  padding:76px 28px 34px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(340px,520px);
+  gap:54px;
+  align-items:center;
+  max-width:1180px;
+  margin:0 auto;
+}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(45,212,167,.12);border:1px solid rgba(45,212,167,.22);
+  color:var(--green);border-radius:99px;padding:6px 12px;
+  font-size:12px;font-family:var(--mono);margin-bottom:22px;
+}
+.badge-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:pulse 1.8s infinite;
+}
+.hero-title{
+  font-size:58px;line-height:1.02;letter-spacing:-.045em;
+  font-weight:700;margin-bottom:22px;
+}
+.hero-copy{
+  font-size:18px;line-height:1.65;color:var(--muted);
+  max-width:560px;margin-bottom:28px;
+}
+.hero-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:24px}
+.install-chip{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+  border-radius:7px;padding:12px 14px;font-family:var(--mono);
+  font-size:13px;color:rgba(255,255,255,.86);
+}
+.proof-row{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:rgba(255,255,255,.7)}
+.proof-row span{display:inline-flex;align-items:center;gap:7px}
+.proof-row span::before{
+  content:"";width:6px;height:6px;border-radius:50%;background:var(--green);
+}
 
-/* HOW IT WORKS STEPPER */
-.stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:48px}
-.step-card{background:white;border-radius:8px;padding:24px;box-shadow:var(--shadow-1);position:relative}
-.step-num{width:32px;height:32px;border-radius:50%;background:var(--blue);color:white;font-family:var(--sans);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-.step-title{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--gray-900);margin-bottom:8px}
-.step-desc{font-size:13px;color:var(--gray-700);line-height:1.6}
-.step-code{margin-top:12px;background:var(--gray-100);border-radius:4px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--gray-800);line-height:1.7;border:1px solid var(--gray-200)}
+/* Demo card / waterfall */
+.demo-card{
+  background:var(--surface);border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;overflow:hidden;position:relative;
+  box-shadow:0 36px 90px rgba(0,0,0,.45);
+}
+.demo-scan{
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(110deg,transparent 35%,rgba(96,165,250,.10) 50%,transparent 65%);
+  animation:scan 4s ease-in-out infinite;
+}
+.demo-head{
+  padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.demo-head-title{font-family:var(--mono);font-size:13px;color:rgba(255,255,255,.9)}
+.demo-badges{display:flex;gap:8px}
+.pill{
+  border-radius:99px;padding:4px 9px;font-size:11px;font-weight:700;
+}
+.pill.ok{background:rgba(45,212,167,.12);color:var(--green);animation:breathe 2.2s infinite}
+.pill.bad{background:rgba(242,109,109,.12);color:var(--red-soft);animation:pulseSoft 1.8s infinite}
+.demo-body{padding:16px}
+.demo-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.metric{
+  background:var(--bg);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:10px 11px;
+}
+.metric-lbl{font-size:10px;color:rgba(255,255,255,.44);font-family:var(--mono);margin-bottom:4px}
+.metric-val{font-size:13px;font-family:var(--mono);font-weight:700}
+.metric-val.live{animation:fadePulse 1.6s ease-in-out infinite}
+.trace-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.trace-name{
+  width:132px;font-size:12px;color:rgba(255,255,255,.72);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;
+}
+.trace-name.mono{font-family:var(--mono)}
+.trace-name.fail{color:var(--red-soft)}
+.trace-track{
+  flex:1;height:22px;background:var(--surface-2);border-radius:5px;
+  position:relative;overflow:hidden;
+}
+.trace-bar{
+  height:14px;border-radius:4px;position:absolute;top:4px;
+  display:flex;align-items:center;padding-left:7px;
+  font-size:10px;font-family:var(--mono);font-weight:700;color:white;
+  animation:grow 1.2s ease both;
+  transform-origin:left center;
+}
+.trace-bar.active{
+  animation:grow 1.2s ease both, shimmer 1.4s ease-in-out infinite;
+}
+.trace-alert{
+  margin-top:12px;background:rgba(242,109,109,.12);
+  border:1px solid rgba(242,109,109,.25);border-radius:8px;
+  padding:10px 12px;font-family:var(--mono);font-size:11px;
+  color:var(--red-soft);animation:slideIn .4s ease both, pulseSoft 2.4s ease-in-out infinite;
+}
 
-/* DASHBOARD PREVIEW */
-.dash-shell{background:white;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-2);border:1px solid var(--gray-200);margin-top:48px}
-.dash-topbar{background:var(--gray-100);padding:0 16px;height:44px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--gray-200)}
-.dash-dot-r{width:12px;height:12px;border-radius:50%;background:#EA4335}
-.dash-dot-y{width:12px;height:12px;border-radius:50%;background:#FBBC04}
-.dash-dot-g{width:12px;height:12px;border-radius:50%;background:#34A853}
-.dash-bar{background:#1565C0;padding:0 14px;height:42px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--blue-dark)}
-.dash-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:10px 12px}
-.dash-tile{background:white;border-radius:6px;padding:10px 12px;border-left:3px solid transparent;border:1px solid var(--gray-200);border-left-width:3px}
-.dash-tile-lbl{font-size:8px;color:var(--gray-600);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-family:var(--sans)}
-.dash-tile-val{font-size:18px;font-weight:600;font-family:var(--sans);letter-spacing:-.02em;line-height:1}
-.dash-tile-delta{font-size:9px;margin-top:2px}
-.dash-body{display:flex;height:260px}
-.dash-list{flex:1;overflow:hidden}
-.dash-thead{display:flex;gap:10px;padding:5px 12px;font-size:8px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.07em;font-family:var(--sans);border-bottom:1px solid var(--gray-200)}
-.dash-row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--gray-200);font-size:10px}
-.dash-row:hover{background:var(--gray-50)}
-.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.dash-right{width:160px;border-left:1px solid var(--gray-200);padding:10px;background:var(--gray-50)}
-.dr-lbl{font-size:8px;color:var(--gray-600);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:var(--sans)}
-.dr-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gray-200);font-size:9px}
+/* Grids / cards */
+.trust-grid,.framework-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.trust-item,.framework-item{
+  background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:13px 10px;text-align:center;
+  font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.72);
+}
+.steps-grid,.pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.feature-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
+.card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:20px 18px;color:rgba(255,255,255,.82);
+  transition:transform .18s ease,border-color .18s ease;
+}
+.card:hover{transform:translateY(-3px);border-color:rgba(96,165,250,.35)}
+.card h3{font-size:17px;margin-bottom:8px;color:white}
+.card p{font-size:14px;line-height:1.55;color:var(--muted)}
+.code-box{
+  margin-top:14px;background:var(--bg);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:13px;font-family:var(--mono);font-size:12px;
+  line-height:1.65;color:rgba(255,255,255,.82);overflow:auto;white-space:pre;
+}
+.feature-icon{
+  width:36px;height:36px;border-radius:8px;display:grid;place-items:center;
+  margin-bottom:14px;font-weight:700;font-size:14px;
+}
 
-/* VS TABLE */
-.vs-table{background:white;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-2);margin-top:48px}
-.vs-head{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--gray-100);padding:14px 20px;border-bottom:1px solid var(--gray-200)}
-.vs-head div{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--gray-700)}
-.vs-head .winner{color:var(--blue)}
-.vs-row{display:grid;grid-template-columns:1fr 1fr 1fr;padding:12px 20px;border-bottom:1px solid var(--gray-200);align-items:center;font-size:13px;transition:background .1s}
-.vs-row:last-child{border-bottom:none}
-.vs-row:hover{background:var(--gray-50)}
-.vs-row div:first-child{color:var(--gray-700)}
-.check{color:var(--green);font-weight:500}
-.cross{color:var(--red)}
-.neutral{color:var(--gray-600)}
+/* Compare */
+.compare-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}
+.compare-table{width:100%;border-collapse:collapse;min-width:720px;background:var(--surface)}
+.compare-table th,.compare-table td{
+  padding:14px 16px;text-align:left;border-bottom:1px solid var(--line-soft);font-size:14px;
+}
+.compare-table th{
+  color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em;
+}
+.compare-table tr:last-child td{border-bottom:none}
+.yes{color:var(--green);font-weight:700}
+.partial{color:var(--amber-soft)}
+.no{color:rgba(255,255,255,.38)}
 
-/* PRICING */
-.pricing-grid{display:grid;grid-template-columns:1fr 1.05fr 1fr;gap:16px;margin-top:48px;align-items:start}
-.price-card{background:white;border-radius:8px;padding:28px;box-shadow:var(--shadow-2)}
-.price-card.featured{box-shadow:0 0 0 2px var(--blue),var(--shadow-3);position:relative}
-.popular-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--blue);color:white;font-family:var(--sans);font-size:11px;font-weight:600;padding:4px 14px;border-radius:99px;white-space:nowrap}
-.price-tier{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
-.price-val{font-family:var(--sans);font-size:40px;font-weight:400;color:var(--gray-900);margin-bottom:4px}
-.price-val span{font-size:15px;color:var(--gray-600)}
-.price-desc{font-size:13px;color:var(--gray-700);margin-bottom:20px;line-height:1.5}
-.price-divider{height:1px;background:var(--gray-200);margin-bottom:20px}
-.price-feats{list-style:none;margin-bottom:24px;display:flex;flex-direction:column;gap:10px}
-.price-feats li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-800)}
-.price-feats .ok{color:var(--green);font-size:16px;line-height:1}
-.btn-price-primary{width:100%;padding:11px;background:var(--blue);color:white;border:none;border-radius:4px;font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow-1)}
-.btn-price-primary:hover{box-shadow:var(--shadow-2);background:var(--blue-dark)}
-.btn-price-outline{width:100%;padding:11px;background:white;color:var(--blue);border:1px solid var(--gray-300);border-radius:4px;font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;transition:box-shadow .15s}
-.btn-price-outline:hover{box-shadow:var(--shadow-1)}
+/* Pricing */
+.price-card{display:flex;flex-direction:column;min-height:390px}
+.price-card.featured{
+  border-color:var(--blue-soft);
+  box-shadow:0 0 0 1px rgba(96,165,250,.55),0 28px 70px rgba(26,115,232,.16);
+}
+.price-amount{font-size:36px;font-weight:700;letter-spacing:-.03em;margin:8px 0}
+.price-card ul{list-style:none;margin:18px 0 24px;display:grid;gap:9px;flex:1}
+.price-card li{color:var(--muted);font-size:14px}
+.price-card li::before{content:"✓";color:var(--green);margin-right:8px}
+.price-toggle{
+  display:inline-flex;gap:4px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px;margin-top:16px;
+}
+.price-toggle button{
+  background:transparent;color:rgba(255,255,255,.65);border:none;border-radius:6px;
+  padding:7px 13px;font-weight:700;cursor:pointer;font-family:var(--sans);
+}
+.price-toggle button[aria-pressed="true"]{background:var(--blue);color:white}
+.price-note{text-align:center;margin-top:10px;font-size:11px;color:var(--faint)}
 
-/* DOCS PREVIEW */
-.docs-shell{background:white;border-radius:8px;box-shadow:var(--shadow-2);overflow:hidden;margin-top:48px;display:grid;grid-template-columns:220px 1fr}
-.docs-sidebar{border-right:1px solid var(--gray-200);padding:16px 0}
-.docs-nav-section{font-family:var(--sans);font-size:10px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.1em;padding:12px 16px 6px}
-.docs-nav-item{font-size:13px;color:var(--gray-700);padding:8px 16px;cursor:pointer;transition:all .1s;border-left:3px solid transparent;display:block}
-.docs-nav-item:hover{background:var(--gray-50);color:var(--gray-900);text-decoration:none}
-.docs-nav-item.active{color:var(--blue);background:var(--blue-light);border-left-color:var(--blue);font-weight:500}
-.docs-content{padding:28px 32px}
-.docs-content h3{font-family:var(--sans);font-size:22px;font-weight:400;color:var(--gray-900);margin-bottom:10px}
-.docs-content p{font-size:14px;color:var(--gray-700);line-height:1.7;margin-bottom:14px}
-.docs-content pre{background:#F8F9FA;border-radius:6px;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--gray-900);overflow-x:auto;border:1px solid var(--gray-200);border-left:3px solid var(--blue)}
+/* FAQ */
+.faq-list{max-width:780px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--line)}
+.faq-item summary{
+  cursor:pointer;list-style:none;padding:20px 0;font-weight:700;
+  display:flex;justify-content:space-between;gap:18px;color:var(--text);
+}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:"⌄";color:var(--faint);transition:transform .15s}
+.faq-item[open] summary::after{transform:rotate(180deg)}
+.faq-item div{
+  color:var(--muted);font-size:14px;line-height:1.65;padding:0 0 20px;
+}
 
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(60,64,67,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{background:white;border-radius:8px;padding:36px;width:100%;max-width:440px;box-shadow:var(--shadow-3);animation:slideUp .2s ease;position:relative}
-@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.modal-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--gray-600);font-size:20px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.modal-close:hover{background:var(--gray-100)}
-.modal h3{font-family:var(--sans);font-size:22px;font-weight:400;margin-bottom:6px;color:var(--gray-900)}
-.modal p{font-size:13px;color:var(--gray-700);margin-bottom:24px}
-.field{margin-bottom:16px}
-.field label{display:block;font-family:var(--sans);font-size:12px;font-weight:500;color:var(--gray-700);margin-bottom:6px}
-.field input{width:100%;background:white;border:1px solid var(--gray-300);border-radius:4px;color:var(--gray-900);font-size:14px;font-family:var(--body);padding:10px 12px;outline:none;transition:border-color .15s}
-.field input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.15)}
-.modal-submit{width:100%;padding:12px;background:var(--blue);color:white;border:none;border-radius:4px;font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer;box-shadow:var(--shadow-1);transition:box-shadow .15s;margin-top:4px}
-.modal-submit:hover:not(:disabled){box-shadow:var(--shadow-2);background:var(--blue-dark)}
-.modal-submit:disabled{opacity:.5;cursor:not-allowed}
-.modal-error{background:var(--red-light);color:var(--red);font-size:13px;padding:10px 14px;border-radius:4px;margin-bottom:16px;display:none;border:1px solid rgba(197,34,31,.2)}
-.payment-badge{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:11px;color:var(--gray-500)}
-.modal-success{display:none;text-align:center;padding:16px 0}
-.modal-success .check{width:56px;height:56px;border-radius:50%;background:var(--green-light);border:2px solid rgba(19,115,51,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;color:var(--green)}
-.modal-success h4{font-family:var(--sans);font-size:20px;font-weight:400;margin-bottom:8px;color:var(--gray-900)}
+/* CTA */
+.cta-band{
+  background:linear-gradient(135deg,#172033,#111726);
+  border:1px solid rgba(255,255,255,.12);border-radius:18px;
+  padding:46px 32px;text-align:center;
+}
+.cta-band .section-copy{margin:0 auto 22px}
+.cta-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
 
-/* SUCCESS BANNER */
-#success-banner{display:none;background:var(--green-light);border-bottom:1px solid rgba(19,115,51,.3);padding:12px 24px;text-align:center;font-size:14px;color:var(--green);font-family:var(--sans);margin-top:64px}
+/* Footer */
+.footer-grid{
+  display:grid;grid-template-columns:2fr repeat(4,1fr);gap:28px;
+  border-top:1px solid var(--line-soft);padding:38px 0;
+}
+.footer-grid h4{
+  font-size:12px;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.08em;margin-bottom:12px;
+}
+.footer-grid a{
+  display:block;color:var(--muted);text-decoration:none;font-size:14px;padding:4px 0;
+}
+.footer-grid a:hover{color:var(--text)}
+.footer-brand{font-size:18px;font-weight:700;margin-bottom:10px}
+.footer-desc{color:rgba(255,255,255,.55);line-height:1.6;font-size:14px}
+.footer-bottom{
+  border-top:1px solid var(--line-soft);padding:20px 0 28px;
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  color:rgba(255,255,255,.45);font-size:13px;
+}
 
-/* FOOTER */
-footer{background:var(--gray-100);color:var(--gray-700);padding:48px 24px 24px;border-top:1px solid var(--gray-200)}
-.footer-inner{max-width:1100px;margin:0 auto}
-.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:48px;margin-bottom:40px}
-.footer-brand-name{font-family:var(--sans);font-size:18px;font-weight:500;color:var(--gray-900);margin-bottom:8px}
-.footer-brand-desc{font-size:13px;line-height:1.6;color:var(--gray-600)}
-.footer-col h4{font-family:var(--sans);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-500);margin-bottom:14px}
-.footer-col a{display:block;font-size:13px;color:var(--gray-700);margin-bottom:8px;transition:color .15s;text-decoration:none}
-.footer-col a:hover{color:var(--blue);text-decoration:none}
-.footer-divider{height:1px;background:var(--gray-300);margin-bottom:20px}
-.footer-bottom{display:flex;justify-content:space-between;font-size:12px;color:var(--gray-500);flex-wrap:wrap;gap:8px}
+/* Success banner */
+.success-banner{
+  display:none;background:rgba(45,212,167,.12);color:var(--green);
+  border-bottom:1px solid rgba(45,212,167,.25);padding:12px 20px;
+  text-align:center;font-size:14px;font-weight:500;
+}
 
-@media(max-width:900px){
-  nav{padding:0 12px}
-  .nav-links .hide{display:none}
-  .cards-3,.cards-2,.stepper,.pricing-grid{grid-template-columns:1fr}
-  .vs-head div:last-child,.vs-row div:last-child{display:none}
-  .vs-head,.vs-row{grid-template-columns:1fr 1fr}
-  .docs-shell{grid-template-columns:1fr}
-  .docs-sidebar{display:flex;overflow-x:auto;padding:0;border-right:none;border-bottom:1px solid var(--gray-200)}
-  .docs-nav-section{display:none}
-  .docs-nav-item{white-space:nowrap;border-left:none;border-bottom:3px solid transparent;padding:12px 14px}
-  .docs-nav-item.active{border-bottom-color:var(--blue);border-left:none}
+/* Modal */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:100;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:#fff;color:#202124;border-radius:12px;padding:28px 28px 24px;
+  width:100%;max-width:420px;position:relative;
+  box-shadow:0 24px 80px rgba(0,0,0,.45);
+}
+.modal-close{
+  position:absolute;top:12px;right:14px;background:none;border:none;
+  font-size:22px;cursor:pointer;color:#80868B;line-height:1;
+}
+.modal h3{font-size:20px;margin-bottom:6px}
+.modal p{font-size:14px;color:#5F6368;margin-bottom:18px}
+.modal .field{margin-bottom:14px}
+.modal label{display:block;font-size:12px;font-weight:500;color:#5F6368;margin-bottom:6px}
+.modal input{
+  width:100%;border:1px solid #DADCE0;border-radius:6px;padding:10px 12px;
+  font-size:14px;outline:none;font-family:var(--sans);
+}
+.modal input:focus{border-color:var(--blue)}
+.modal-error{
+  display:none;background:#FCE8E6;color:#C5221F;font-size:13px;
+  padding:8px 12px;border-radius:6px;margin-bottom:12px;
+  border:1px solid rgba(197,34,31,.2);
+}
+.modal-success{display:none;text-align:center;padding:12px 0}
+.modal-success .check{
+  width:48px;height:48px;border-radius:50%;background:#E6F4EA;color:#137333;
+  display:grid;place-items:center;margin:0 auto 12px;font-size:22px;font-weight:700;
+}
+.payment-badge{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:12px;color:#80868B;
+}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pulseSoft{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes fadePulse{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes slideIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scan{0%{transform:translateX(-120%);opacity:0}30%,70%{opacity:1}100%{transform:translateX(120%);opacity:0}}
+@keyframes grow{from{transform:scaleX(.35)}to{transform:scaleX(1)}}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes shimmer{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.hero-copy,.hero-actions,.proof-row,.demo-card{animation:fadeUp .5s ease both}
+.hero-title{animation:fadeUp .45s ease both}
+.demo-card{animation-delay:.08s}
+.hero-actions{animation-delay:.12s}
+.proof-row{animation-delay:.18s}
+
+@media (max-width:1100px){
+  .feature-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .nav{padding:0 20px}
+  .nav-links a:not(.btn){display:none}
+  .hero{grid-template-columns:1fr;padding-top:52px;gap:32px}
+  .hero-title{font-size:42px}
+  .trust-grid,.framework-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .steps-grid,.feature-grid,.pricing-grid{grid-template-columns:1fr}
   .footer-grid{grid-template-columns:1fr 1fr}
-  .footer-bottom{flex-direction:column}
-  section{padding:48px 16px}
-  .hero{padding:60px 16px 48px}
-  .dash-tiles{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:560px){
+  .wrap{padding:0 20px}
+  .hero{padding-left:20px;padding-right:20px}
+  .hero-title{font-size:34px}
+  .hero-copy{font-size:16px}
+  .trust-grid,.framework-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}
+  .section{padding:52px 0}
+  .demo-metrics{grid-template-columns:1fr}
+  .trace-name{width:100px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{
+    animation:none!important;
+    transition:none!important;
+  }
 }
 </style>
 </head>
 <body>
 
-<!-- SUCCESS BANNER -->
-<div id="success-banner"></div>
+<div class="success-banner" id="success-banner" role="status"></div>
 
-<!-- NAV -->
-<nav>
-  <a href="/" class="nav-logo" style="text-decoration:none">
-    <div class="nav-logo-mark">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-        <path d="M9 2.5 Q13 9 9 15.5" stroke="#1A73E8" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M5 2.5 Q9.5 9 5 15.5" stroke="#1A73E8" stroke-width="1.8" stroke-linecap="round" opacity=".4"/>
-        <circle cx="9" cy="2.5" r="1.6" fill="#1A73E8"/>
-        <circle cx="9" cy="15.5" r="1.6" fill="#1A73E8"/>
+<!-- Sticky nav -->
+<nav class="nav" aria-label="Primary">
+  <a class="nav-brand" href="/">
+    <div class="nav-mark" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <path d="M10 2.5 Q14 10 10 17.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M6 2.5 Q10.5 10 6 17.5" stroke="white" stroke-width="1.8" stroke-linecap="round" opacity=".45"/>
+        <circle cx="10" cy="2.5" r="1.8" fill="white"/>
+        <circle cx="10" cy="17.5" r="1.8" fill="white"/>
       </svg>
     </div>
-    <span class="nav-logo-text">CortexOps</span>
+    <span>CortexOps</span>
   </a>
   <div class="nav-links">
-    <a href="#observe" class="hide">Dashboard</a>
-    <a href="#features" class="hide">Features</a>
-    <a href="#compare" class="hide">vs LangSmith</a>
-    <a href="#pricing">Pricing</a>
-    <a href="https://docs.getcortexops.com" target="_blank" rel="noopener" class="hide">Docs</a>
-    <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener" class="hide">GitHub</a>
-    <button class="nav-cta" onclick="openModal()">Get started</button>
+    <a href="#social-proof">Customers</a>
+    <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
+    <a href="#features">Blog</a>
+    <a href="https://github.com/ashishodu2023/cortexops/releases" target="_blank" rel="noopener">Changelog</a>
+    <a href="#demo" class="btn sm">View Live Demo</a>
   </div>
 </nav>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-chip">
-    <div class="hero-chip-dot"></div>
-    <span class="hero-chip-text">v0.4.0 live on PyPI — pip install cortexops</span>
-  </div>
-  <h1>Stop shipping agents<br><strong>you can't trust</strong></h1>
-  <p class="hero-sub">Evaluate, observe, and gate LangGraph and CrewAI agents before they reach production. Built by a Senior AI Engineer at PayPal.</p>
-  <div class="hero-actions">
-    <button class="btn-primary" onclick="openModal()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>
-      Get started →
-    </button>
-    <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener" class="btn-outline">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.09.66-.22.66-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85.004 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.16.58.67.48A10.02 10.02 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
-      View on GitHub
-    </a>
-  </div>
-  <div class="hero-code">
-    <div class="code-label">Python</div>
-    <pre><span class="ck">from</span> <span class="cv">cortexops</span> <span class="ck">import</span> <span class="cf">CortexTracer</span><span class="cv">, </span><span class="cf">EvalSuite</span>
-
-tracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"payments-agent"</span>)  <span class="cm"># key auto-loaded</span>
-agent  = tracer.wrap(your_langgraph_app)   <span class="cm"># zero refactoring</span>
-
-results = <span class="cf">EvalSuite</span>.run(
-    dataset=<span class="cs">"golden_v1.yaml"</span>,
-    judge=<span class="cs">"llm"</span>,          <span class="cc"># LLM-as-judge semantic scoring</span>
-    agent=agent,
-    fail_on=<span class="cs">"task_completion &lt; 0.90"</span>,  <span class="cm"># CI gate</span>
-)
-<span class="cf">print</span>(results.summary())</pre>
-  </div>
-</div>
-
-<!-- CHIPS BAR -->
-<div class="chips-bar">
-  <div class="chip chip-blue">5 built-in eval metrics</div>
-  <div class="chip chip-green">1-line instrumentation</div>
-  <div class="chip chip-amber">CI gate — blocks PRs</div>
-  <div class="chip chip-red">No per-trace billing</div>
-  <div class="chip chip-blue">MIT licensed · open source</div>
-  <div class="chip chip-green">Pro plan</div>
-</div>
-
-<!-- DASHBOARD PREVIEW -->
-<div style="background:var(--gray-50);border-bottom:1px solid var(--gray-200)">
-<section id="observe">
-  <div class="section-label">Live observability</div>
-  <h2>See inside every agent run.<br><strong>In real time.</strong></h2>
-  <p class="section-sub">Click any trace row to see the node waterfall — exactly which step took how long, which tools were called, and what the output was. Debug a 2am incident in 30 seconds.</p>
-
-  <div class="dash-shell">
-    <div class="dash-topbar">
-      <div class="dash-dot-r"></div><div class="dash-dot-y"></div><div class="dash-dot-g"></div>
-      <span style="flex:1;text-align:center;font-size:11px;color:var(--gray-600);font-family:var(--sans)">app.getcortexops.com</span>
-    </div>
-    <div class="dash-bar">
-      <div style="width:18px;height:18px;background:white;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1.2 Q7.5 5 5 8.8" stroke="#1A73E8" stroke-width="1.1" stroke-linecap="round"/><path d="M2.5 1.2 Q5.5 5 2.5 8.8" stroke="#1A73E8" stroke-width="1.1" stroke-linecap="round" opacity=".35"/><circle cx="5" cy="1.2" r=".9" fill="#1A73E8"/><circle cx="5" cy="8.8" r=".9" fill="#1A73E8"/></svg>
+<main>
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div>
+      <div class="badge">
+        <span class="badge-dot" aria-hidden="true"></span>
+        Open source reliability infrastructure
       </div>
-      <span style="font-family:var(--sans);font-size:13px;font-weight:500;color:white">CortexOps</span>
-      <span style="font-size:10px;color:rgba(255,255,255,.5)">Observability</span>
-      <div style="width:1px;height:16px;background:rgba(255,255,255,.2)"></div>
-      <span style="font-size:10px;color:rgba(255,255,255,.7);font-family:var(--sans)">project</span>
-      <span style="background:rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-family:var(--mono);font-size:10px;color:white">payments-agent</span>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
-        <div style="width:6px;height:6px;border-radius:50%;background:#34A853;animation:pulse 1.5s infinite"></div>
-        <span style="font-size:10px;color:#34A853;font-family:var(--sans)">Live · 5s</span>
+      <h1 class="hero-title" id="hero-title">Ship Reliable AI Agents.<br>Every Time.</h1>
+      <p class="hero-copy">
+        Trace every node, evaluate every change, monitor production health, and catch regressions before users do.
+      </p>
+      <div class="hero-actions">
+        <a href="#demo" class="btn">View Live Demo</a>
+        <span class="install-chip">$ pip install cortexops</span>
+      </div>
+      <div class="proof-row">
+        <span>Open Source</span>
+        <span>MIT License</span>
+        <span>12 Frameworks</span>
+        <span>CI Ready</span>
       </div>
     </div>
-    <div class="dash-tiles">
-      <div class="dash-tile" style="border-left-color:#34A853">
-        <div class="dash-tile-lbl">Task completion</div>
-        <div class="dash-tile-val" style="color:#34A853">94.2<span style="font-size:11px">%</span></div>
-        <div class="dash-tile-delta" style="color:#34A853">↑ 2.1%</div>
-        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,14 20,10 40,12 60,6 80,8 100,4" fill="none" stroke="#34A853" stroke-width="1.4" stroke-linecap="round"/></svg>
-      </div>
-      <div class="dash-tile" style="border-left-color:#34A853">
-        <div class="dash-tile-lbl">Error rate</div>
-        <div class="dash-tile-val" style="color:#34A853">2.3<span style="font-size:11px">%</span></div>
-        <div class="dash-tile-delta" style="color:#34A853">↓ 0.8%</div>
-        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,8 25,11 50,6 75,12 100,7" fill="none" stroke="#34A853" stroke-width="1.4" stroke-linecap="round"/></svg>
-      </div>
-      <div class="dash-tile" style="border-left-color:#FBBC04">
-        <div class="dash-tile-lbl">Avg latency</div>
-        <div class="dash-tile-val" style="color:#FBBC04">487<span style="font-size:11px">ms</span></div>
-        <div class="dash-tile-delta" style="color:#9AA0A6"> </div>
-        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,10 25,7 50,13 75,9 100,11" fill="none" stroke="#FBBC04" stroke-width="1.4" stroke-linecap="round"/></svg>
-      </div>
-      <div class="dash-tile" style="border-left-color:#8AB4F8">
-        <div class="dash-tile-lbl">P95 latency</div>
-        <div class="dash-tile-val" style="color:#8AB4F8">1,240<span style="font-size:11px">ms</span></div>
-        <div class="dash-tile-delta" style="color:#9AA0A6"> </div>
-        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,12 33,9 66,14 100,11" fill="none" stroke="#8AB4F8" stroke-width="1.4" stroke-linecap="round"/></svg>
-      </div>
-      <div class="dash-tile" style="border-left-color:#8AB4F8">
-        <div class="dash-tile-lbl">Total traces</div>
-        <div class="dash-tile-val" style="color:#8AB4F8">1,847</div>
-        <div class="dash-tile-delta" style="color:#9AA0A6"> </div>
-        <svg width="100%" height="18" viewBox="0 0 100 18" preserveAspectRatio="none"><polyline points="0,16 25,14 50,11 75,8 100,5" fill="none" stroke="#8AB4F8" stroke-width="1.4" stroke-linecap="round"/></svg>
-      </div>
-    </div>
-    <div class="dash-body">
-      <div class="dash-list">
-        <div class="dash-thead">
-          <div style="min-width:5px"></div>
-          <div style="min-width:52px">ID</div>
-          <div style="flex:1">Case</div>
-          <div style="min-width:50px;text-align:right">Latency</div>
-          <div style="min-width:80px">Failure</div>
-          <div style="min-width:60px;text-align:right">Time</div>
+
+    <div class="demo-card" id="demo" aria-label="Hero dashboard with live animated agent trace waterfall">
+      <div class="demo-scan" aria-hidden="true"></div>
+      <div class="demo-head">
+        <div class="demo-head-title">Hero Dashboard</div>
+        <div class="demo-badges">
+          <span class="pill ok">Success badge</span>
+          <span class="pill bad">Failure badge</span>
         </div>
-        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">4398c8e8</span><span style="flex:1;color:var(--gray-900)">refund_approved</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">342ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:24:11</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">b21fa3c2</span><span style="flex:1;color:var(--gray-900)">balance_check</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">198ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:24:08</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#EA4335"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">9f3e1d77</span><span style="flex:1;color:var(--gray-900)">dispute_escalation</span><span style="font-family:var(--mono);font-size:9px;color:#EA4335;min-width:50px;text-align:right">3,240ms</span><span style="min-width:80px;font-size:8px"><span style="background:rgba(234,67,53,.15);color:#EA4335;padding:1px 5px;border-radius:3px;font-family:var(--mono)">TIMEOUT</span></span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:55</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#34A853"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">c84ab910</span><span style="flex:1;color:var(--gray-900)">refund_approved</span><span style="font-family:var(--mono);font-size:9px;color:#34A853;min-width:50px;text-align:right">287ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:41</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#FBBC04"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">e12cd456</span><span style="flex:1;color:var(--gray-900)">kyc_verification</span><span style="font-family:var(--mono);font-size:9px;color:#FBBC04;min-width:50px;text-align:right">743ms</span><span style="min-width:80px;font-size:8px;color:#5F6368">—</span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:30</span></div>
-        <div class="dash-row"><div class="sdot" style="background:#EA4335"></div><span style="font-family:var(--mono);font-size:9px;color:#9AA0A6;min-width:52px">a77bf219</span><span style="flex:1;color:var(--gray-900)">fraud_detection</span><span style="font-family:var(--mono);font-size:9px;color:#EA4335;min-width:50px;text-align:right">1,820ms</span><span style="min-width:80px;font-size:8px"><span style="background:rgba(234,67,53,.15);color:#EA4335;padding:1px 5px;border-radius:3px;font-family:var(--mono)">HALLUCI...</span></span><span style="font-size:8px;color:#9AA0A6;min-width:60px;text-align:right">09:23:18</span></div>
       </div>
-      <div class="dash-right">
-        <div class="dr-lbl">Health</div>
-        <div class="dr-row"><span style="color:var(--gray-700)">Success</span><span style="color:#34A853;font-weight:600">97.7%</span></div>
-        <div class="dr-row"><span style="color:var(--gray-700)">Eval gate</span><span style="color:#34A853;font-weight:600">Passing</span></div>
-        <div class="dr-row" style="border:none"><span style="color:var(--gray-700)">Regressions</span><span style="color:#34A853;font-weight:600">0</span></div>
-        <div class="dr-lbl" style="margin-top:12px">Failures</div>
-        <div class="dr-row"><span style="font-family:var(--mono);font-size:8px;color:#9AA0A6">TIMEOUT</span><span style="color:#EA4335;font-weight:600">2</span></div>
-        <div class="dr-row" style="border:none"><span style="font-family:var(--mono);font-size:8px;color:#9AA0A6">HALLUCI...</span><span style="color:#EA4335;font-weight:600">1</span></div>
-        <div class="dr-lbl" style="margin-top:12px">Latency</div>
-        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-500);margin-bottom:2px"><span>&lt;200ms</span><span>312</span></div><div style="height:3px;background:var(--gray-200);border-radius:2px"><div style="width:42%;height:100%;background:#34A853;border-radius:2px"></div></div></div>
-        <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-500);margin-bottom:2px"><span>200–500</span><span>498</span></div><div style="height:3px;background:var(--gray-200);border-radius:2px"><div style="width:68%;height:100%;background:#34A853;border-radius:2px"></div></div></div>
-        <div><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--gray-500);margin-bottom:2px"><span>&gt;1s</span><span>23</span></div><div style="height:3px;background:var(--gray-200);border-radius:2px"><div style="width:8%;height:100%;background:#EA4335;border-radius:2px"></div></div></div>
-      </div>
-    </div>
-  </div>
-  <div style="text-align:center;margin-top:20px">
-    <a href="https://app.getcortexops.com" target="_blank" rel="noopener" class="btn-outline">Open live dashboard →</a>
-  </div>
-</section>
-</div>
-
-<!-- HOW IT WORKS -->
-<div style="background:white;border-top:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200)">
-<section id="how">
-  <div class="section-label">How it works</div>
-  <h2>From prototype to<br><strong>trusted production</strong></h2>
-  <p class="section-sub">Four steps. No refactoring. Works with any LangGraph or CrewAI agent.</p>
-  <div class="stepper">
-    <div class="step-card">
-      <div class="step-num">1</div>
-      <div class="step-title">Instrument</div>
-      <div class="step-desc">Wrap any agent in one line. CortexTracer auto-detects LangGraph and CrewAI.</div>
-      <div class="step-code">tracer = CortexTracer(project="my-agent")
-agent = tracer.wrap(your_app)</div>
-    </div>
-    <div class="step-card">
-      <div class="step-num">2</div>
-      <div class="step-title">Define</div>
-      <div class="step-desc">Write golden datasets in YAML. Expected keywords, tool calls, latency budgets.</div>
-      <div class="step-code">expected_output_contains:
-  - refund
-  - approved
-max_latency_ms: 3000</div>
-    </div>
-    <div class="step-card">
-      <div class="step-num">3</div>
-      <div class="step-title">Gate</div>
-      <div class="step-desc">One fail_on expression. PRs are blocked when quality drops — automatically.</div>
-      <div class="step-code">EvalSuite.run(
-  fail_on="task_completion
-    &lt; 0.90")</div>
-    </div>
-    <div class="step-card">
-      <div class="step-num">4</div>
-      <div class="step-title">Observe</div>
-      <div class="step-desc">Live traces, Slack alerts, waterfall debug view. Root cause in 30 seconds.</div>
-      <div class="step-code">GET /v1/traces
-  ?project=payments
-→ node waterfall</div>
-    </div>
-  </div>
-</section>
-</div>
-
-<!-- FEATURES -->
-<div style="background:var(--gray-50);border-bottom:1px solid var(--gray-200)">
-<section id="features">
-  <div class="section-label">Features</div>
-  <h2>Everything your agent needs<br><strong>to ship safely</strong></h2>
-  <div class="cards-3">
-    <div class="card">
-      <div class="card-icon" style="background:var(--blue-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="#1A73E8"><path d="M10 2l1.5 4.5H16l-3.7 2.7 1.4 4.3L10 11l-3.7 2.5 1.4-4.3L4 6.5h4.5z"/></svg></div>
-      <div class="card-title">Zero-config instrumentation</div>
-      <div class="card-body">Wraps LangGraph, CrewAI, or any callable with one line. No decorators, no config files, no refactoring.</div>
-      <div style="margin-top:12px"><span class="chip chip-green" style="font-size:11px;padding:3px 10px">Free</span></div>
-    </div>
-    <div class="card">
-      <div class="card-icon" style="background:var(--green-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="#137333"><path d="M8 4l6 6-6 6" stroke="#137333" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
-      <div class="card-title">Golden dataset evals</div>
-      <div class="card-body">YAML-based test cases with expected outputs, tool calls, and latency budgets. Run locally or in CI.</div>
-      <div style="margin-top:12px"><span class="chip chip-green" style="font-size:11px;padding:3px 10px">Free</span></div>
-    </div>
-    <div class="card">
-      <div class="card-icon" style="background:var(--amber-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#B06000" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 6v5l3 2" stroke-linecap="round"/></svg></div>
-      <div class="card-title">CI eval gate</div>
-      <div class="card-body">Block PRs with a single fail_on expression. Works with GitHub Actions, GitLab CI, any CI system.</div>
-      <div style="margin-top:12px"><span class="chip chip-green" style="font-size:11px;padding:3px 10px">Free</span></div>
-    </div>
-    <div class="card">
-      <div class="card-icon" style="background:var(--blue-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1A73E8" stroke-width="1.5"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M2 7h16" stroke-linecap="round"/></svg></div>
-      <div class="card-title">Hosted trace storage</div>
-      <div class="card-body">90-day retention. Node waterfall, tool calls, latency breakdown. Live dashboard at app.getcortexops.com.</div>
-      <div style="margin-top:12px"><span class="chip chip-blue" style="font-size:11px;padding:3px 10px">Pro</span></div>
-    </div>
-    <div class="card">
-      <div class="card-icon" style="background:var(--red-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#C5221F" stroke-width="1.5"><path d="M10 2v4M10 14v4M4.22 4.22l2.83 2.83M12.95 12.95l2.83 2.83M2 10h4M14 10h4" stroke-linecap="round"/></svg></div>
-      <div class="card-title">Slack + webhook alerts</div>
-      <div class="card-body">Get paged when production regresses — before your users notice. Configurable thresholds per project.</div>
-      <div style="margin-top:12px"><span class="chip chip-blue" style="font-size:11px;padding:3px 10px">Pro</span></div>
-    </div>
-    <div class="card">
-      <div class="card-icon" style="background:var(--green-light)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#137333" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M7 10l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="card-title">LLM-as-judge scoring</div>
-      <div class="card-body">GPT-4o evaluates open-ended outputs against your criteria. Heuristic fallback always included.</div>
-      <div style="margin-top:12px"><span class="chip chip-blue" style="font-size:11px;padding:3px 10px">Pro</span></div>
-    </div>
-  </div>
-</section>
-</div>
-
-<!-- VS LANGSMITH -->
-<div style="background:white;border-bottom:1px solid var(--gray-200)">
-<section id="compare">
-  <div class="section-label">vs LangSmith</div>
-  <h2>Know your bill<br><strong>before you ship</strong></h2>
-  <p class="section-sub">LangSmith charges $39/seat plus $2.50–$5.00 per 1,000 traces. At 50k traces/month that's $164 per seat. CortexOps is $49/seat. Flat.</p>
-  <div class="vs-table">
-    <div class="vs-head">
-      <div>Capability</div>
-      <div class="winner">CortexOps</div>
-      <div>LangSmith</div>
-    </div>
-    <div class="vs-row"><div>Pricing model</div><div class="check">$49/seat flat</div><div class="neutral">$39/seat + trace fees</div></div>
-    <div class="vs-row"><div>Trace cost</div><div class="check">Unlimited — included</div><div class="neutral">$2.50–$5.00 / 1k</div></div>
-    <div class="vs-row"><div>CI eval gate</div><div class="check">1-line fail_on</div><div class="neutral">Manual setup required</div></div>
-    <div class="vs-row"><div>Framework lock-in</div><div class="check">None — any agent</div><div class="neutral">Best with LangChain</div></div>
-    <div class="vs-row"><div>Payments domain</div><div class="check">Built-in templates</div><div class="cross">Not available</div></div>
-    <div class="vs-row"><div>Free local evals</div><div class="check">Unlimited</div><div class="neutral">5k traces/month</div></div>
-    <div class="vs-row"><div>Open source</div><div class="check">MIT licensed</div><div class="neutral">Proprietary</div></div>
-  </div>
-</section>
-</div>
-
-<!-- PRICING -->
-<div style="background:var(--gray-50);border-bottom:1px solid var(--gray-200)">
-<section id="pricing">
-  <div class="section-label">Pricing</div>
-  <h2>Start free.<br><strong>Scale with your agents.</strong></h2>
-  <p class="section-sub">No credit card required for free tier. Pro starts with a cancel anytime.</p>
-  <div class="pricing-grid">
-    <div class="price-card">
-      <div class="price-tier">Free</div>
-      <div class="price-val">$0</div>
-      <div class="price-desc">Full SDK, unlimited local evals, CI gate. Forever free.</div>
-      <div class="price-divider"></div>
-      <ul class="price-feats">
-        <li><span class="ok">✓</span> pip install cortexops</li>
-        <li><span class="ok">✓</span> Unlimited local eval runs</li>
-        <li><span class="ok">✓</span> GitHub Actions CI gate</li>
-        <li><span class="ok">✓</span> Golden dataset YAML format</li>
-        <li><span class="ok">✓</span> CLI tool</li>
-      </ul>
-      <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener" style="text-decoration:none;display:block"><button class="btn-price-outline">Get started free</button></a>
-    </div>
-    <div class="price-card featured">
-      <div class="popular-badge">Most popular</div>
-      <div class="price-tier">Pro</div>
-      <div class="price-val">$49<span> / seat / mo</span></div>
-      <div class="price-desc">Hosted traces, live dashboard, Slack alerts. Pro plan.</div>
-      <div class="price-divider"></div>
-      <ul class="price-feats">
-        <li><span class="ok">✓</span> Everything in Free</li>
-        <li><span class="ok">✓</span> Hosted traces — 90 days</li>
-        <li><span class="ok">✓</span> Live observability dashboard</li>
-        <li><span class="ok">✓</span> Slack + webhook alerts</li>
-        <li><span class="ok">✓</span> LLM-as-judge scoring</li>
-        <li><span class="ok">✓</span> Prompt version history</li>
-      </ul>
-      <button class="btn-price-primary" onclick="openModal()">Start Pro →</button>
-      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--gray-500)">Secured by PayPal · Cancel anytime</div>
-    </div>
-    <div class="price-card">
-      <div class="price-tier">Enterprise</div>
-      <div class="price-val">Custom</div>
-      <div class="price-desc">VPC deployment, SSO, SLA guarantee, dedicated support.</div>
-      <div class="price-divider"></div>
-      <ul class="price-feats">
-        <li><span class="ok">✓</span> Everything in Pro</li>
-        <li><span class="ok">✓</span> VPC / on-prem deployment</li>
-        <li><span class="ok">✓</span> SSO / SAML</li>
-        <li><span class="ok">✓</span> Custom data retention</li>
-        <li><span class="ok">✓</span> SLA guarantee</li>
-      </ul>
-      <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Enterprise%20Inquiry" style="text-decoration:none;display:block"><button class="btn-price-outline">Talk to us</button></a>
-    </div>
-  </div>
-</section>
-</div>
-
-<!-- DOCS PREVIEW -->
-<div style="background:white;border-bottom:1px solid var(--gray-200)">
-<section id="docs">
-  <div class="section-label">Documentation</div>
-  <h2>Complete docs at<br><a href="https://docs.getcortexops.com" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600;text-decoration:none">docs.getcortexops.com</a></h2>
-  <p class="section-sub">18 pages covering installation, golden datasets, CI gate, LangGraph, CrewAI, API reference, and more. No GitHub redirect.</p>
-  <div class="docs-shell">
-    <div class="docs-sidebar">
-      <div class="docs-nav-section">Getting started</div>
-      <a class="docs-nav-item active" onclick="switchDoc('quickstart',this)">Quickstart</a>
-      <a class="docs-nav-item" onclick="switchDoc('ci',this)">CI eval gate</a>
-      <a class="docs-nav-item" onclick="switchDoc('langgraph',this)">LangGraph</a>
-      <div class="docs-nav-section">API reference</div>
-      <a class="docs-nav-item" onclick="switchDoc('api',this)">Traces API</a>
-      <a class="docs-nav-item" onclick="switchDoc('sdk',this)">SDK reference</a>
-    </div>
-    <div class="docs-content" id="docs-content">
-      <h3>Quickstart</h3>
-      <p>Install the SDK and run your first eval in under 2 minutes.</p>
-      <pre><span class="ck"># Install</span>
-pip install cortexops
-
-<span class="ck">from</span> cortexops <span class="ck">import</span> <span class="cf">CortexTracer</span>, <span class="cf">EvalSuite</span>
-
-tracer = <span class="cf">CortexTracer</span>(project=<span class="cs">"my-agent"</span>)
-agent  = tracer.wrap(my_agent)
-
-results = <span class="cf">EvalSuite</span>.run(
-    dataset=<span class="cs">"golden_v1.yaml"</span>,
-    agent=agent,
-    verbose=<span class="cv">True</span>,
-)</pre>
-    </div>
-  </div>
-  <div style="text-align:center;margin-top:24px">
-    <a href="https://docs.getcortexops.com" target="_blank" rel="noopener" class="btn-outline">Read full docs →</a>
-  </div>
-</section>
-</div>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-inner">
-    <div class="footer-grid">
-      <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="width:28px;height:28px;background:#1A73E8;border-radius:6px;display:flex;align-items:center;justify-content:center">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2 Q11.5 8 8 14" stroke="white" stroke-width="1.6" stroke-linecap="round"/><path d="M4.5 2 Q8.5 8 4.5 14" stroke="white" stroke-width="1.6" stroke-linecap="round" opacity=".4"/><circle cx="8" cy="2" r="1.4" fill="white"/><circle cx="8" cy="14" r="1.4" fill="white"/></svg>
+      <div class="demo-body">
+        <div class="demo-metrics">
+          <div class="metric">
+            <div class="metric-lbl">Node</div>
+            <div class="metric-val live" id="metric-node" style="color:#F5B23D">running...</div>
           </div>
-          <div class="footer-brand-name">CortexOps</div>
+          <div class="metric">
+            <div class="metric-lbl">Latency</div>
+            <div class="metric-val live" id="metric-latency" style="color:#60A5FA">updating...</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">Health Score</div>
+            <div class="metric-val live" id="metric-health" style="color:#2DD4A7">changing...</div>
+          </div>
         </div>
-        <div class="footer-brand-desc">Reliability infrastructure for AI agents. Built by a Senior AI Engineer at PayPal. MIT licensed.</div>
-      </div>
-      <div class="footer-col">
-        <h4>Product</h4>
-        <a href="#observe">Dashboard</a>
-        <a href="#features">Features</a>
-        <a href="#compare">vs LangSmith</a>
-        <a href="#pricing">Pricing</a>
-      </div>
-      <div class="footer-col">
-        <h4>Developers</h4>
-        <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://pypi.org/project/cortexops" target="_blank" rel="noopener">PyPI</a>
-        <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
-        <a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">API reference</a>
-        <a href="https://docs.getcortexops.com/#changelog">Changelog</a>
-      </div>
-      <div class="footer-col">
-        <h4>Company</h4>
-        <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Inquiry">Contact</a>
-        <a href="https://www.linkedin.com/in/ashishodu2023/" target="_blank" rel="noopener">LinkedIn</a>
-        <a href="https://app.getcortexops.com" target="_blank" rel="noopener">Dashboard</a>
+
+        <div class="trace-row">
+          <div class="trace-name">classify_intent</div>
+          <div class="trace-track">
+            <div class="trace-bar" style="width:78%;background:#1A73E8;left:0;animation-duration:1s">1.18s</div>
+          </div>
+        </div>
+        <div class="trace-row">
+          <div class="trace-name mono" id="tool-call-label">tool call animated...</div>
+          <div class="trace-track">
+            <div class="trace-bar active" id="tool-call-bar" style="width:32%;background:#7B4F9E;left:12px;animation-duration:1.18s">active</div>
+          </div>
+        </div>
+        <div class="trace-row">
+          <div class="trace-name">evaluate_policy</div>
+          <div class="trace-track">
+            <div class="trace-bar" style="width:52%;background:#0E8A6D;left:24px;animation-duration:1.36s">890ms</div>
+          </div>
+        </div>
+        <div class="trace-row">
+          <div class="trace-name mono fail">tool: issue_refund</div>
+          <div class="trace-track">
+            <div class="trace-bar" style="width:88%;background:#D14343;left:36px;animation-duration:1.54s">2.01s</div>
+          </div>
+        </div>
+
+        <div class="trace-alert" id="trace-alert">Trace expanding... PaymentGatewayTimeout after tool call</div>
       </div>
     </div>
-    <div class="footer-divider"></div>
-    <div class="footer-bottom">
-      <span>© 2026 CortexOps. MIT licensed.</span>
-      <span>Built by a PayPal AI engineer · Payments by PayPal</span>
+  </section>
+
+  <!-- Social proof — immediately under hero -->
+  <section class="wrap section tight" id="social-proof" aria-label="Trust signals">
+    <div class="trust-grid">
+      <div class="trust-item">Open Source</div>
+      <div class="trust-item">MIT</div>
+      <div class="trust-item">Python SDK</div>
+      <div class="trust-item">GitHub Actions</div>
+      <div class="trust-item">Works with LangGraph</div>
+      <div class="trust-item">Works with CrewAI</div>
     </div>
+  </section>
+
+  <!-- Frameworks -->
+  <section class="wrap section" id="frameworks">
+    <div class="section-head">
+      <div class="eyebrow">Works with your stack</div>
+      <h2 class="section-title">One integration. Every framework.</h2>
+      <p class="section-copy">Instrument the agent framework your team already uses, without rewrites or lock-in.</p>
+    </div>
+    <div class="framework-grid">
+      <div class="framework-item">LangGraph</div>
+      <div class="framework-item">CrewAI</div>
+      <div class="framework-item">OpenAI Agents</div>
+      <div class="framework-item">PydanticAI</div>
+      <div class="framework-item">Google ADK</div>
+      <div class="framework-item">Smolagents</div>
+      <div class="framework-item">LlamaIndex</div>
+      <div class="framework-item">Haystack</div>
+      <div class="framework-item">AutoGen</div>
+      <div class="framework-item">DSPy</div>
+      <div class="framework-item">Agno</div>
+      <div class="framework-item">+ any callable</div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="wrap section" id="how">
+    <div class="section-head">
+      <div class="eyebrow">How it works</div>
+      <h2 class="section-title">Trace. Evaluate. Monitor.</h2>
+      <p class="section-copy">Three production disciplines that turn opaque agent behavior into a system your team can operate.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="card">
+        <h3>1. Trace every run</h3>
+        <p>Wrap your agent once and capture nodes, tools, state, latency, and failure details.</p>
+        <div class="code-box">from cortexops import CortexTracer
+tracer = CortexTracer(project="agent")
+agent = tracer.wrap(graph)</div>
+      </div>
+      <div class="card">
+        <h3>2. Evaluate in CI</h3>
+        <p>Run golden datasets in CI and stop regressions before they reach production.</p>
+        <div class="code-box">cortexops eval run \
+  --dataset gold.yaml \
+  --fail-on "score &lt; 0.9"</div>
+      </div>
+      <div class="card">
+        <h3>3. Monitor production</h3>
+        <p>Watch health, drift, latency, and alerts after your agents are live.</p>
+        <div class="code-box">tracer.monitor(
+  alert="slack",
+  on="quality_drop"
+)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features / dashboard preview -->
+  <section class="wrap section" id="features">
+    <div class="section-head">
+      <div class="eyebrow">Platform</div>
+      <h2 class="section-title">Here is why every AI engineering team needs CortexOps.</h2>
+    </div>
+    <div class="feature-grid">
+      <div class="card">
+        <div class="feature-icon" style="background:rgba(26,115,232,.14);color:#1A73E8">●</div>
+        <h3>Trace Explorer</h3>
+        <p>Full agent waterfall with nodes, tools, branches, latency, state, and failure context.</p>
+      </div>
+      <div class="card">
+        <div class="feature-icon" style="background:rgba(19,115,51,.14);color:#137333">●</div>
+        <h3>Evaluation</h3>
+        <p>LLM-as-judge scoring, golden datasets, pass rates, regressions, and semantic quality checks.</p>
+      </div>
+      <div class="card">
+        <div class="feature-icon" style="background:rgba(176,96,0,.14);color:#B06000">●</div>
+        <h3>Monitoring</h3>
+        <p>Production health, latency, drift, anomaly, and cost signals in one operational view.</p>
+      </div>
+      <div class="card">
+        <div class="feature-icon" style="background:rgba(123,79,158,.14);color:#7B4F9E">●</div>
+        <h3>Prompt Version</h3>
+        <p>Track every prompt change against evals and traces so teams can roll back regressions.</p>
+      </div>
+      <div class="card">
+        <div class="feature-icon" style="background:rgba(197,34,31,.14);color:#C5221F">●</div>
+        <h3>Alerts</h3>
+        <p>Route failures, drift, latency spikes, and quality drops to the channels your team already uses.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison -->
+  <section class="wrap section" id="compare">
+    <div class="section-head">
+      <div class="eyebrow">Why teams switch</div>
+      <h2 class="section-title">Built for agents, not just LLM calls.</h2>
+    </div>
+    <div class="compare-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>CortexOps</th>
+            <th>LangSmith</th>
+            <th>Langfuse</th>
+            <th>Arize Phoenix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Agent execution tracing</td>
+            <td class="yes">Full waterfall</td>
+            <td class="partial">LangChain focused</td>
+            <td class="partial">LLM calls</td>
+            <td class="partial">Span tree</td>
+          </tr>
+          <tr>
+            <td>Framework support</td>
+            <td class="yes">12 frameworks</td>
+            <td class="partial">LangChain</td>
+            <td class="partial">Via SDK</td>
+            <td class="partial">Several</td>
+          </tr>
+          <tr>
+            <td>CI/CD eval gate</td>
+            <td class="yes">First-class CLI</td>
+            <td class="partial">Partial</td>
+            <td class="no">Manual</td>
+            <td class="partial">Scripted</td>
+          </tr>
+          <tr>
+            <td>Open source</td>
+            <td class="yes">MIT</td>
+            <td class="no">No</td>
+            <td class="yes">Yes</td>
+            <td class="partial">Elastic v2</td>
+          </tr>
+          <tr>
+            <td>Production alerts</td>
+            <td class="yes">Quality, drift, latency</td>
+            <td class="partial">Limited</td>
+            <td class="partial">Limited</td>
+            <td class="yes">Yes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="wrap section" id="pricing">
+    <div class="section-head">
+      <div class="eyebrow">Pricing</div>
+      <h2 class="section-title">Start free. Scale when you are ready.</h2>
+      <div class="price-toggle" role="group" aria-label="Billing cycle">
+        <button type="button" id="cycle-monthly" aria-pressed="true" onclick="setPricingCycle('monthly')">Monthly</button>
+        <button type="button" id="cycle-yearly" aria-pressed="false" onclick="setPricingCycle('yearly')">Yearly</button>
+      </div>
+    </div>
+    <div class="pricing-grid">
+      <div class="card price-card">
+        <h3>Free</h3>
+        <div class="price-amount">$0</div>
+        <p>For side projects and evaluation.</p>
+        <ul>
+          <li>Core tracing</li>
+          <li>Local eval runs</li>
+          <li>Python SDK</li>
+          <li>Community support</li>
+        </ul>
+        <a href="https://github.com/ashishodu2023/cortexops" class="btn ghost" target="_blank" rel="noopener">Start free</a>
+      </div>
+      <div class="card price-card featured">
+        <h3>Pro</h3>
+        <div class="price-amount" id="pro-price">$49 / mo</div>
+        <p>For teams shipping agents to production.</p>
+        <ul>
+          <li>Unlimited traces</li>
+          <li>LLM-as-judge evals</li>
+          <li>Drift monitoring</li>
+          <li>GitHub Actions gates</li>
+          <li>Priority support</li>
+        </ul>
+        <button type="button" class="btn" onclick="openModal()">Start Pro →</button>
+        <div class="price-note">Secured by PayPal · Cancel anytime</div>
+      </div>
+      <div class="card price-card">
+        <h3>Enterprise</h3>
+        <div class="price-amount">Custom</div>
+        <p>For compliance, scale, and private deployment.</p>
+        <ul>
+          <li>Everything in Pro</li>
+          <li>SSO / SAML</li>
+          <li>VPC or self-hosted deploy</li>
+          <li>Dedicated support</li>
+        </ul>
+        <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Enterprise%20Inquiry" class="btn ghost">Contact sales</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="wrap section" id="faq">
+    <div class="section-head" style="text-align:center">
+      <div class="eyebrow">FAQ</div>
+      <h2 class="section-title">Questions, answered.</h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>Which frameworks do you support?</summary>
+        <div>CortexOps supports LangGraph, CrewAI, OpenAI Agents SDK, PydanticAI, Google ADK, Smolagents, LlamaIndex, Haystack, AutoGen, DSPy, Agno, and any callable wrapper.</div>
+      </details>
+      <details class="faq-item">
+        <summary>How is this different from LangSmith or Langfuse?</summary>
+        <div>Those tools are strongest around LLM calls. CortexOps is designed around agent execution: nodes, tools, state transitions, eval gates, monitoring, and alerts.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Can we self-host?</summary>
+        <div>Yes. CortexOps is open source and MIT licensed, with a Python SDK and deployment paths for teams that need control over data.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Does it work in CI?</summary>
+        <div>Yes. The eval command can run in GitHub Actions and fail a build when score, regression, latency, or task-completion thresholds are missed.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Where is the live dashboard?</summary>
+        <div>Open <a href="https://app.getcortexops.com">app.getcortexops.com</a> with your API key. Marketing lives here; the authenticated console is on the app subdomain.</div>
+      </details>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="wrap section">
+    <div class="cta-band">
+      <h2 class="section-title">Ship agents you can trust.</h2>
+      <p class="section-copy">Developers love demos. Start with the live preview, then connect your first project when you are ready.</p>
+      <div class="cta-actions">
+        <a href="#demo" class="btn">View Live Demo</a>
+        <a href="https://app.getcortexops.com" class="btn ghost">Open dashboard</a>
+        <a href="https://github.com/ashishodu2023/cortexops" class="btn ghost" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="wrap">
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">CortexOps</div>
+      <p class="footer-desc">Reliability infrastructure for AI agents. Trace, evaluate, monitor, and alert before users feel the regression.</p>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <a href="#features">Trace Explorer</a>
+      <a href="#features">Evaluation</a>
+      <a href="#features">Monitoring</a>
+      <a href="#features">Prompt Version</a>
+      <a href="#features">Alerts</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div>
+      <h4>Developers</h4>
+      <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
+      <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://pypi.org/project/cortexops/" target="_blank" rel="noopener">Python SDK</a>
+      <a href="https://github.com/ashishodu2023/cortexops/issues" target="_blank" rel="noopener">Roadmap</a>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <a href="#social-proof">Customers</a>
+      <a href="#features">Blog</a>
+      <a href="mailto:ashish@getcortexops.com?subject=CortexOps%20Inquiry">Contact</a>
+      <a href="https://www.linkedin.com/in/ashishodu2023/" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <a href="https://api.getcortexops.com/health" target="_blank" rel="noopener">Status</a>
+      <a href="mailto:ashish@getcortexops.com?subject=Security">Security</a>
+      <a href="mailto:ashish@getcortexops.com?subject=Privacy">Privacy</a>
+      <a href="mailto:ashish@getcortexops.com?subject=Terms">Terms</a>
+      <a href="https://github.com/ashishodu2023/cortexops/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 CortexOps · MIT licensed</span>
+    <span>Built by a PayPal AI engineer · Payments by PayPal</span>
   </div>
 </footer>
 
-<!-- CHECKOUT MODAL -->
-<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+<!-- Checkout modal -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal()">×</button>
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
     <div id="modal-form">
-      <h3>Start your Pro subscription</h3>
+      <h3 id="modal-title">Start your Pro subscription</h3>
       <p>$49/month. Cancel anytime. Your API key arrives by email after payment.</p>
-      <div class="modal-error" id="modal-error"></div>
+      <div class="modal-error" id="modal-error" role="alert"></div>
       <div class="field">
-        <label>Work email</label>
+        <label for="checkout-email">Work email</label>
         <input type="email" id="checkout-email" placeholder="you@company.com" autocomplete="email">
       </div>
       <div class="field">
-        <label>Project name</label>
+        <label for="checkout-project">Project name</label>
         <input type="text" id="checkout-project" placeholder="payments-agent" autocomplete="off">
       </div>
       <button id="paypal-btn" onclick="window.startPayPalCheckout()"
         style="width:100%;padding:12px;background:#FFC439;color:#003087;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#003087"><path d="M7.5 8.5h2.25c1.38 0 2.498.63 2.498 2.07 0 1.815-1.222 2.93-2.998 2.93H8.126L7.5 17H5.5L7.5 8.5zm1.5 1.5l-.5 2.5H9.4c.83 0 1.35-.45 1.35-1.3 0-.8-.48-1.2-1.25-1.2H9zm7.067-1.522c.492.315.844.825.983 1.39.367 1.55-.577 3.087-2.123 3.41-.09.018-.18.033-.274.044-.06.008-.12.013-.18.017-.18.012-.362.017-.544.012l-1.024-.022-.307 1.955-.01.063a.5.5 0 01-.494.43h-1.2a.25.25 0 01-.247-.29l1.02-6.468a.5.5 0 01.494-.43h2.318c.22 0 .434.018.643.053.257.043.507.116.741.22l.014.006z"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#003087" aria-hidden="true"><path d="M7.5 8.5h2.25c1.38 0 2.498.63 2.498 2.07 0 1.815-1.222 2.93-2.998 2.93H8.126L7.5 17H5.5L7.5 8.5zm1.5 1.5l-.5 2.5H9.4c.83 0 1.35-.45 1.35-1.3 0-.8-.48-1.2-1.25-1.2H9zm7.067-1.522c.492.315.844.825.983 1.39.367 1.55-.577 3.087-2.123 3.41-.09.018-.18.033-.274.044-.06.008-.12.013-.18.017-.18.012-.362.017-.544.012l-1.024-.022-.307 1.955-.01.063a.5.5 0 01-.494.43h-1.2a.25.25 0 01-.247-.29l1.02-6.468a.5.5 0 01.494-.43h2.318c.22 0 .434.018.643.053.257.043.507.116.741.22l.014.006z"/></svg>
         Pay with PayPal
       </button>
       <div class="payment-badge" style="margin-top:12px;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         Secured by PayPal. Cancel anytime.
       </div>
     </div>
@@ -727,12 +909,19 @@ results = <span class="cf">EvalSuite</span>.run(
   </div>
 </div>
 
-<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
-
 <script>
 const API = 'https://api.getcortexops.com';
 
-// ── Modal ────────────────────────────────────────────────────────
+window.setPricingCycle = function(cycle) {
+  const monthly = document.getElementById('cycle-monthly');
+  const yearly = document.getElementById('cycle-yearly');
+  const price = document.getElementById('pro-price');
+  if (!monthly || !yearly || !price) return;
+  monthly.setAttribute('aria-pressed', cycle === 'monthly' ? 'true' : 'false');
+  yearly.setAttribute('aria-pressed', cycle === 'yearly' ? 'true' : 'false');
+  price.textContent = cycle === 'yearly' ? '$490 / yr' : '$49 / mo';
+};
+
 window.openModal = function() {
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -755,7 +944,6 @@ window.showError = function(msg) {
   el.style.display = 'block';
 };
 
-// ── Checkout ─────────────────────────────────────────────────────
 window.startPayPalCheckout = async function() {
   const email   = (document.getElementById('checkout-email').value || '').trim();
   const project = (document.getElementById('checkout-project').value || '').trim();
@@ -777,77 +965,72 @@ window.startPayPalCheckout = async function() {
     }
     const data = await r.json();
     if (!data.approval_url) throw new Error('No PayPal approval URL returned');
-    // Redirect to PayPal
     window.location.href = data.approval_url;
   } catch(err) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Pay with PayPal'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Pay with PayPal';
+    }
     window.showError(err.message + ' — email ashish@getcortexops.com if this persists.');
     console.error('PayPal checkout error:', err);
   }
 };
 
-window.startCheckout = async function() {
-  const email   = (document.getElementById('checkout-email').value || '').trim();
-  const project = (document.getElementById('checkout-project').value || '').trim();
-  document.getElementById('modal-error').style.display = 'none';
-  if (!email || !email.includes('@')) return window.showError('Please enter a valid email address.');
-  if (!project || project.length < 2)  return window.showError('Please enter a project name (min 2 chars).');
-  const btn = document.getElementById('checkout-btn');
-  btn.disabled = true;
-  btn.textContent = 'Connecting to PayPal…';
-  try {
-    const r = await fetch(`${API}/v1/billing/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ email, project, seats: 1 })
-    });
-    if (!r.ok) {
-      let msg = 'Server error (' + r.status + ')';
-      try { const err = await r.json(); msg = err.detail || msg; } catch(e) {}
-      throw new Error(msg);
-    }
-    const data = await r.json();
-    if (!data.checkout_url) throw new Error('No checkout URL returned from server');
-    document.getElementById('modal-form').style.display = 'none';
-    document.getElementById('modal-success').style.display = 'block';
-    setTimeout(() => { window.location.href = data.checkout_url; }, 1000);
-  } catch (err) {
-    btn.disabled = false;
-    btn.textContent = 'Pay with PayPal';
-    const msg = err.message || 'Unknown error';
-    if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) {
-      window.showError('Cannot reach API. Check your connection and try again, or email ashish@getcortexops.com');
-    } else if (msg.includes('503') || msg.includes('PAYPAL_PLAN_ID')) {
-      window.showError('Payment not configured. Email ashish@getcortexops.com to activate Pro.');
-    } else {
-      window.showError(msg + ' — email ashish@getcortexops.com if this persists.');
-    }
-    console.error('Checkout error:', err);
-  }
-};
-
-// ── Keyboard + scroll ─────────────────────────────────────────────
-document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') window.closeModal();
+});
 
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
-    const t = document.querySelector(a.getAttribute('href'));
-    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+    const id = a.getAttribute('href');
+    if (!id || id === '#') return;
+    const t = document.querySelector(id);
+    if (t) {
+      e.preventDefault();
+      t.scrollIntoView({ behavior: 'smooth' });
+    }
   });
 });
 
-// ── Docs switcher ─────────────────────────────────────────────────
-window.switchDoc = function(id, el) {
-  document.querySelectorAll('.docs-nav-item').forEach(i => i.classList.remove('active'));
-  if (el) el.classList.add('active');
-  const content = document.getElementById('docs-content');
-  if (content && window.docsContent && window.docsContent[id]) {
-    content.innerHTML = window.docsContent[id];
-  }
-};
+// Hero dashboard — keep it looking alive (respect reduced motion)
+function startHeroLiveDemo() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-// ── API health check ──────────────────────────────────────────────
+  const nodes = ['running...', 'classify_intent', 'tool: lookup', 'evaluate_policy', 'running...'];
+  const latencies = ['updating...', '1.18s', '890ms', '2.01s', 'updating...'];
+  const health = ['changing...', 'stable', 'degraded', 'recovering', 'changing...'];
+  const tools = ['tool call animated...', 'tool: lookup_policy', 'tool: issue_refund', 'tool call animated...'];
+  const alerts = [
+    'Trace expanding... PaymentGatewayTimeout after tool call',
+    'Trace expanding... tool branch active',
+    'Trace expanding... failure context attached',
+  ];
+
+  let i = 0;
+  const nodeEl = document.getElementById('metric-node');
+  const latEl = document.getElementById('metric-latency');
+  const healthEl = document.getElementById('metric-health');
+  const toolEl = document.getElementById('tool-call-label');
+  const barEl = document.getElementById('tool-call-bar');
+  const alertEl = document.getElementById('trace-alert');
+  if (!nodeEl || !latEl || !healthEl) return;
+
+  setInterval(() => {
+    i = (i + 1) % nodes.length;
+    nodeEl.textContent = nodes[i];
+    latEl.textContent = latencies[i];
+    healthEl.textContent = health[i];
+    if (toolEl) toolEl.textContent = tools[i % tools.length];
+    if (barEl) {
+      const widths = ['32%', '48%', '64%', '40%'];
+      barEl.style.width = widths[i % widths.length];
+    }
+    if (alertEl) alertEl.textContent = alerts[i % alerts.length];
+  }, 1600);
+}
+
 window.addEventListener('load', async () => {
+  startHeroLiveDemo();
   try {
     const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(5000) });
     if (!r.ok) console.warn('CortexOps API health check failed:', r.status);
@@ -855,21 +1038,16 @@ window.addEventListener('load', async () => {
     console.warn('CortexOps API unreachable:', e.message);
   }
 
-  // PayPal success banner
   const params = new URLSearchParams(window.location.search);
-  if (params.get('paypal') === 'success') {
+  if (params.get('paypal') === 'success' || params.get('checkout') === 'success') {
     const b = document.getElementById('success-banner');
     if (b) {
       b.style.display = 'block';
       b.textContent = 'PayPal subscription active — check your email for your CortexOps Pro API key.';
     }
   }
-  if (params.get('checkout') === 'success') {
-    const b = document.getElementById('success-banner');
-    if (b) {
-      b.style.display = 'block';
-      b.textContent = 'PayPal subscription active — check your email for your CortexOps Pro API key.';
-    }
+  if (params.get('trial') === '1') {
+    window.openModal();
   }
 });
 </script>
