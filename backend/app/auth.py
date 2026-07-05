@@ -10,7 +10,7 @@ import secrets
 from datetime import datetime
 
 from fastapi import Depends, HTTPException, Security, status
-from fastapi.security import APIKeyHeader
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select, func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +21,7 @@ from .tiers import TierInfo
 settings = get_settings()
 
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+_bearer = HTTPBearer(auto_error=False)
 
 _ApiKey = None
 
@@ -46,18 +47,64 @@ def hash_key(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+async def _monthly_trace_count(db: AsyncSession, project: str) -> int:
+    from .models.records import TraceRecord
+
+    now = datetime.utcnow()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    count_result = await db.execute(
+        select(sa_func.count(TraceRecord.id)).where(
+            TraceRecord.project == project,
+            TraceRecord.created_at >= month_start,
+        )
+    )
+    return count_result.scalar() or 0
+
+
+async def _tier_from_jwt(credentials: HTTPAuthorizationCredentials, db: AsyncSession) -> TierInfo:
+    from .routers.jwt_auth import _JWT_SECRET, _verify
+
+    try:
+        payload = _verify(credentials.credentials, _JWT_SECRET)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token.",
+        ) from exc
+
+    project = payload.get("project") or payload.get("sub")
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload.",
+        )
+
+    monthly_traces = await _monthly_trace_count(db, project)
+    return TierInfo(
+        project=project,
+        tier=payload.get("tier", "free"),
+        key_id=payload.get("key_id", ""),
+        monthly_traces=monthly_traces,
+        scope=payload.get("scope", "read_write") or "read_write",
+    )
+
+
 async def get_current_key_info(
     raw_key: str | None = Security(_api_key_header),
+    credentials: HTTPAuthorizationCredentials | None = Security(_bearer),
     db: AsyncSession = Depends(get_db),
 ) -> TierInfo:
     """
     FastAPI dependency. Returns TierInfo with project, tier, and monthly usage.
-    Use this instead of get_current_project when you need tier enforcement.
+    Accepts either Authorization: Bearer <jwt> or X-API-Key: cxo-...
     """
+    if credentials and credentials.credentials:
+        return await _tier_from_jwt(credentials, db)
+
     if not raw_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing API key. Pass X-API-Key header.",
+            detail="Missing credentials. Pass Authorization: Bearer <jwt> or X-API-Key header.",
         )
 
     # Dev shortcut
@@ -91,19 +138,7 @@ async def get_current_key_info(
     key_record.last_used_at = datetime.utcnow()
     await db.flush()
 
-    # Count traces this calendar month for quota enforcement
-    from .models.records import TraceRecord
-    # DB column is TIMESTAMP WITHOUT TIME ZONE — use naive UTC datetime
-    now = datetime.utcnow()
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-    count_result = await db.execute(
-        select(sa_func.count(TraceRecord.id)).where(
-            TraceRecord.project == key_record.project,
-            TraceRecord.created_at >= month_start,
-        )
-    )
-    monthly_traces = count_result.scalar() or 0
+    monthly_traces = await _monthly_trace_count(db, key_record.project)
 
     return TierInfo(
         project=key_record.project,

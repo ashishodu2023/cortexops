@@ -5,11 +5,13 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import get_current_key_info
 from ..db import get_db
 from ..models.records import Project, PromptVersion
+from ..tiers import TierInfo
 
 router = APIRouter(prefix="/v1/prompts", tags=["prompts"])
 
@@ -90,13 +92,50 @@ async def create_prompt_version(body: PromptCreate, db: AsyncSession = Depends(g
     return pv
 
 
+@router.get("/catalog", response_model=list[PromptResponse])
+async def list_project_prompts(
+    project: str = Query(...),
+    limit: int = Query(50, le=100),
+    db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
+    """Latest version of each prompt in a project."""
+    if tier_info.project != project and tier_info.project != "__dev__":
+        raise HTTPException(403, "You can only list prompts for your own project.")
+
+    latest = (
+        select(
+            PromptVersion.prompt_name,
+            func.max(PromptVersion.version).label("max_version"),
+        )
+        .where(PromptVersion.project == project)
+        .group_by(PromptVersion.prompt_name)
+        .subquery()
+    )
+    result = await db.execute(
+        select(PromptVersion)
+        .join(
+            latest,
+            (PromptVersion.prompt_name == latest.c.prompt_name)
+            & (PromptVersion.version == latest.c.max_version)
+            & (PromptVersion.project == project),
+        )
+        .order_by(PromptVersion.created_at.desc())
+        .limit(limit)
+    )
+    return result.scalars().all()
+
+
 @router.get("", response_model=list[PromptResponse])
 async def list_prompt_versions(
     project: str = Query(...),
     prompt_name: str = Query(...),
     limit: int = Query(20, le=100),
     db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
 ):
+    if tier_info.project != project and tier_info.project != "__dev__":
+        raise HTTPException(403, "You can only list prompts for your own project.")
     result = await db.execute(
         select(PromptVersion)
         .where(PromptVersion.project == project, PromptVersion.prompt_name == prompt_name)
@@ -113,7 +152,10 @@ async def diff_prompt_versions(
     version_a: int = Query(...),
     version_b: int = Query(...),
     db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
 ):
+    if tier_info.project != project and tier_info.project != "__dev__":
+        raise HTTPException(403, "You can only diff prompts in your own project.")
     async def _get(v: int) -> PromptVersion:
         r = await db.execute(
             select(PromptVersion).where(
@@ -154,9 +196,15 @@ async def diff_prompt_versions(
 
 
 @router.get("/{version_id}", response_model=PromptResponse)
-async def get_prompt_version(version_id: str, db: AsyncSession = Depends(get_db)):
+async def get_prompt_version(
+    version_id: str,
+    db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
     result = await db.execute(select(PromptVersion).where(PromptVersion.id == version_id))
     pv = result.scalar_one_or_none()
     if not pv:
         raise HTTPException(404, f"Prompt version {version_id} not found")
+    if tier_info.project != pv.project and tier_info.project != "__dev__":
+        raise HTTPException(403, "You can only view prompts in your own project.")
     return pv

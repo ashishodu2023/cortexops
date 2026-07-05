@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-
-const API = import.meta.env?.VITE_API_URL || "https://api.getcortexops.com";
+import {
+  API,
+  apiFetch,
+  clearSession,
+  ensureSession,
+  issueToken,
+  loadSession,
+  saveSession,
+} from "./api.js";
 
 const M = {
   blue:"#1A73E8",blueDark:"#1557B0",blueLight:"rgba(26,115,232,.18)",blueSoft:"#60A5FA",
@@ -42,15 +49,16 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.b
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 `;
 
-function useFetch(apiKey,path){
-  const[data,setData]=useState(null);const[loading,setLoading]=useState(false);
+function useFetch(token,path){
+  const[data,setData]=useState(null);const[loading,setLoading]=useState(false);const[error,setError]=useState(null);
   const fetch_=useCallback(async()=>{
-    if(!apiKey||!path)return;setLoading(true);
-    try{const r=await fetch(`${API}${path}`,{headers:{"X-API-Key":apiKey}});if(r.ok)setData(await r.json());}
+    if(!token||!path)return;setLoading(true);setError(null);
+    try{setData(await apiFetch(token,path));}
+    catch(e){setError(e.message);}
     finally{setLoading(false);}
-  },[apiKey,path]);
+  },[token,path]);
   useEffect(()=>{fetch_();},[fetch_]);
-  return{data,loading,refetch:fetch_};
+  return{data,loading,error,refetch:fetch_};
 }
 
 function Sparkline({values=[],color,h=28}){
@@ -86,7 +94,7 @@ function LatencyChip({ms}){
   return<span style={{background:bg,color:c,fontSize:11,fontFamily:M.mono,padding:"2px 7px",borderRadius:4,fontWeight:500}}>{Math.round(ms)}ms</span>;
 }
 
-function WaterfallPanel({trace,onClose}){
+function WaterfallPanel({trace,onClose,loading}){
   const raw=trace.raw_trace||{};const nodes=raw.nodes||[];
   const maxMs=Math.max(...nodes.map(n=>n.latency_ms||0),trace.total_latency_ms||1);
   return(
@@ -99,6 +107,7 @@ function WaterfallPanel({trace,onClose}){
         <button onClick={onClose} style={{background:M.gray100,border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:18,color:M.gray600,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
       </div>
       <div style={{flex:1,overflow:"auto",padding:"16px 20px"}}>
+        {loading&&<div style={{fontSize:13,color:M.gray500,marginBottom:12}}>Loading trace detail…</div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
           {[["Status",trace.status,trace.status==="completed"?M.green:M.red,trace.status==="completed"?M.greenLight:M.redLight],
             ["Latency",`${Math.round(trace.total_latency_ms||0)}ms`,M.amber,M.amberLight],
@@ -166,13 +175,13 @@ function LogoMark({size=32}){
 }
 
 function LoginScreen({onLogin}){
-  const[key,setKey]=useState("");const[proj,setProj]=useState("payments-agent");
+  const[key,setKey]=useState("");
   const[err,setErr]=useState("");const[loading,setLoading]=useState(false);
   const submit=async()=>{
     if(!key.startsWith("cxo-")){setErr("Key must start with cxo-");return;}
-    setLoading(true);
-    try{const r=await fetch(`${API}/health`);if(!r.ok)throw new Error();onLogin(key,proj);}
-    catch{setErr("Cannot reach api.getcortexops.com");}
+    setLoading(true);setErr("");
+    try{const sess=await issueToken(key);onLogin(sess);}
+    catch(e){setErr(e.message||"Invalid API key or unreachable API");}
     finally{setLoading(false);}
   };
   const inputStyle={width:"100%",background:M.gray50,border:`1px solid ${M.gray300}`,borderRadius:6,color:M.gray900,fontSize:14,padding:"10px 12px",outline:"none"};
@@ -225,17 +234,16 @@ function LoginScreen({onLogin}){
               <div style={{fontSize:13,color:M.gray600}}>Same product. Live console.</div>
             </div>
           </div>
-          {[["API Key",key,setKey,"cxo-...","password"],["Project",proj,setProj,"payments-agent","text"]].map(([l,v,s,p,t])=>(
-            <div key={l} style={{marginBottom:14}}>
-              <label style={{display:"block",fontSize:12,fontWeight:500,color:M.gray600,marginBottom:6}}>{l}</label>
-              <input value={v} onChange={e=>s(e.target.value)} placeholder={p} type={t}
-                onKeyDown={e=>e.key==="Enter"&&submit()}
-                style={{...inputStyle,fontFamily:t==="password"?M.mono:"inherit"}}
-                onFocus={e=>e.target.style.borderColor=M.blue}
-                onBlur={e=>e.target.style.borderColor=M.gray300}
-              />
-            </div>
-          ))}
+          <div style={{marginBottom:14}}>
+            <label style={{display:"block",fontSize:12,fontWeight:500,color:M.gray600,marginBottom:6}}>API Key</label>
+            <input value={key} onChange={e=>setKey(e.target.value)} placeholder="cxo-..." type="password"
+              onKeyDown={e=>e.key==="Enter"&&submit()}
+              style={{...inputStyle,fontFamily:M.mono}}
+              onFocus={e=>e.target.style.borderColor=M.blue}
+              onBlur={e=>e.target.style.borderColor=M.gray300}
+            />
+          </div>
+          <p style={{fontSize:12,color:M.gray500,marginBottom:14}}>Project is resolved from your key after login.</p>
           {err&&<div style={{background:M.redLight,color:M.red,fontSize:13,padding:"8px 12px",borderRadius:6,marginBottom:14,border:"1px solid rgba(242,109,109,.25)"}}>{err}</div>}
           <button onClick={submit} disabled={loading||!key}
             style={{width:"100%",background:M.blue,color:M.ink,border:"none",borderRadius:7,padding:12,fontSize:15,fontWeight:700,cursor:loading||!key?"not-allowed":"pointer",opacity:loading||!key?.5:1,boxShadow:"0 14px 30px rgba(26,115,232,.28)"}}>
@@ -325,32 +333,95 @@ function PanelCard({title,children}){
 }
 
 export default function App(){
-  const[apiKey,setApiKey]=useState(()=>localStorage.getItem("cxo_key")||"");
-  const[project,setProject]=useState(()=>localStorage.getItem("cxo_project")||"payments-agent");
+  const[session,setSession]=useState(null);
+  const[authReady,setAuthReady]=useState(false);
   const[tab,setTab]=useState("overview");
   const[filter,setFilter]=useState("all");
   const[live,setLive]=useState(true);
   const[selected,setSelected]=useState(null);
-  const[projectDraft,setProjectDraft]=useState(()=>localStorage.getItem("cxo_project")||"payments-agent");
+  const[traceDetail,setTraceDetail]=useState(null);
+  const[detailLoading,setDetailLoading]=useState(false);
+  const[rotatedKey,setRotatedKey]=useState(null);
+  const[actionError,setActionError]=useState("");
   const ref=useRef(null);
 
-  const tPath=apiKey?`/v1/traces?project=${encodeURIComponent(project)}&limit=100${filter!=="all"?`&status=${filter}`:""}`:null;
-  const ePath=apiKey?`/v1/evals?project=${encodeURIComponent(project)}&limit=20`:null;
-
-  const{data:rawTraces,loading:tLoad,refetch:rT}=useFetch(apiKey,tPath);
-  const{data:rawEvals,loading:eLoad,refetch:rE}=useFetch(apiKey,ePath);
+  const token=session?.access_token;
+  const project=session?.project||"payments-agent";
+  const tier=session?.tier||"free";
 
   useEffect(()=>{
-    if(live&&apiKey){ref.current=setInterval(()=>{rT();rE();},5000);}
+    const initial=loadSession();
+    if(initial)setSession(initial);
+    if(!initial){setAuthReady(true);return;}
+    let cancelled=false;
+    ensureSession(initial)
+      .then((next)=>{
+        if(cancelled)return;
+        setSession(next);
+        saveSession(next);
+        setAuthReady(true);
+      })
+      .catch(()=>{
+        if(!cancelled){clearSession();setSession(null);setAuthReady(true);}
+      });
+    return()=>{cancelled=true;};
+  },[]);
+
+  const tPath=token?`/v1/traces?project=${encodeURIComponent(project)}&limit=100${filter!=="all"?`&status=${filter}`:""}`:null;
+  const ePath=token?`/v1/evals?project=${encodeURIComponent(project)}&limit=20`:null;
+  const qPath=token?"/v1/traces/quota":null;
+  const kPath=token?`/v1/keys/${encodeURIComponent(project)}`:null;
+  const pPath=token?`/v1/prompts/catalog?project=${encodeURIComponent(project)}`:null;
+
+  const{data:rawTraces,loading:tLoad,refetch:rT}=useFetch(token,tPath);
+  const{data:rawEvals,loading:eLoad,refetch:rE}=useFetch(token,ePath);
+  const{data:quota,loading:qLoad,refetch:rQ}=useFetch(token,qPath);
+  const{data:rawKeys,loading:kLoad,refetch:rK}=useFetch(token,kPath);
+  const{data:rawPrompts,loading:pLoad,refetch:rP}=useFetch(token,pPath);
+
+  useEffect(()=>{
+    if(live&&token){ref.current=setInterval(()=>{rT();rE();rQ();},5000);}
     return()=>clearInterval(ref.current);
-  },[live,apiKey,rT,rE]);
+  },[live,token,rT,rE,rQ]);
 
-  useEffect(()=>{if(project)localStorage.setItem("cxo_project",project);},[project]);
+  useEffect(()=>{
+    if(!selected?.trace_id||!token){setTraceDetail(null);return;}
+    let cancelled=false;
+    setDetailLoading(true);
+    apiFetch(token,`/v1/traces/${selected.trace_id}`)
+      .then(d=>{if(!cancelled)setTraceDetail(d);})
+      .catch(()=>{if(!cancelled)setTraceDetail(selected);})
+      .finally(()=>{if(!cancelled)setDetailLoading(false);});
+    return()=>{cancelled=true;};
+  },[selected?.trace_id,token]);
 
-  const login=(k,p)=>{setApiKey(k);setProject(p);setProjectDraft(p);localStorage.setItem("cxo_key",k);localStorage.setItem("cxo_project",p);};
-  const logout=()=>{setApiKey("");localStorage.removeItem("cxo_key");};
+  const login=(sess)=>{saveSession(sess);setSession(sess);};
+  const logout=()=>{clearSession();setSession(null);setSelected(null);setTraceDetail(null);};
 
-  if(!apiKey)return<><style>{G}</style><LoginScreen onLogin={login}/></>;
+  const rotateKey=async(keyId)=>{
+    setActionError("");
+    try{
+      const res=await apiFetch(token,`/v1/keys/${keyId}/rotate`,{method:"POST"});
+      setRotatedKey(res.new_key);
+      if(res.new_key){
+        const next=await issueToken(res.new_key);
+        saveSession(next);
+        setSession(next);
+      }
+      rK();
+    }catch(e){setActionError(e.message);}
+  };
+
+  const revokeKey=async(keyId)=>{
+    setActionError("");
+    try{
+      await apiFetch(token,`/v1/keys/${keyId}`,{method:"DELETE"});
+      rK();
+    }catch(e){setActionError(e.message);}
+  };
+
+  if(!authReady)return<><style>{G}</style><div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:M.gray600}}>Loading session…</div></>;
+  if(!session)return<><style>{G}</style><LoginScreen onLogin={login}/></>;
 
   const traces=Array.isArray(rawTraces)?rawTraces:[];
   const evals=Array.isArray(rawEvals)?rawEvals:[];
@@ -362,7 +433,8 @@ export default function App(){
   const p95=sorted.length>0?Math.round(sorted[Math.floor(sorted.length*0.05)]?.total_latency_ms||0):0;
   const tcColor=avgLat>1000?M.red:avgLat>500?M.amber:M.green;
   const successRate=traces.length>0?(((traces.length-failed)/traces.length)*100).toFixed(1):"—";
-  const maskedKey=apiKey.length>12?`${apiKey.slice(0,8)}…${apiKey.slice(-4)}`:apiKey;
+  const keys=Array.isArray(rawKeys)?rawKeys:[];
+  const prompts=Array.isArray(rawPrompts)?rawPrompts:[];
   const activeLabel=NAV.find(([id])=>id===tab)?.[1]||"Overview";
 
   const metricTiles=(
@@ -398,7 +470,7 @@ export default function App(){
                 <div style={{fontSize:11,color:M.gray500}}>Dashboard</div>
               </div>
             </div>
-            <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project</div>
+            <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project · {tier}</div>
             <div style={{fontFamily:M.mono,fontSize:12,color:M.gray800,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:4,padding:"6px 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{project}</div>
           </div>
           <nav style={{flex:1,overflow:"auto",padding:"10px 8px"}} aria-label="Dashboard">
@@ -424,7 +496,7 @@ export default function App(){
           <header style={{height:56,background:M.white,borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",padding:"0 20px",gap:12,flexShrink:0}}>
             <h1 style={{fontSize:18,fontWeight:600,color:M.gray900,margin:0}}>{activeLabel}</h1>
             <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
-              <button onClick={()=>{rT();rE();}} style={{background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:4,color:M.gray700,fontSize:13,padding:"6px 10px",cursor:"pointer"}}>↻ Refresh</button>
+              <button onClick={()=>{rT();rE();rQ();rK();rP();}} style={{background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:4,color:M.gray700,fontSize:13,padding:"6px 10px",cursor:"pointer"}}>↻ Refresh</button>
               <a href="https://getcortexops.com" style={{fontSize:13,color:M.blueSoft,textDecoration:"none"}}>getcortexops.com</a>
             </div>
           </header>
@@ -455,15 +527,12 @@ export default function App(){
             {tab==="projects"&&(
               <div style={{maxWidth:520,display:"grid",gap:14}}>
                 <PanelCard title="Active project">
-                  <div style={{fontSize:14,color:M.gray700,marginBottom:12}}>Switch the project used for traces, evaluations, and metrics.</div>
-                  <input value={projectDraft} onChange={e=>setProjectDraft(e.target.value)}
-                    style={{width:"100%",background:M.gray50,color:M.gray900,border:`1px solid ${M.gray300}`,borderRadius:4,padding:"10px 12px",fontFamily:M.mono,fontSize:14,marginBottom:12}}/>
-                  <button onClick={()=>setProject(projectDraft.trim()||project)}
-                    style={{background:M.blue,color:M.ink,border:"none",borderRadius:4,padding:"10px 14px",fontWeight:600,cursor:"pointer"}}>Save project</button>
+                  <div style={{fontSize:14,color:M.gray700,marginBottom:12}}>Your project is bound to the API key used at login.</div>
+                  <div style={{fontFamily:M.mono,fontSize:14,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:4,padding:"10px 12px"}}>{project}</div>
                 </PanelCard>
                 <PanelCard title="Current">
                   <div style={{fontFamily:M.mono,fontSize:14}}>{project}</div>
-                  <div style={{fontSize:13,color:M.gray600,marginTop:8}}>{traces.length} traces · {evals.length} eval runs loaded</div>
+                  <div style={{fontSize:13,color:M.gray600,marginTop:8}}>{traces.length} traces · {evals.length} eval runs · tier {tier}</div>
                 </PanelCard>
               </div>
             )}
@@ -526,7 +595,21 @@ export default function App(){
             )}
 
             {tab==="prompts"&&(
-              <EmptyState title="Prompt Versions" body="Track prompt changes, connect them to eval runs, and roll back regressions when quality drops." hint="Coming online with hosted prompt history"/>
+              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,overflow:"hidden"}}>
+                {pLoad&&<div style={{padding:16,fontSize:13,color:M.gray500}}>Loading prompt versions…</div>}
+                {!pLoad&&prompts.length===0&&<EmptyState title="No prompt versions yet" body="Commit prompt versions from your agent pipeline or API to track changes against evals." hint="POST /v1/prompts"/>}
+                {prompts.map((pv,i)=>(
+                  <div key={pv.id} style={{padding:"14px 16px",borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                      <span style={{fontFamily:M.mono,fontSize:13,color:M.blue,fontWeight:600}}>{pv.prompt_name}</span>
+                      <span style={{fontSize:11,background:M.blueLight,color:M.blue,padding:"2px 8px",borderRadius:4,fontFamily:M.mono}}>v{pv.version}</span>
+                      {pv.model&&<span style={{fontSize:12,color:M.gray500}}>{pv.model}</span>}
+                    </div>
+                    <div style={{fontSize:12,color:M.gray600,marginBottom:8}}>{pv.commit_message||"No commit message"} · {pv.author||"unknown"}</div>
+                    <div style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:10,fontFamily:M.mono,fontSize:11,color:M.gray800,whiteSpace:"pre-wrap",maxHeight:120,overflow:"auto"}}>{pv.content}</div>
+                  </div>
+                ))}
+              </div>
             )}
 
             {tab==="datasets"&&(
@@ -564,37 +647,79 @@ export default function App(){
             )}
 
             {tab==="api-keys"&&(
-              <div style={{maxWidth:520,display:"grid",gap:14}}>
-                <PanelCard title="Active API key">
-                  <div style={{fontFamily:M.mono,fontSize:14,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:4,padding:"10px 12px"}}>{maskedKey}</div>
-                  <div style={{fontSize:13,color:M.gray600,marginTop:10}}>Keys are stored only in this browser. Rotate keys from your account email or contact support.</div>
+              <div style={{maxWidth:720,display:"grid",gap:14}}>
+                {actionError&&<div style={{background:M.redLight,color:M.red,border:"1px solid rgba(197,34,31,.2)",borderRadius:6,padding:"10px 12px",fontSize:13}}>{actionError}</div>}
+                {rotatedKey&&(
+                  <PanelCard title="New key — copy now">
+                    <div style={{fontFamily:M.mono,fontSize:13,background:M.greenLight,border:`1px solid rgba(45,212,167,.3)`,borderRadius:4,padding:"10px 12px",wordBreak:"break-all"}}>{rotatedKey}</div>
+                    <div style={{fontSize:12,color:M.gray600,marginTop:8}}>Shown once. Your session was updated to use the new key.</div>
+                    <button onClick={()=>setRotatedKey(null)} style={{marginTop:10,background:M.gray100,border:`1px solid ${M.gray300}`,borderRadius:4,padding:"8px 12px",cursor:"pointer"}}>Dismiss</button>
+                  </PanelCard>
+                )}
+                <PanelCard title="API keys for this project">
+                  {kLoad&&<div style={{fontSize:13,color:M.gray500}}>Loading keys…</div>}
+                  {!kLoad&&keys.length===0&&<div style={{fontSize:13,color:M.gray500}}>No keys found for this project.</div>}
+                  {keys.map(k=>(
+                    <div key={k.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${M.gray200}`}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:14,fontWeight:500}}>{k.name||"default"}</div>
+                        <div style={{fontFamily:M.mono,fontSize:11,color:M.gray500}}>{k.id.slice(0,8)}… · {k.tier} · {k.scope}</div>
+                        <div style={{fontSize:11,color:M.gray500,marginTop:4}}>Created {k.created_at?new Date(k.created_at).toLocaleDateString():"—"}{k.last_used_at?` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`:""}</div>
+                      </div>
+                      <span style={{fontSize:11,color:k.is_active?M.green:M.red,fontWeight:600}}>{k.is_active?"active":"revoked"}</span>
+                      {k.is_active&&<>
+                        <button onClick={()=>rotateKey(k.id)} style={{background:M.blueLight,color:M.blue,border:"none",borderRadius:4,padding:"6px 10px",fontSize:12,cursor:"pointer",fontWeight:600}}>Rotate</button>
+                        <button onClick={()=>revokeKey(k.id)} style={{background:M.redLight,color:M.red,border:"none",borderRadius:4,padding:"6px 10px",fontSize:12,cursor:"pointer",fontWeight:600}}>Revoke</button>
+                      </>}
+                    </div>
+                  ))}
                 </PanelCard>
                 <PanelCard title="Session">
-                  <button onClick={logout} style={{background:M.redLight,color:M.red,border:`1px solid rgba(197,34,31,.2)`,borderRadius:4,padding:"10px 14px",fontWeight:600,cursor:"pointer"}}>Sign out and clear key</button>
+                  <div style={{fontSize:13,color:M.gray600,marginBottom:10}}>Dashboard uses a short-lived JWT (1 hour). Sign out to clear the session.</div>
+                  <button onClick={logout} style={{background:M.redLight,color:M.red,border:`1px solid rgba(197,34,31,.2)`,borderRadius:4,padding:"10px 14px",fontWeight:600,cursor:"pointer"}}>Sign out</button>
                 </PanelCard>
               </div>
             )}
 
             {tab==="usage"&&(
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
-                <PanelCard title="Traces loaded"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{traces.length}</div></PanelCard>
+                <PanelCard title="Monthly traces">
+                  {qLoad?<div style={{fontSize:13,color:M.gray500}}>Loading…</div>:<>
+                    <div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{quota?.monthly_traces?.used??"—"}</div>
+                    <div style={{fontSize:13,color:M.gray600,marginTop:6}}>
+                      {quota?.monthly_traces?.unlimited?"Unlimited (Pro)":`of ${quota?.monthly_traces?.limit?.toLocaleString()??"5,000"} limit`}
+                    </div>
+                    {!quota?.monthly_traces?.unlimited&&quota?.monthly_traces?.percent_used!=null&&(
+                      <div style={{marginTop:10,height:8,background:M.gray200,borderRadius:4,overflow:"hidden"}}>
+                        <div style={{width:`${Math.min(quota.monthly_traces.percent_used,100)}%`,height:"100%",background:quota.monthly_traces.percent_used>90?M.red:quota.monthly_traces.percent_used>70?M.amber:M.green}}/>
+                      </div>
+                    )}
+                  </>}
+                </PanelCard>
+                <PanelCard title="Retention">
+                  <div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{quota?.retention_days??"—"}</div>
+                  <div style={{fontSize:13,color:M.gray600,marginTop:6}}>days of trace history</div>
+                </PanelCard>
+                <PanelCard title="Plan">
+                  <div style={{fontSize:28,fontWeight:600,textTransform:"capitalize"}}>{quota?.tier||tier}</div>
+                  <div style={{fontSize:13,color:M.gray600,marginTop:6}}>
+                    {quota?.features?.slack_alerts?"Slack alerts · ":""}
+                    {quota?.features?.llm_judge?"LLM judge · ":""}
+                    {quota?.features?.prompt_versioning?"Prompt versioning":""}
+                  </div>
+                  {quota?.upgrade_url&&<a href={quota.upgrade_url} style={{display:"inline-block",marginTop:12,color:M.blue,fontSize:13}}>Upgrade to Pro</a>}
+                </PanelCard>
+                <PanelCard title="Traces in view"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{traces.length}</div></PanelCard>
                 <PanelCard title="Eval runs loaded"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{evals.length}</div></PanelCard>
                 <PanelCard title="Failed traces"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono,color:failed?M.red:M.green}}>{failed}</div></PanelCard>
-                <PanelCard title="Plan">
-                  <div style={{fontSize:16,fontWeight:600,marginBottom:6}}>Pro-ready</div>
-                  <div style={{fontSize:13,color:M.gray600}}>Usage limits and billing details appear here for hosted Pro accounts.</div>
-                  <a href="https://getcortexops.com/#pricing" style={{display:"inline-block",marginTop:12,color:M.blue,fontSize:13}}>View pricing</a>
-                </PanelCard>
               </div>
             )}
 
             {tab==="settings"&&(
               <div style={{maxWidth:520,display:"grid",gap:14}}>
                 <PanelCard title="Project">
-                  <input value={projectDraft} onChange={e=>setProjectDraft(e.target.value)}
-                    style={{width:"100%",background:M.gray50,color:M.gray900,border:`1px solid ${M.gray300}`,borderRadius:4,padding:"10px 12px",fontFamily:M.mono,fontSize:14,marginBottom:12}}/>
-                  <button onClick={()=>setProject(projectDraft.trim()||project)}
-                    style={{background:M.blue,color:M.ink,border:"none",borderRadius:4,padding:"10px 14px",fontWeight:600,cursor:"pointer"}}>Save</button>
+                  <div style={{fontFamily:M.mono,fontSize:14,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:4,padding:"10px 12px"}}>{project}</div>
+                  <div style={{fontSize:12,color:M.gray500,marginTop:8}}>Project is determined by your API key.</div>
                 </PanelCard>
                 <PanelCard title="Live refresh">
                   <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:14}}>
@@ -613,7 +738,7 @@ export default function App(){
           </div>
         </div>
       </div>
-      {selected&&<WaterfallPanel trace={selected} onClose={()=>setSelected(null)}/>}
+      {selected&&<WaterfallPanel trace={traceDetail||selected} loading={detailLoading} onClose={()=>{setSelected(null);setTraceDetail(null);}}/>}
     </>
   );
 }
