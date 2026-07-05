@@ -14,20 +14,25 @@ import {
 } from "./api.js";
 
 const M = {
-  blue:"#DC2626",blueDark:"#991B1B",blueLight:"rgba(220,38,38,.2)",blueSoft:"#F87171",
-  green:"#F87171",greenLight:"rgba(248,113,113,.14)",
+  brand:"#DC2626",brandDark:"#991B1B",brandLight:"rgba(220,38,38,.2)",brandSoft:"#F87171",
+  blue:"#3B82F6",blueDark:"#1D4ED8",blueLight:"rgba(59,130,246,.18)",blueSoft:"#60A5FA",
+  green:"#22C55E",greenLight:"rgba(34,197,94,.14)",
   red:"#EF4444",redLight:"rgba(239,68,68,.18)",
-  amber:"#FCA5A5",amberLight:"rgba(252,165,165,.12)",
-  purple:"#B91C1C",purpleLight:"rgba(185,28,28,.16)",
+  amber:"#F59E0B",amberLight:"rgba(245,158,11,.12)",
+  purple:"#8B5CF6",purpleLight:"rgba(139,92,246,.14)",
+  cyan:"#06B6D4",cyanLight:"rgba(6,182,212,.14)",
+  pink:"#EC4899",pinkLight:"rgba(236,72,153,.14)",
   gray50:"#000000",gray100:"#0D0D0D",gray200:"rgba(255,255,255,.11)",
   gray300:"rgba(255,255,255,.18)",gray400:"rgba(255,255,255,.38)",gray500:"rgba(255,255,255,.42)",
   gray600:"rgba(255,255,255,.62)",gray700:"rgba(255,255,255,.72)",gray800:"rgba(255,255,255,.86)",gray900:"rgba(255,255,255,.92)",
-  white:"#111726",ink:"#FFFFFF",
+  white:"#0D0D0D",ink:"#FFFFFF",
   shadow1:"0 1px 2px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.25)",
   shadow2:"0 20px 70px rgba(0,0,0,.45)",
   mono:"'Roboto Mono','Courier New',monospace",
   sans:"'Google Sans','Segoe UI',Roboto,sans-serif",
 };
+
+const TRACE_NODE_COLORS=[M.blue,M.green,M.purple,M.cyan,M.amber,M.pink,M.brand];
 
 const HOME_URL="https://www.getcortexops.com";
 const REFRESH_OPTIONS=[5,10,15,30];
@@ -44,7 +49,7 @@ html{color-scheme:dark}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:${M.gray50};color:${M.gray900};font-family:${M.sans};-webkit-font-smoothing:antialiased;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 a,button,input{outline-offset:3px}
-a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.blueSoft}}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.brandSoft}}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:${M.gray100}}
 ::-webkit-scrollbar-thumb{background:${M.gray300};border-radius:2px}
@@ -290,13 +295,14 @@ function LatencyChip({ms}){
 
 const FAILURE_KIND_COLORS={
   tool_call_mismatch:M.amber,
-  hallucination:M.red,
-  timeout:M.blueSoft,
+  hallucination:M.purple,
+  timeout:M.cyan,
   output_format:M.blue,
   latency_exceeded:M.amber,
-  plan_deviation:M.purple,
-  context_overflow:M.blueDark,
-  unknown:M.purple,
+  plan_deviation:M.pink,
+  context_overflow:M.red,
+  tool_error:M.red,
+  unknown:M.gray500,
 };
 
 function normFailureKind(k){
@@ -401,7 +407,7 @@ function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
         {loading&&<div style={{fontSize:13,color:M.gray500,marginBottom:12}}>Loading trace detail…</div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}}>
           {[["Latency",`${Math.round(trace.total_latency_ms||0)}ms`,M.amber,M.amberLight],
-            ["Environment",trace.environment||"development",M.blue,M.blueLight],
+            ["Environment",trace.environment||"development",M.cyan,M.cyanLight],
             ["Case",trace.case_id||"live trace",M.gray700,M.gray100],
             ["Failure",trace.failure_kind?.replace("FailureKind.","")||"none",trace.failure_kind?M.red:M.gray600,trace.failure_kind?M.redLight:M.gray100]
           ].map(([l,v,c,bg])=>(
@@ -424,8 +430,9 @@ function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
             <div style={{fontSize:11,color:M.gray600,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10,fontWeight:600}}>Node waterfall</div>
             {nodes.map((n,i)=>{
               const w=Math.max(2,(n.latency_ms/maxMs)*100);
-              const c=n.latency_ms>1000?M.red:n.latency_ms>500?M.amber:M.blue;
-              const bg=n.latency_ms>1000?M.redLight:n.latency_ms>500?M.amberLight:M.blueLight;
+              const base=TRACE_NODE_COLORS[i%TRACE_NODE_COLORS.length];
+              const c=n.latency_ms>1000?M.red:n.latency_ms>500?M.amber:base;
+              const bg=n.latency_ms>1000?M.redLight:n.latency_ms>500?M.amberLight:`${c}22`;
               return(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:`1px solid ${M.gray200}`}}>
                   <div style={{width:130,fontSize:12,color:M.gray700,fontFamily:M.mono,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{n.node_name||"node"}</div>
@@ -444,7 +451,7 @@ function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
         {raw.output&&(
           <div style={{marginBottom:16}}>
             <div style={{fontSize:11,color:M.gray600,textTransform:"uppercase",letterSpacing:".07em",marginBottom:8,fontWeight:600}}>Output</div>
-            <div style={{background:M.gray50,borderRadius:8,padding:12,border:`1px solid ${M.gray200}`,borderLeft:`4px solid ${M.blue}`,fontFamily:M.mono,fontSize:12,color:M.gray900,whiteSpace:"pre-wrap",wordBreak:"break-all",maxHeight:180,overflow:"auto"}}>
+            <div style={{background:M.gray50,borderRadius:8,padding:12,border:`1px solid ${M.gray200}`,borderLeft:`4px solid ${M.cyan}`,fontFamily:M.mono,fontSize:12,color:M.gray900,whiteSpace:"pre-wrap",wordBreak:"break-all",maxHeight:180,overflow:"auto"}}>
               {JSON.stringify(raw.output,null,2)}
             </div>
           </div>
@@ -468,7 +475,7 @@ function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
                 {datasets.map(d=><option key={d.id} value={d.id}>{d.name} ({d.case_count} cases)</option>)}
               </select>
               <button onClick={promote} disabled={promoting||!promoteDs}
-                style={{background:M.blue,color:M.ink,border:"none",borderRadius:6,padding:"8px 14px",fontSize:12,fontWeight:600,cursor:promoting?"wait":"pointer",opacity:promoting?.6:1}}>
+                style={{background:M.brand,color:M.ink,border:"none",borderRadius:6,padding:"8px 14px",fontSize:12,fontWeight:600,cursor:promoting?"wait":"pointer",opacity:promoting?.6:1}}>
                 {promoting?"Adding…":"Add golden case"}
               </button>
             </div>
@@ -483,7 +490,7 @@ function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
 
 function LogoMark({size=32}){
   return(
-    <div style={{width:size,height:size,background:M.blue,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+    <div style={{width:size,height:size,background:M.brand,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
       <svg width={size*0.56} height={size*0.56} viewBox="0 0 20 20" fill="none">
         <path d="M10 2.5 Q14 10 10 17.5" stroke={M.ink} strokeWidth="1.8" strokeLinecap="round"/>
         <path d="M6 2.5 Q10.5 10 6 17.5" stroke={M.ink} strokeWidth="1.8" strokeLinecap="round" opacity=".45"/>
@@ -524,13 +531,13 @@ function LoginScreen({onLogin}){
           <a href={`${HOME_URL}/#frameworks`} style={{color:"inherit",textDecoration:"none"}}>Frameworks</a>
           <a href={`${HOME_URL}/#pricing`} style={{color:"inherit",textDecoration:"none"}}>Pricing</a>
           <a href="https://docs.getcortexops.com" style={{color:"inherit",textDecoration:"none"}}>Docs</a>
-          <a href="#login" className="login-cta" style={{background:M.blue,color:M.ink,textDecoration:"none",borderRadius:7,padding:"9px 14px",fontWeight:700,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>Open dashboard</a>
+          <a href="#login" className="login-cta" style={{background:M.brand,color:M.ink,textDecoration:"none",borderRadius:7,padding:"9px 14px",fontWeight:700,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>Open dashboard</a>
         </div>
       </nav>
 
       <section className="login-hero" style={{maxWidth:1180,margin:"0 auto",padding:"64px 28px 40px",display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(320px,420px)",gap:48,alignItems:"center"}}>
         <div>
-          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:M.greenLight,border:"1px solid rgba(220,38,38,.35)",color:M.green,borderRadius:99,padding:"6px 12px",fontSize:12,fontFamily:M.mono,marginBottom:22}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:M.greenLight,border:"1px solid rgba(34,197,94,.22)",color:M.green,borderRadius:99,padding:"6px 12px",fontSize:12,fontFamily:M.mono,marginBottom:22}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:M.green,animation:"pulse 1.8s infinite"}}/>
             Open source reliability infrastructure
           </div>
@@ -541,7 +548,7 @@ function LoginScreen({onLogin}){
             Trace every node, evaluate every change, monitor production health, and catch regressions before users do.
           </p>
           <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}}>
-            <a href="#login" style={{background:M.blue,color:M.ink,textDecoration:"none",borderRadius:7,padding:"12px 18px",fontWeight:700,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>Open dashboard</a>
+            <a href="#login" style={{background:M.brand,color:M.ink,textDecoration:"none",borderRadius:7,padding:"12px 18px",fontWeight:700,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>Open dashboard</a>
             <span style={{background:"rgba(255,255,255,.05)",border:`1px solid ${M.gray200}`,borderRadius:7,padding:"12px 14px",fontFamily:M.mono,fontSize:13,color:M.gray800}}>$ pip install cortexops</span>
           </div>
           <div style={{display:"flex",gap:18,flexWrap:"wrap",fontSize:13,color:M.gray600}}>
@@ -566,20 +573,20 @@ function LoginScreen({onLogin}){
             <input value={key} onChange={e=>setKey(e.target.value)} placeholder="cxo-..." type="password"
               onKeyDown={e=>e.key==="Enter"&&submit()}
               style={{...inputStyle,fontFamily:M.mono}}
-              onFocus={e=>e.target.style.borderColor=M.blue}
+              onFocus={e=>e.target.style.borderColor=M.brand}
               onBlur={e=>e.target.style.borderColor=M.gray300}
             />
           </div>
           <p style={{fontSize:12,color:M.gray500,marginBottom:14}}>Project is resolved from your key after login. Rotated or revoked keys cannot be reused.</p>
           {err&&<div style={{background:M.redLight,color:M.red,fontSize:13,padding:"8px 12px",borderRadius:6,marginBottom:14,border:"1px solid rgba(242,109,109,.25)"}}>{err}</div>}
           <button onClick={submit} disabled={loading||!key}
-            style={{width:"100%",background:M.blue,color:M.ink,border:"none",borderRadius:7,padding:12,fontSize:15,fontWeight:700,cursor:loading||!key?"not-allowed":"pointer",opacity:loading||!key?.5:1,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>
+            style={{width:"100%",background:M.brand,color:M.ink,border:"none",borderRadius:7,padding:12,fontSize:15,fontWeight:700,cursor:loading||!key?"not-allowed":"pointer",opacity:loading||!key?.5:1,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>
             {loading?"Connecting…":"Open dashboard →"}
           </button>
           <p style={{color:M.gray500,fontSize:12,marginTop:16,textAlign:"center"}}>
-            <a href={HOME_URL} style={{color:M.blueSoft}}>getcortexops.com</a>
+            <a href={HOME_URL} style={{color:M.brandSoft}}>getcortexops.com</a>
             {" · "}
-            <a href={`${HOME_URL}/?trial=1`} style={{color:M.blueSoft}}>Get Pro key</a>
+            <a href={`${HOME_URL}/?trial=1`} style={{color:M.brandSoft}}>Get Pro key</a>
           </p>
         </div>
       </section>
@@ -596,7 +603,7 @@ function LoginScreen({onLogin}){
           </div>
           <div style={{padding:16}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
-              {[["Node","running...","#FCA5A5"],["Latency","updating...","#F87171"],["Health Score","changing...","#DC2626"]].map(([l,v,c])=>(
+              {[["Node","running...","#F59E0B"],["Latency","updating...","#3B82F6"],["Health Score","changing...","#22C55E"]].map(([l,v,c])=>(
                 <div key={l} style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:8,padding:"10px 11px"}}>
                   <div style={{fontSize:10,color:M.gray500,fontFamily:M.mono,marginBottom:4}}>{l}</div>
                   <div style={{fontSize:13,color:c,fontFamily:M.mono,fontWeight:700,animation:"fadePulse 1.6s ease-in-out infinite"}}>{v}</div>
@@ -604,9 +611,9 @@ function LoginScreen({onLogin}){
               ))}
             </div>
             {[
-              ["classify_intent","78%","#DC2626","1.18s",0],
-              ["tool call animated...","32%","#B91C1C","active",12],
-              ["evaluate_policy","52%","#991B1B","890ms",24],
+              ["classify_intent","78%","#3B82F6","1.18s",0],
+              ["tool call animated...","32%","#8B5CF6","active",12],
+              ["evaluate_policy","52%","#22C55E","890ms",24],
               ["tool: issue_refund","88%","#EF4444","2.01s",36],
             ].map(([name,width,color,time,left],i)=>(
               <div key={name} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
@@ -817,7 +824,7 @@ function SidebarNav({tab,setTab,project,tier,live,setLive,refreshSec,setRefreshS
     <>
       <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${M.gray200}`,flexShrink:0}}>
         <a href={HOME_URL} style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,textDecoration:"none",color:"inherit"}} title="CortexOps home">
-          <div style={{width:28,height:28,background:M.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <div style={{width:28,height:28,background:M.brand,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
               <path d="M7 1.5 Q10.5 7 7 12.5" stroke={M.ink} strokeWidth="1.5" strokeLinecap="round"/>
               <path d="M4 1.5 Q8 7 4 12.5" stroke={M.ink} strokeWidth="1.5" strokeLinecap="round" opacity=".4"/>
@@ -831,7 +838,7 @@ function SidebarNav({tab,setTab,project,tier,live,setLive,refreshSec,setRefreshS
         </a>
         <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project</div>
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-          <span style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em",background:tier==="pro"?M.blueLight:M.greenLight,color:tier==="pro"?M.blue:M.green,padding:"2px 7px",borderRadius:4}}>{tier}</span>
+          <span style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em",background:tier==="pro"?M.brandLight:M.greenLight,color:tier==="pro"?M.brand:M.green,padding:"2px 7px",borderRadius:4}}>{tier}</span>
         </div>
         <div style={{fontFamily:M.mono,fontSize:12,color:M.gray800,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"7px 9px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={project}>{project}</div>
       </div>
@@ -841,7 +848,7 @@ function SidebarNav({tab,setTab,project,tier,live,setLive,refreshSec,setRefreshS
             <div style={{fontSize:10,color:M.gray400,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600,padding:"4px 12px 6px"}}>{section}</div>
             {items.map(([id,label])=>(
               <button key={id} onClick={()=>go(id)}
-                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",textAlign:"left",background:tab===id?M.blueLight:"transparent",color:tab===id?M.blue:M.gray700,border:"none",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:tab===id?600:500,cursor:"pointer",fontFamily:M.sans,marginBottom:2,gap:10}}>
+                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",textAlign:"left",background:tab===id?M.brandLight:"transparent",color:tab===id?M.brand:M.gray700,border:"none",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:tab===id?600:500,cursor:"pointer",fontFamily:M.sans,marginBottom:2,gap:10}}>
                 <span style={{display:"flex",alignItems:"center",gap:9}}><NavIcon id={id}/>{label}</span>
                 {id==="alerts"&&failed>0&&<span style={{background:M.red,color:M.ink,borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:600,minWidth:18,textAlign:"center"}}>{failed}</span>}
               </button>
@@ -1272,7 +1279,7 @@ export default function App(){
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
                 <h1 style={{fontSize:18,fontWeight:600,color:M.gray900,margin:0}}>{activeLabel}</h1>
-                <Badge color={tier==="pro"?M.blue:M.green} bg={tier==="pro"?M.blueLight:M.greenLight}>{tier}</Badge>
+                <Badge color={tier==="pro"?M.brand:M.green} bg={tier==="pro"?M.brandLight:M.greenLight}>{tier}</Badge>
                 <span className="header-hide-mobile" style={{fontFamily:M.mono,fontSize:11,color:M.gray500}}>{project}</span>
                 {live&&<Badge color={M.green} bg={M.greenLight}>● Live · {refreshSec}s</Badge>}
               </div>

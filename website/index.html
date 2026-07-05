@@ -85,13 +85,13 @@
       </div>
       <div class="demo-body">
         <div class="demo-metrics">
-          <div class="metric"><div class="metric-lbl">Node</div><div class="metric-val live" id="metric-node" style="color:#FCA5A5">running...</div></div>
-          <div class="metric"><div class="metric-lbl">Latency</div><div class="metric-val live" id="metric-latency" style="color:#F87171">updating...</div></div>
-          <div class="metric"><div class="metric-lbl">Health Score</div><div class="metric-val live" id="metric-health" style="color:#DC2626">changing...</div></div>
+          <div class="metric"><div class="metric-lbl">Node</div><div class="metric-val live" id="metric-node" style="color:#F59E0B">running...</div></div>
+          <div class="metric"><div class="metric-lbl">Latency</div><div class="metric-val live" id="metric-latency" style="color:#3B82F6">updating...</div></div>
+          <div class="metric"><div class="metric-lbl">Health Score</div><div class="metric-val live" id="metric-health" style="color:#22C55E">changing...</div></div>
         </div>
-        <div class="trace-row"><div class="trace-name">classify_intent</div><div class="trace-track"><div class="trace-bar" style="width:78%;background:#DC2626;left:0;animation-duration:1s">1.18s</div></div></div>
-        <div class="trace-row"><div class="trace-name mono" id="tool-call-label">tool call animated...</div><div class="trace-track"><div class="trace-bar active" id="tool-call-bar" style="width:32%;background:#B91C1C;left:12px;animation-duration:1.18s">active</div></div></div>
-        <div class="trace-row"><div class="trace-name">evaluate_policy</div><div class="trace-track"><div class="trace-bar" style="width:52%;background:#991B1B;left:24px;animation-duration:1.36s">890ms</div></div></div>
+        <div class="trace-row"><div class="trace-name">classify_intent</div><div class="trace-track"><div class="trace-bar" style="width:78%;background:#3B82F6;left:0;animation-duration:1s">1.18s</div></div></div>
+        <div class="trace-row"><div class="trace-name mono" id="tool-call-label">tool call animated...</div><div class="trace-track"><div class="trace-bar active" id="tool-call-bar" style="width:32%;background:#8B5CF6;left:12px;animation-duration:1.18s">active</div></div></div>
+        <div class="trace-row"><div class="trace-name">evaluate_policy</div><div class="trace-track"><div class="trace-bar" style="width:52%;background:#22C55E;left:24px;animation-duration:1.36s">890ms</div></div></div>
         <div class="trace-row"><div class="trace-name mono fail">tool: issue_refund</div><div class="trace-track"><div class="trace-bar" style="width:88%;background:#EF4444;left:36px;animation-duration:1.54s">2.01s</div></div></div>
         <div class="trace-alert" id="trace-alert">Trace expanding... PaymentGatewayTimeout after tool call</div>
       </div>
@@ -253,27 +253,27 @@ agent = tracer.wrap(graph)</div>
     </div>
     <div class="why-grid">
       <div class="card">
-        <div class="feature-icon" style="background:#DC262622;color:#DC2626">●</div>
+        <div class="feature-icon" style="background:#3B82F622;color:#3B82F6">●</div>
         <h3>Trace Explorer</h3>
         <p>Full agent waterfall with nodes, tools, branches, latency, state, and failure context.</p>
       </div>
       <div class="card">
-        <div class="feature-icon" style="background:#991B1B22;color:#991B1B">●</div>
+        <div class="feature-icon" style="background:#22C55E22;color:#22C55E">●</div>
         <h3>Evaluation</h3>
         <p>LLM-as-judge scoring, golden datasets, pass rates, and semantic quality checks.</p>
       </div>
       <div class="card">
-        <div class="feature-icon" style="background:#FCA5A522;color:#FCA5A5">●</div>
+        <div class="feature-icon" style="background:#F59E0B22;color:#F59E0B">●</div>
         <h3>Monitoring</h3>
         <p>Production health, latency, drift, anomaly, and cost signals in one view.</p>
       </div>
       <div class="card">
-        <div class="feature-icon" style="background:#B91C1C22;color:#B91C1C">●</div>
+        <div class="feature-icon" style="background:#8B5CF622;color:#8B5CF6">●</div>
         <h3>Prompt Version</h3>
         <p>Connect prompt changes to evals and traces so teams can roll back regressions.</p>
       </div>
       <div class="card">
-        <div class="feature-icon" style="background:#DC262622;color:#DC2626">●</div>
+        <div class="feature-icon" style="background:#3B82F622;color:#3B82F6">●</div>
         <h3>CI/CD Gates</h3>
         <p>GitHub Actions-ready eval gates that fail builds when quality drops.</p>
       </div>
