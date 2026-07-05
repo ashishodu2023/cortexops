@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.5.0] — 2026-07-05
+
+### Added
+- **`CortexClient.add_case_from_trace()`** — promote a production trace into a golden dataset case (`POST /v1/eval/datasets/{id}/cases/from-trace`).
+- **Dataset & prompt APIs on client** — `list_datasets`, `get_dataset`, `create_dataset`, `commit_prompt`, `list_prompt_catalog`, `project_for_key`.
+- **Error-always sampling** — failed runs are captured even when `sample_rate < 1.0`, so regressions are not dropped by head-based sampling.
+
+### Changed
+- **Production API URL** — default `CortexClient` base URL is now `https://api.getcortexops.com` (was `api.cortexops.ai`).
+- **API key header** — client uses `X-API-Key` to match the hosted API auth middleware.
+- **`push_eval()`** — targets `POST /v1/evals/ingest` with optional dataset/prompt metadata.
+- **Framework detection** — Google ADK vs OpenAI Agents disambiguation fixed; sampling validates `0.0–1.0` range.
+- **PyPI metadata** — expanded framework keywords and `httpx` as a core dependency.
+
+### Fixed
+- Eval ingest payload strips embedded trace objects before upload.
+- `failure_kind` enum serialized correctly for API ingest.
+
+---
+
 ## [0.4.0] — 2026-05-24
 
 ### Added

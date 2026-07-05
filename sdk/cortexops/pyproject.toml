@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cortexops"
-version = "0.4.0"
+version = "0.5.0"
 description = "AI agent observability & eval platform — trace, monitor, and eval-gate LangGraph, CrewAI, OpenAI Agents, PydanticAI, Agno, AutoGen, Haystack, DSPy, LlamaIndex, Smolagents, and Google ADK"
 readme = "README.md"
 license = { file = "LICENSE" }
