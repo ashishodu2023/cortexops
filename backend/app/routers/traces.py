@@ -4,6 +4,8 @@ import json
 import time
 import uuid
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -129,12 +131,15 @@ async def list_traces(
     limit: int = Query(50, le=500),
     status: str | None = Query(None),
     environment: str | None = Query(None),
+    from_: datetime | None = Query(None, alias="from"),
+    to: datetime | None = Query(None, alias="to"),
     db: AsyncSession = Depends(get_db),
     tier_info: TierInfo = Depends(get_current_key_info),
 ):
     """
     List traces for a project.
     Free tier: only sees last 7 days. Pro: 90 days.
+    Optional from/to (ISO 8601) narrow results within retention window.
     """
     from datetime import datetime, timedelta
 
@@ -147,6 +152,12 @@ async def list_traces(
         .where(TraceRecord.project == project)
         .where(TraceRecord.created_at >= cutoff)
     )
+    if from_ is not None:
+        effective_from = from_.replace(tzinfo=None) if from_.tzinfo else from_
+        q = q.where(TraceRecord.created_at >= max(effective_from, cutoff))
+    if to is not None:
+        effective_to = to.replace(tzinfo=None) if to.tzinfo else to
+        q = q.where(TraceRecord.created_at <= effective_to)
     if status:
         q = q.where(TraceRecord.status == status)
     if environment:

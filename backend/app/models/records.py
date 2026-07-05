@@ -121,3 +121,15 @@ class PromptVersion(Base):
 
     project_rel: Mapped["Project"] = relationship("Project", back_populates="prompt_versions")
     parent: Mapped["PromptVersion | None"] = relationship("PromptVersion", remote_side=[id], lazy="select")
+
+
+class EvalDataset(Base):
+    __tablename__ = "eval_datasets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    project: Mapped[str] = mapped_column(String(255), ForeignKey("projects.name"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    cases: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    case_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)

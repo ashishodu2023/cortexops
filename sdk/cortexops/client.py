@@ -90,3 +90,40 @@ class CortexClient:
 
     def diff(self, run_id_a: str, run_id_b: str) -> dict:
         return self._get("/v1/evals/diff", {"a": run_id_a, "b": run_id_b})
+
+    def list_datasets(self) -> list[dict]:
+        return self._get("/v1/eval/datasets")
+
+    def get_dataset(self, dataset_id: str) -> dict:
+        return self._get(f"/v1/eval/datasets/{dataset_id}")
+
+    def create_dataset(self, name: str, cases: list[dict], description: str = "") -> dict:
+        return self._post("/v1/eval/datasets", {
+            "name": name,
+            "description": description,
+            "cases": cases,
+        })
+
+    def commit_prompt(
+        self,
+        project: str,
+        prompt_name: str,
+        content: str,
+        *,
+        model: str = "",
+        temperature: float = 0.7,
+        commit_message: str = "",
+        author: str = "",
+    ) -> dict:
+        return self._post("/v1/prompts", {
+            "project": project,
+            "prompt_name": prompt_name,
+            "content": content,
+            "model": model,
+            "temperature": temperature,
+            "commit_message": commit_message,
+            "author": author,
+        })
+
+    def list_prompt_catalog(self, project: str) -> list[dict]:
+        return self._get("/v1/prompts/catalog", {"project": project})

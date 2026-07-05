@@ -41,6 +41,19 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.b
 @keyframes grow{from{transform:scaleX(.35)}to{transform:scaleX(1)}}
 @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
 @keyframes shimmer{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+.card-hover{transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
+.card-hover:hover{background:rgba(255,255,255,.04)!important;border-color:rgba(255,255,255,.22)!important;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.row-hover{transition:background .12s}
+.row-hover:hover{background:rgba(255,255,255,.04)!important}
+@media (max-width:1100px){
+  .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .insight-grid{grid-template-columns:1fr!important}
+  .overview-layout{grid-template-columns:1fr!important}
+}
+@media (max-width:768px){
+  .dash-sidebar{display:none!important}
+  .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
 @media (max-width:900px){
   .login-hero{grid-template-columns:1fr!important;padding-top:40px!important}
   .login-hero h1{font-size:36px!important}
@@ -69,12 +82,19 @@ function Sparkline({values=[],color,h=28}){
   return(<svg width="100" height={h} style={{display:"block"}}><polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx={last[0]} cy={last[1]} r="2.5" fill={color}/></svg>);
 }
 
-function Tile({label,value,unit,delta,deltaUp,spark,color,loading}){
+function Tile({label,value,unit,hint,delta,deltaUp,spark,color,loading,onClick}){
+  const clickable=!!onClick;
   return(
-    <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,padding:"14px 16px",borderTop:`3px solid ${color}`,boxShadow:M.shadow1}}>
-      <div style={{fontSize:11,color:M.gray600,fontWeight:500,marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>{label}</div>
+    <div className={clickable?"card-hover":""} onClick={onClick} role={clickable?"button":undefined} tabIndex={clickable?0:undefined}
+      onKeyDown={clickable?e=>e.key==="Enter"&&onClick():undefined}
+      style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,padding:"14px 16px",borderTop:`3px solid ${color}`,boxShadow:M.shadow1,cursor:clickable?"pointer":undefined}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+        <div style={{fontSize:11,color:M.gray600,fontWeight:500,textTransform:"uppercase",letterSpacing:".05em"}}>{label}</div>
+        {clickable&&<span style={{fontSize:10,color:M.gray400}}>→</span>}
+      </div>
       {loading?<div style={{width:60,height:26,background:M.gray100,borderRadius:4}}/>
         :<div style={{fontSize:26,fontWeight:600,color:M.gray900,letterSpacing:"-.02em",marginBottom:4}}>{value??"—"}<span style={{fontSize:12,color:M.gray500,fontWeight:400,marginLeft:2}}>{unit}</span></div>}
+      {hint&&<div style={{fontSize:11,color:M.gray500,marginBottom:8,lineHeight:1.4}}>{hint}</div>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         {delta!==undefined&&<span style={{fontSize:11,color:deltaUp?M.green:M.red,fontWeight:500}}>{deltaUp?"↑":"↓"} {delta}</span>}
         <Sparkline values={spark} color={color}/>
@@ -83,9 +103,160 @@ function Tile({label,value,unit,delta,deltaUp,spark,color,loading}){
   );
 }
 
+function InsightCard({label,value,sub,color,bar,barColor,onClick,loading}){
+  const clickable=!!onClick;
+  return(
+    <div className={clickable?"card-hover":""} onClick={onClick} role={clickable?"button":undefined} tabIndex={clickable?0:undefined}
+      onKeyDown={clickable?e=>e.key==="Enter"&&onClick():undefined}
+      style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,padding:"16px 18px",boxShadow:M.shadow1,cursor:clickable?"pointer":undefined,display:"flex",flexDirection:"column",gap:6}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".07em",fontWeight:600}}>{label}</div>
+        {clickable&&<span style={{fontSize:10,color:M.gray400}}>View →</span>}
+      </div>
+      {loading?<div style={{width:80,height:32,background:M.gray100,borderRadius:4}}/>
+        :<div style={{fontSize:32,fontWeight:700,color,letterSpacing:"-.03em",lineHeight:1}}>{value}</div>}
+      {sub&&<div style={{fontSize:12,color:M.gray600,lineHeight:1.45}}>{sub}</div>}
+      {bar!=null&&<div style={{marginTop:4,height:6,background:M.gray200,borderRadius:3,overflow:"hidden"}}>
+        <div style={{width:`${Math.min(bar,100)}%`,height:"100%",background:barColor||color,borderRadius:3,transition:"width .4s ease"}}/>
+      </div>}
+    </div>
+  );
+}
+
+function timeAgo(iso){
+  if(!iso)return"—";
+  const s=Math.floor((Date.now()-new Date(iso).getTime())/1000);
+  if(s<60)return`${s}s ago`;
+  if(s<3600)return`${Math.floor(s/60)}m ago`;
+  if(s<86400)return`${Math.floor(s/3600)}h ago`;
+  return`${Math.floor(s/86400)}d ago`;
+}
+
+function formatWhen(iso){
+  if(!iso)return"—";
+  const d=new Date(iso);
+  return d.toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+}
+
+const TRACE_DATE_PRESETS=[["all","All time"],["24h","24 hours"],["7d","7 days"],["30d","30 days"],["custom","Custom"]];
+
+function buildTraceDateQuery(preset,fromDate,toDate){
+  if(preset==="all")return"";
+  const now=new Date();
+  if(preset==="custom"){
+    let q="";
+    if(fromDate)q+=`&from=${encodeURIComponent(`${fromDate}T00:00:00.000Z`)}`;
+    if(toDate)q+=`&to=${encodeURIComponent(`${toDate}T23:59:59.999Z`)}`;
+    return q;
+  }
+  const hours={"24h":24,"7d":24*7,"30d":24*30}[preset];
+  if(!hours)return"";
+  const from=new Date(now.getTime()-hours*3600*1000);
+  return `&from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(now.toISOString())}`;
+}
+
+function traceDateLabel(preset,fromDate,toDate){
+  if(preset==="all")return"";
+  if(preset==="custom"){
+    if(fromDate&&toDate)return`${fromDate} → ${toDate}`;
+    if(fromDate)return`from ${fromDate}`;
+    if(toDate)return`until ${toDate}`;
+    return"custom range";
+  }
+  return TRACE_DATE_PRESETS.find(([k])=>k===preset)?.[1]||"";
+}
+
+function Badge({children,color=M.gray600,bg=M.gray100}){
+  return<span style={{display:"inline-flex",alignItems:"center",fontSize:11,fontWeight:600,color,background:bg,padding:"3px 8px",borderRadius:5,whiteSpace:"nowrap"}}>{children}</span>;
+}
+
+function Section({title,subtitle,action,children,noPad}){
+  return(
+    <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:12,overflow:"hidden",boxShadow:M.shadow1}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,padding:"14px 18px",borderBottom:subtitle||children?`1px solid ${M.gray200}`:"none"}}>
+        <div>
+          <div style={{fontSize:12,color:M.gray500,textTransform:"uppercase",letterSpacing:".07em",fontWeight:700}}>{title}</div>
+          {subtitle&&<div style={{fontSize:12,color:M.gray500,marginTop:3,lineHeight:1.4}}>{subtitle}</div>}
+        </div>
+        {action}
+      </div>
+      {children&&<div style={{padding:noPad?0:"14px 18px"}}>{children}</div>}
+    </div>
+  );
+}
+
+function QuickLink({label,onClick,color=M.blue}){
+  return(
+    <button onClick={onClick} style={{background:`${color}18`,border:`1px solid ${color}44`,color,borderRadius:8,padding:"8px 12px",fontSize:12,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
+      {label} →
+    </button>
+  );
+}
+
+function DetailRow({label,value,mono}){
+  return(
+    <div style={{display:"flex",justifyContent:"space-between",gap:12,padding:"6px 0",borderBottom:`1px solid ${M.gray200}`}}>
+      <span style={{fontSize:12,color:M.gray500}}>{label}</span>
+      <span style={{fontSize:12,color:M.gray900,fontFamily:mono?M.mono:M.sans,fontWeight:500,textAlign:"right"}}>{value}</span>
+    </div>
+  );
+}
+
+function MiniBars({values=[],color=M.blue,h=48}){
+  if(!values.length)return null;
+  const max=Math.max(...values,1);
+  return(
+    <div style={{display:"flex",alignItems:"flex-end",gap:3,height:h}}>
+      {values.map((v,i)=>(
+        <div key={i} style={{flex:1,background:M.gray200,borderRadius:3,overflow:"hidden",height:"100%",display:"flex",alignItems:"flex-end"}}>
+          <div style={{width:"100%",height:`${Math.max(8,(v/max)*100)}%`,background:color,borderRadius:3,opacity:.85}}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NavIcon({id}){
+  const paths={
+    overview:"M3 3h4v4H3zm7 0h4v4h-4zm-7 7h4v4H3zm7 0h4v4h-4z",
+    traces:"M4 6h12M4 10h8M4 14h10",
+    alerts:"M12 3 4 18h16L12 3zm0 5v4m0 3h.01",
+    metrics:"M4 16V8m4 8V5m4 11v-6m4 6V4",
+    evaluations:"M5 12l4 4 9-10",
+    prompts:"M6 4h9l3 3v11H6V4z",
+    datasets:"M4 6h12v10H4z M8 3v3 M12 3v3",
+    projects:"M3 8h8V3H3zm10 0h8v5h-8z M3 16h8v5H3zm10 0h8v5h-8z",
+    "api-keys":"M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-6 8v-1a5 5 0 0 1 10 0v1",
+    usage:"M12 3v15m-6-3h12",
+    settings:"M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 4h-2M6 12H4",
+  };
+  const d=paths[id]||paths.overview;
+  return(
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,opacity:.85}}>
+      <path d={d}/>
+    </svg>
+  );
+}
+
 function StatusDot({status}){
   const color={completed:M.green,failed:M.red,running:M.amber}[status]||M.gray500;
   return<span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:color,animation:status==="running"?"pulse 1s infinite":"none",flexShrink:0}}/>;
+}
+
+function TraceRow({trace,onClick,showCase=true}){
+  return(
+    <div className="row-hover" onClick={onClick} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 18px",borderBottom:`1px solid ${M.gray200}`,cursor:"pointer"}}>
+      <StatusDot status={trace.status}/>
+      <div style={{minWidth:76}}>
+        <div style={{fontFamily:M.mono,fontSize:12,color:M.gray700,fontWeight:600}}>{trace.trace_id?.slice(0,8)}</div>
+        <div style={{fontSize:10,color:M.gray500,marginTop:2}} title={formatWhen(trace.created_at)}>{timeAgo(trace.created_at)}</div>
+      </div>
+      {showCase&&<span style={{flex:1,fontSize:13,color:M.gray900,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{trace.case_id||"live trace"}</span>}
+      <Badge color={trace.status==="failed"?M.red:M.green} bg={trace.status==="failed"?M.redLight:M.greenLight}>{trace.status==="failed"?"Failed":"OK"}</Badge>
+      <LatencyChip ms={trace.total_latency_ms||0}/>
+      {trace.failure_kind&&<Badge color={M.red} bg={M.redLight}>{trace.failure_kind.replace("FailureKind.","").slice(0,12)}</Badge>}
+    </div>
+  );
 }
 
 function LatencyChip({ms}){
@@ -97,29 +268,43 @@ function LatencyChip({ms}){
 function WaterfallPanel({trace,onClose,loading}){
   const raw=trace.raw_trace||{};const nodes=raw.nodes||[];
   const maxMs=Math.max(...nodes.map(n=>n.latency_ms||0),trace.total_latency_ms||1);
+  const copyId=()=>{if(trace.trace_id)navigator.clipboard?.writeText(trace.trace_id);};
   return(
-    <div style={{position:"fixed",top:0,right:0,bottom:0,width:520,background:M.white,borderLeft:`1px solid ${M.gray200}`,zIndex:100,display:"flex",flexDirection:"column",boxShadow:"-2px 0 8px rgba(60,64,67,.15)",animation:"slideIn .2s ease"}}>
-      <div style={{padding:"14px 20px",borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div>
-          <div style={{fontSize:15,fontWeight:500,color:M.gray900}}>Trace detail</div>
-          <div style={{fontSize:11,fontFamily:M.mono,color:M.gray500,marginTop:2}}>{trace.trace_id}</div>
+    <div style={{position:"fixed",top:0,right:0,bottom:0,width:560,background:M.white,borderLeft:`1px solid ${M.gray200}`,zIndex:100,display:"flex",flexDirection:"column",boxShadow:"-4px 0 24px rgba(0,0,0,.35)",animation:"slideIn .2s ease"}}>
+      <div style={{padding:"16px 20px",borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
+        <div style={{minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <StatusDot status={trace.status}/>
+            <div style={{fontSize:16,fontWeight:600,color:M.gray900}}>Trace detail</div>
+            <Badge color={trace.status==="failed"?M.red:M.green} bg={trace.status==="failed"?M.redLight:M.greenLight}>{trace.status}</Badge>
+          </div>
+          <button onClick={copyId} title="Copy trace ID" style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:M.mono,fontSize:11,color:M.gray500,textAlign:"left"}}>{trace.trace_id} (copy)</button>
+          <div style={{fontSize:11,color:M.gray500,marginTop:4}}>{formatWhen(trace.created_at)} · {timeAgo(trace.created_at)}</div>
         </div>
-        <button onClick={onClose} style={{background:M.gray100,border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:18,color:M.gray600,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+        <button onClick={onClose} style={{background:M.gray100,border:"none",borderRadius:8,width:34,height:34,cursor:"pointer",fontSize:18,color:M.gray600,flexShrink:0}}>×</button>
       </div>
       <div style={{flex:1,overflow:"auto",padding:"16px 20px"}}>
         {loading&&<div style={{fontSize:13,color:M.gray500,marginBottom:12}}>Loading trace detail…</div>}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
-          {[["Status",trace.status,trace.status==="completed"?M.green:M.red,trace.status==="completed"?M.greenLight:M.redLight],
-            ["Latency",`${Math.round(trace.total_latency_ms||0)}ms`,M.amber,M.amberLight],
-            ["Environment",trace.environment||"—",M.blue,M.blueLight],
-            ["Failure",trace.failure_kind||"none",trace.failure_kind?M.red:M.gray600,trace.failure_kind?M.redLight:M.gray100]
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}}>
+          {[["Latency",`${Math.round(trace.total_latency_ms||0)}ms`,M.amber,M.amberLight],
+            ["Environment",trace.environment||"development",M.blue,M.blueLight],
+            ["Case",trace.case_id||"live trace",M.gray700,M.gray100],
+            ["Failure",trace.failure_kind?.replace("FailureKind.","")||"none",trace.failure_kind?M.red:M.gray600,trace.failure_kind?M.redLight:M.gray100]
           ].map(([l,v,c,bg])=>(
             <div key={l} style={{background:bg,borderRadius:8,padding:"10px 12px",border:`1px solid ${M.gray200}`}}>
-              <div style={{fontSize:10,color:M.gray600,textTransform:"uppercase",letterSpacing:".06em",marginBottom:3,fontWeight:500}}>{l}</div>
-              <div style={{fontSize:13,fontFamily:M.mono,color:c,fontWeight:500}}>{v}</div>
+              <div style={{fontSize:10,color:M.gray600,textTransform:"uppercase",letterSpacing:".06em",marginBottom:3,fontWeight:600}}>{l}</div>
+              <div style={{fontSize:13,fontFamily:l==="Case"?M.sans:M.mono,color:c,fontWeight:500,wordBreak:"break-word"}}>{v}</div>
             </div>
           ))}
         </div>
+        {raw.input&&(
+          <div style={{marginBottom:18}}>
+            <div style={{fontSize:11,color:M.gray600,textTransform:"uppercase",letterSpacing:".07em",marginBottom:8,fontWeight:600}}>Input</div>
+            <div style={{background:M.gray50,borderRadius:8,padding:12,border:`1px solid ${M.gray200}`,fontFamily:M.mono,fontSize:12,color:M.gray900,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
+              {typeof raw.input==="string"?raw.input:JSON.stringify(raw.input,null,2)}
+            </div>
+          </div>
+        )}
         {nodes.length>0&&(
           <div style={{marginBottom:20}}>
             <div style={{fontSize:11,color:M.gray600,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10,fontWeight:600}}>Node waterfall</div>
@@ -300,18 +485,38 @@ function LoginScreen({onLogin}){
 }
 
 const NAV=[
-  ["overview","Overview"],
-  ["projects","Projects"],
-  ["traces","Traces"],
-  ["evaluations","Evaluations"],
-  ["prompts","Prompt Versions"],
-  ["datasets","Datasets"],
-  ["metrics","Metrics"],
-  ["alerts","Alerts"],
-  ["api-keys","API Keys"],
-  ["usage","Usage"],
-  ["settings","Settings"],
+  {section:"Monitor",items:[
+    ["overview","Overview"],
+    ["traces","Traces"],
+    ["alerts","Alerts"],
+    ["metrics","Metrics"],
+  ]},
+  {section:"Quality",items:[
+    ["evaluations","Evaluations"],
+    ["prompts","Prompt Versions"],
+    ["datasets","Datasets"],
+  ]},
+  {section:"Manage",items:[
+    ["projects","Projects"],
+    ["api-keys","API Keys"],
+    ["usage","Usage"],
+    ["settings","Settings"],
+  ]},
 ];
+
+const TAB_HINTS={
+  overview:"Production health at a glance — traces, evals, and alerts.",
+  traces:"Browse and inspect agent runs — filter by status, date range, or search.",
+  evaluations:"Golden dataset results and pass rates over time.",
+  prompts:"Track prompt versions linked to eval runs.",
+  datasets:"Golden cases for CI and local eval gates.",
+  metrics:"Latency, errors, and drift in one view.",
+  alerts:"Failed traces and quality drops needing attention.",
+  "api-keys":"Rotate or revoke keys for this project.",
+  usage:"Quota, retention, and plan limits.",
+  projects:"Workspace bound to your API key.",
+  settings:"Refresh, API endpoint, and session.",
+};
 
 function EmptyState({title,body,hint}){
   return(
@@ -343,6 +548,14 @@ export default function App(){
   const[detailLoading,setDetailLoading]=useState(false);
   const[rotatedKey,setRotatedKey]=useState(null);
   const[actionError,setActionError]=useState("");
+  const[traceSearch,setTraceSearch]=useState("");
+  const[traceDatePreset,setTraceDatePreset]=useState("all");
+  const[traceDateFrom,setTraceDateFrom]=useState("");
+  const[traceDateTo,setTraceDateTo]=useState("");
+  const[expandedEval,setExpandedEval]=useState(null);
+  const[expandedDataset,setExpandedDataset]=useState(null);
+  const[datasetDetail,setDatasetDetail]=useState(null);
+  const[datasetDetailLoading,setDatasetDetailLoading]=useState(false);
   const ref=useRef(null);
 
   const token=session?.access_token;
@@ -367,22 +580,37 @@ export default function App(){
     return()=>{cancelled=true;};
   },[]);
 
-  const tPath=token?`/v1/traces?project=${encodeURIComponent(project)}&limit=100${filter!=="all"?`&status=${filter}`:""}`:null;
+  const traceDateQuery=tab==="traces"?buildTraceDateQuery(traceDatePreset,traceDateFrom,traceDateTo):"";
+  const traceLimit=tab==="traces"&&traceDatePreset!=="all"?500:100;
+  const tPath=token?`/v1/traces?project=${encodeURIComponent(project)}&limit=${traceLimit}${filter!=="all"?`&status=${filter}`:""}${traceDateQuery}`:null;
   const ePath=token?`/v1/evals?project=${encodeURIComponent(project)}&limit=20`:null;
   const qPath=token?"/v1/traces/quota":null;
   const kPath=token?`/v1/keys/${encodeURIComponent(project)}`:null;
   const pPath=token?`/v1/prompts/catalog?project=${encodeURIComponent(project)}`:null;
+  const dPath=token?"/v1/eval/datasets":null;
 
   const{data:rawTraces,loading:tLoad,refetch:rT}=useFetch(token,tPath);
   const{data:rawEvals,loading:eLoad,refetch:rE}=useFetch(token,ePath);
   const{data:quota,loading:qLoad,refetch:rQ}=useFetch(token,qPath);
   const{data:rawKeys,loading:kLoad,refetch:rK}=useFetch(token,kPath);
   const{data:rawPrompts,loading:pLoad,refetch:rP}=useFetch(token,pPath);
+  const{data:rawDatasets,loading:dLoad,refetch:rD}=useFetch(token,dPath);
 
   useEffect(()=>{
-    if(live&&token){ref.current=setInterval(()=>{rT();rE();rQ();},5000);}
+    if(live&&token){ref.current=setInterval(()=>{rT();rE();rQ();rP();rD();},5000);}
     return()=>clearInterval(ref.current);
-  },[live,token,rT,rE,rQ]);
+  },[live,token,rT,rE,rQ,rP,rD]);
+
+  useEffect(()=>{
+    if(!expandedDataset||!token){setDatasetDetail(null);return;}
+    let cancelled=false;
+    setDatasetDetailLoading(true);
+    apiFetch(token,`/v1/eval/datasets/${expandedDataset}`)
+      .then(d=>{if(!cancelled)setDatasetDetail(d);})
+      .catch(()=>{if(!cancelled)setDatasetDetail(null);})
+      .finally(()=>{if(!cancelled)setDatasetDetailLoading(false);});
+    return()=>{cancelled=true;};
+  },[expandedDataset,token]);
 
   useEffect(()=>{
     if(!selected?.trace_id||!token){setTraceDetail(null);return;}
@@ -435,18 +663,56 @@ export default function App(){
   const successRate=traces.length>0?(((traces.length-failed)/traces.length)*100).toFixed(1):"—";
   const keys=Array.isArray(rawKeys)?rawKeys:[];
   const prompts=Array.isArray(rawPrompts)?rawPrompts:[];
-  const activeLabel=NAV.find(([id])=>id===tab)?.[1]||"Overview";
+  const datasets=Array.isArray(rawDatasets)?rawDatasets:[];
+  const activeLabel=NAV.flatMap(g=>g.items).find(([id])=>id===tab)?.[1]||"Overview";
+  const tabHint=TAB_HINTS[tab]||"";
+  const evalPassing=latest&&latest.task_completion_rate>=.9;
+  const healthPct=successRate!=="—"?parseFloat(successRate):null;
+  const completed=traces.length-failed;
+  const minLat=traces.length?Math.min(...traces.map(t=>t.total_latency_ms||0)):0;
+  const maxLat=traces.length?Math.max(...traces.map(t=>t.total_latency_ms||0)):0;
+  const latBuckets=traces.slice(0,24).reverse().map(t=>t.total_latency_ms||0);
+  const overallStatus=healthPct==null?"unknown":healthPct>=95&&evalPassing!==false&&failed===0?"healthy":healthPct>=80?"degraded":"critical";
+  const statusColor={healthy:M.green,degraded:M.amber,critical:M.red,unknown:M.gray500}[overallStatus];
+  const statusBg={healthy:M.greenLight,degraded:M.amberLight,critical:M.redLight,unknown:M.gray100}[overallStatus];
+  const filteredTraces=traces.filter(t=>{
+    if(traceSearch.trim()){
+      const q=traceSearch.toLowerCase();
+      const match=(t.trace_id||"").toLowerCase().includes(q)||(t.case_id||"").toLowerCase().includes(q)||(t.failure_kind||"").toLowerCase().includes(q);
+      if(!match)return false;
+    }
+    return true;
+  });
+  const traceDateActive=tab==="traces"&&traceDatePreset!=="all";
+  const tracesTabFailed=traces.filter(t=>t.status==="failed").length;
+  const tracesTabCompleted=traces.length-tracesTabFailed;
+  const tracesTabAvgLat=traces.length>0?Math.round(traces.reduce((s,t)=>s+(t.total_latency_ms||0),0)/traces.length):0;
+  const quotaPct=quota?.monthly_traces?.percent_used??null;
 
   const metricTiles=(
-    <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12}}>
+    <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12}}>
       <Tile label="Task completion" value={latest?`${(latest.task_completion_rate*100).toFixed(1)}`:"—"} unit="%" color={M.green}
+        hint={latest?`${latest.passed}/${latest.total_cases} eval cases passed`:"Run evals to populate"}
         spark={evals.slice(0,10).reverse().map(e=>(e.task_completion_rate||0)*100)} loading={eLoad}
         delta={prev?`${Math.abs((latest.task_completion_rate-prev.task_completion_rate)*100).toFixed(1)}%`:undefined}
-        deltaUp={prev&&latest.task_completion_rate>=prev.task_completion_rate}/>
-      <Tile label="Error rate" value={errRate} unit="%" color={parseFloat(errRate)>5?M.red:M.green} spark={traces.slice(0,20).reverse().map(t=>t.status==="failed"?100:0)} loading={tLoad}/>
-      <Tile label="Avg latency" value={avgLat} unit="ms" color={tcColor} spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}/>
-      <Tile label="P95 latency" value={p95} unit="ms" color={p95>2000?M.red:p95>1000?M.amber:M.blue} spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}/>
-      <Tile label="Total traces" value={traces.length} color={M.blue} spark={traces.slice(0,20).map(()=>1)} loading={tLoad}/>
+        deltaUp={prev&&latest.task_completion_rate>=prev.task_completion_rate}
+        onClick={()=>setTab("evaluations")}/>
+      <Tile label="Error rate" value={errRate} unit="%" color={parseFloat(errRate)>5?M.red:M.green}
+        hint={`${failed} failed of ${traces.length} traces`}
+        spark={traces.slice(0,20).reverse().map(t=>t.status==="failed"?100:0)} loading={tLoad}
+        onClick={()=>setTab("alerts")}/>
+      <Tile label="Avg latency" value={avgLat} unit="ms" color={tcColor}
+        hint="Mean across recent traces"
+        spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}
+        onClick={()=>setTab("metrics")}/>
+      <Tile label="P95 latency" value={p95} unit="ms" color={p95>2000?M.red:p95>1000?M.amber:M.blue}
+        hint="Slowest 5% of traces"
+        spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}
+        onClick={()=>setTab("metrics")}/>
+      <Tile label="Total traces" value={traces.length} color={M.blue}
+        hint={quota?.monthly_traces?`${quota.monthly_traces.used?.toLocaleString()??"—"} this month`:"In current view"}
+        spark={traces.slice(0,20).map(()=>1)} loading={tLoad}
+        onClick={()=>setTab("traces")}/>
     </div>
   );
 
@@ -455,8 +721,8 @@ export default function App(){
       <style>{G}</style>
       <div style={{display:"flex",height:"100vh",background:M.gray50}}>
         {/* Left nav */}
-        <aside style={{width:220,background:M.white,borderRight:`1px solid ${M.gray200}`,display:"flex",flexDirection:"column",flexShrink:0}}>
-          <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${M.gray200}`}}>
+        <aside className="dash-sidebar" style={{width:248,height:"100vh",minHeight:0,background:M.white,borderRight:`1px solid ${M.gray200}`,display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
+          <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${M.gray200}`,flexShrink:0}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
               <div style={{width:28,height:28,background:M.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
@@ -470,33 +736,51 @@ export default function App(){
                 <div style={{fontSize:11,color:M.gray500}}>Dashboard</div>
               </div>
             </div>
-            <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project · {tier}</div>
-            <div style={{fontFamily:M.mono,fontSize:12,color:M.gray800,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:4,padding:"6px 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{project}</div>
+            <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project</div>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+              <span style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em",background:tier==="pro"?M.blueLight:M.greenLight,color:tier==="pro"?M.blue:M.green,padding:"2px 7px",borderRadius:4}}>{tier}</span>
+            </div>
+            <div style={{fontFamily:M.mono,fontSize:12,color:M.gray800,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"7px 9px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={project}>{project}</div>
           </div>
-          <nav style={{flex:1,overflow:"auto",padding:"10px 8px"}} aria-label="Dashboard">
-            {NAV.map(([id,label])=>(
-              <button key={id} onClick={()=>setTab(id)}
-                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",textAlign:"left",background:tab===id?M.blueLight:"transparent",color:tab===id?M.blue:M.gray700,border:"none",borderRadius:6,padding:"9px 12px",fontSize:13,fontWeight:tab===id?600:500,cursor:"pointer",fontFamily:M.sans,marginBottom:2}}>
-                <span>{label}</span>
-                {id==="alerts"&&failed>0&&<span style={{background:M.red,color:M.ink,borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:600}}>{failed}</span>}
-              </button>
+          <nav style={{flex:1,minHeight:0,overflow:"auto",padding:"8px 8px 10px"}} aria-label="Dashboard">
+            {NAV.map(({section,items})=>(
+              <div key={section} style={{marginBottom:12}}>
+                <div style={{fontSize:10,color:M.gray400,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600,padding:"4px 12px 6px"}}>{section}</div>
+                {items.map(([id,label])=>(
+                  <button key={id} onClick={()=>setTab(id)}
+                    style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",textAlign:"left",background:tab===id?M.blueLight:"transparent",color:tab===id?M.blue:M.gray700,border:"none",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:tab===id?600:500,cursor:"pointer",fontFamily:M.sans,marginBottom:2,gap:10}}>
+                    <span style={{display:"flex",alignItems:"center",gap:9}}><NavIcon id={id}/>{label}</span>
+                    {id==="alerts"&&failed>0&&<span style={{background:M.red,color:M.ink,borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:600,minWidth:18,textAlign:"center"}}>{failed}</span>}
+                  </button>
+                ))}
+              </div>
             ))}
           </nav>
-          <div style={{padding:"12px 14px",borderTop:`1px solid ${M.gray200}`}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,cursor:"pointer"}} onClick={()=>setLive(l=>!l)}>
+          <div style={{padding:"12px 14px",borderTop:`1px solid ${M.gray200}`,flexShrink:0,background:M.white}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,cursor:"pointer"}} onClick={()=>setLive(l=>!l)}>
               <div style={{width:8,height:8,borderRadius:"50%",background:live?M.green:M.gray400,animation:live?"pulse 1.5s infinite":"none"}}/>
               <span style={{fontSize:12,color:live?M.green:M.gray500,fontWeight:500}}>{live?"Live · 5s":"Paused"}</span>
             </div>
-            <button onClick={logout} style={{background:"none",border:"none",color:M.gray600,fontSize:12,cursor:"pointer",padding:0}}>Sign out</button>
+            <button onClick={logout} style={{width:"100%",background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray800,fontSize:13,fontWeight:500,cursor:"pointer",padding:"8px 12px"}}>Sign out</button>
           </div>
         </aside>
 
         {/* Main */}
         <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-          <header style={{height:56,background:M.white,borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",padding:"0 20px",gap:12,flexShrink:0}}>
-            <h1 style={{fontSize:18,fontWeight:600,color:M.gray900,margin:0}}>{activeLabel}</h1>
+          <header style={{minHeight:56,background:M.white,borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",padding:"10px 20px",gap:12,flexShrink:0}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <h1 style={{fontSize:18,fontWeight:600,color:M.gray900,margin:0}}>{activeLabel}</h1>
+                <Badge color={tier==="pro"?M.blue:M.green} bg={tier==="pro"?M.blueLight:M.greenLight}>{tier}</Badge>
+                <span style={{fontFamily:M.mono,fontSize:11,color:M.gray500}}>{project}</span>
+                {live&&<Badge color={M.green} bg={M.greenLight}>● Live</Badge>}
+              </div>
+              {tabHint&&<p style={{fontSize:12,color:M.gray500,margin:"4px 0 0",lineHeight:1.4}}>{tabHint}</p>}
+            </div>
             <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
-              <button onClick={()=>{rT();rE();rQ();rK();rP();}} style={{background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:4,color:M.gray700,fontSize:13,padding:"6px 10px",cursor:"pointer"}}>↻ Refresh</button>
+              {(tLoad||eLoad)&&<span style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>Updating…</span>}
+              <button onClick={()=>{rT();rE();rQ();rK();rP();rD();}} style={{background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray700,fontSize:13,padding:"6px 12px",cursor:"pointer",fontWeight:500}}>↻ Refresh</button>
+              <button onClick={logout} style={{background:"none",border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray600,fontSize:13,padding:"6px 12px",cursor:"pointer",fontWeight:500}}>Sign out</button>
               <a href="https://getcortexops.com" style={{fontSize:13,color:M.blueSoft,textDecoration:"none"}}>getcortexops.com</a>
             </div>
           </header>
@@ -504,146 +788,377 @@ export default function App(){
           <div style={{flex:1,overflow:"auto",padding:20}}>
             {tab==="overview"&&(
               <div style={{display:"grid",gap:16}}>
-                {metricTiles}
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
-                  <PanelCard title="Health score"><div style={{fontSize:28,fontWeight:600,color:M.green,fontFamily:M.mono}}>{successRate}{successRate!=="—"?"%":""}</div></PanelCard>
-                  <PanelCard title="Eval gate"><div style={{fontSize:28,fontWeight:600,color:latest?(latest.task_completion_rate>=.9?M.green:M.red):M.gray500,fontFamily:M.mono}}>{latest?(latest.task_completion_rate>=.9?"Passing":"Failing"):"—"}</div></PanelCard>
-                  <PanelCard title="Regressions"><div style={{fontSize:28,fontWeight:600,color:!latest?.regressions?M.green:M.amber,fontFamily:M.mono}}>{latest?.regressions??"—"}</div></PanelCard>
-                </div>
-                <PanelCard title="Recent traces">
-                  {traces.slice(0,5).map(t=>(
-                    <div key={t.trace_id} onClick={()=>{setSelected(t);setTab("traces");}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${M.gray200}`,cursor:"pointer"}}>
-                      <StatusDot status={t.status}/>
-                      <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500}}>{t.trace_id?.slice(0,8)}</span>
-                      <span style={{flex:1,fontSize:13}}>{t.case_id||"live trace"}</span>
-                      <LatencyChip ms={t.total_latency_ms||0}/>
+                <div style={{background:`linear-gradient(135deg, ${statusBg} 0%, ${M.white} 55%)`,border:`1px solid ${M.gray200}`,borderRadius:12,padding:"18px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,flexWrap:"wrap",boxShadow:M.shadow1}}>
+                  <div>
+                    <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".08em",fontWeight:700,marginBottom:6}}>Project status</div>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                      <span style={{fontSize:24,fontWeight:700,color:statusColor,textTransform:"capitalize"}}>{overallStatus==="unknown"?"No data yet":overallStatus}</span>
+                      {failed>0&&<Badge color={M.red} bg={M.redLight}>{failed} active alert{failed>1?"s":""}</Badge>}
                     </div>
-                  ))}
-                  {traces.length===0&&<div style={{fontSize:13,color:M.gray500}}>No traces yet</div>}
-                </PanelCard>
+                    <div style={{fontSize:13,color:M.gray600,lineHeight:1.5}}>
+                      {completed} successful · {failed} failed · {evals.length} eval run{evals.length!==1?"s":""} · {datasets.length} dataset{datasets.length!==1?"s":""}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <QuickLink label="View traces" onClick={()=>setTab("traces")}/>
+                    <QuickLink label="Run evals" onClick={()=>setTab("evaluations")} color={M.green}/>
+                    {failed>0&&<QuickLink label="Review alerts" onClick={()=>setTab("alerts")} color={M.red}/>}
+                  </div>
+                </div>
+
+                {metricTiles}
+
+                <div className="overview-layout" style={{display:"grid",gridTemplateColumns:"minmax(0,1.6fr) minmax(280px,1fr)",gap:16,alignItems:"start"}}>
+                  <div style={{display:"grid",gap:16}}>
+                    <div className="insight-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>
+                      <InsightCard label="Health score" value={successRate!=="—"?`${successRate}%`:"—"}
+                        sub={healthPct!=null?`${completed}/${traces.length} traces succeeded`:"Instrument agents to measure health"}
+                        color={healthPct==null?M.gray500:healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
+                        bar={healthPct} barColor={healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
+                        onClick={()=>setTab("metrics")} loading={tLoad}/>
+                      <InsightCard label="Eval gate" value={latest?(evalPassing?"Passing":"Failing"):"No data"}
+                        sub={latest?`${((latest.task_completion_rate||0)*100).toFixed(0)}% · ${latest.passed}/${latest.total_cases} cases · 90% threshold`:"Run golden dataset evals"}
+                        color={latest?(evalPassing?M.green:M.red):M.gray500}
+                        bar={latest?(latest.task_completion_rate||0)*100:null} barColor={evalPassing?M.green:M.red}
+                        onClick={()=>setTab("evaluations")} loading={eLoad}/>
+                      <InsightCard label="Regressions" value={latest?(latest.regressions??0):"—"}
+                        sub={latest?(latest.regressions>0?"Review failing cases in latest run":"Stable vs previous run"):"Tracked across eval history"}
+                        color={latest?(latest.regressions>0?M.amber:M.green):M.gray500}
+                        onClick={()=>setTab("evaluations")} loading={eLoad}/>
+                    </div>
+
+                    <Section title="Recent traces" subtitle="Click any row to open the node waterfall"
+                      action={traces.length>0?<button onClick={()=>setTab("traces")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>:null}
+                      noPad>
+                      {traces.slice(0,8).map(t=>(
+                        <TraceRow key={t.trace_id} trace={t} onClick={()=>setSelected(t)}/>
+                      ))}
+                      {traces.length===0&&!tLoad&&<EmptyState title="No traces yet" body="Instrument your agent with CortexTracer to see live runs here." hint="pip install cortexops"/>}
+                    </Section>
+
+                    {latest?.case_results?.length>0&&(
+                      <Section title="Latest eval cases" subtitle={`Run ${latest.run_id?.slice(0,8)} · ${formatWhen(latest.created_at)}`}
+                        action={<button onClick={()=>setTab("evaluations")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>All runs →</button>}>
+                        <div style={{display:"grid",gap:8}}>
+                          {latest.case_results.slice(0,6).map(cr=>(
+                            <div key={cr.case_id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:M.gray50,borderRadius:8,border:`1px solid ${M.gray200}`}}>
+                              <Badge color={cr.passed?M.green:M.red} bg={cr.passed?M.greenLight:M.redLight}>{cr.passed?"PASS":"FAIL"}</Badge>
+                              <span style={{flex:1,fontFamily:M.mono,fontSize:12,color:M.gray800}}>{cr.case_id}</span>
+                              <span style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>{Math.round(cr.latency_ms||0)}ms</span>
+                              {cr.failure_kind&&<span style={{fontSize:10,color:M.red,fontFamily:M.mono}}>{cr.failure_kind.replace("FailureKind.","")}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </Section>
+                    )}
+                  </div>
+
+                  <div style={{display:"grid",gap:16}}>
+                    <Section title="Usage this month">
+                      {qLoad?<div style={{fontSize:13,color:M.gray500}}>Loading quota…</div>:<>
+                        <div style={{fontSize:28,fontWeight:700,fontFamily:M.mono,color:M.gray900,marginBottom:4}}>
+                          {quota?.monthly_traces?.used?.toLocaleString()??"—"}
+                          <span style={{fontSize:14,color:M.gray500,fontWeight:400}}> / {quota?.monthly_traces?.unlimited?"∞":(quota?.monthly_traces?.limit?.toLocaleString()??"5,000")}</span>
+                        </div>
+                        {!quota?.monthly_traces?.unlimited&&quotaPct!=null&&(
+                          <div style={{height:8,background:M.gray200,borderRadius:4,overflow:"hidden",marginBottom:10}}>
+                            <div style={{width:`${Math.min(quotaPct,100)}%`,height:"100%",background:quotaPct>90?M.red:quotaPct>70?M.amber:M.green}}/>
+                          </div>
+                        )}
+                        <DetailRow label="Retention" value={`${quota?.retention_days??7} days`}/>
+                        <DetailRow label="Plan" value={quota?.tier||tier}/>
+                        <DetailRow label="Traces loaded" value={String(traces.length)} mono/>
+                        {quota?.upgrade_url&&tier!=="pro"&&<a href={quota.upgrade_url} style={{display:"inline-block",marginTop:10,color:M.blue,fontSize:12,fontWeight:600}}>Upgrade to Pro →</a>}
+                      </>}
+                    </Section>
+
+                    <Section title="Latency distribution" subtitle={`Min ${minLat}ms · Avg ${avgLat}ms · P95 ${p95}ms · Max ${maxLat}ms`}>
+                      <MiniBars values={latBuckets} color={tcColor}/>
+                    </Section>
+
+                    <Section title="Workspace" subtitle="Resources in this project">
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                        {[[evals.length,"Eval runs","evaluations"],[datasets.length,"Datasets","datasets"],[prompts.length,"Prompts","prompts"],[keys.length,"API keys","api-keys"]].map(([n,l,dest])=>(
+                          <button key={l} onClick={()=>setTab(dest)} className="card-hover" style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:8,padding:"12px",cursor:"pointer",textAlign:"left"}}>
+                            <div style={{fontSize:22,fontWeight:700,color:M.gray900,fontFamily:M.mono}}>{n}</div>
+                            <div style={{fontSize:11,color:M.gray500,marginTop:2}}>{l}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </Section>
+
+                    {failed>0&&(
+                      <Section title="Active alerts" subtitle={`${failed} failed trace${failed>1?"s":""} need review`}
+                        action={<button onClick={()=>setTab("alerts")} style={{background:"none",border:"none",color:M.red,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>}
+                        noPad>
+                        {traces.filter(t=>t.status==="failed").slice(0,4).map(t=>(
+                          <TraceRow key={t.trace_id} trace={t} onClick={()=>setSelected(t)} showCase={false}/>
+                        ))}
+                      </Section>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
             {tab==="projects"&&(
-              <div style={{maxWidth:520,display:"grid",gap:14}}>
-                <PanelCard title="Active project">
-                  <div style={{fontSize:14,color:M.gray700,marginBottom:12}}>Your project is bound to the API key used at login.</div>
-                  <div style={{fontFamily:M.mono,fontSize:14,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:4,padding:"10px 12px"}}>{project}</div>
-                </PanelCard>
-                <PanelCard title="Current">
-                  <div style={{fontFamily:M.mono,fontSize:14}}>{project}</div>
-                  <div style={{fontSize:13,color:M.gray600,marginTop:8}}>{traces.length} traces · {evals.length} eval runs · tier {tier}</div>
-                </PanelCard>
+              <div style={{display:"grid",gap:16,maxWidth:900}}>
+                <div style={{background:`linear-gradient(135deg, ${M.blueLight} 0%, ${M.white} 60%)`,border:`1px solid ${M.gray200}`,borderRadius:12,padding:"20px 22px",boxShadow:M.shadow1}}>
+                  <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".08em",fontWeight:700,marginBottom:8}}>Active workspace</div>
+                  <div style={{fontFamily:M.mono,fontSize:20,fontWeight:700,color:M.gray900,marginBottom:8}}>{project}</div>
+                  <div style={{fontSize:14,color:M.gray600,lineHeight:1.55}}>Bound to your API key at login. All traces, evals, datasets, and prompts are scoped to this project.</div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12}}>
+                  {[[traces.length,"Traces",M.blue],[evals.length,"Eval runs",M.green],[datasets.length,"Datasets",M.amber],[prompts.length,"Prompt versions",M.blueSoft]].map(([n,l,c])=>(
+                    <div key={l} style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,padding:"16px",boxShadow:M.shadow1}}>
+                      <div style={{fontSize:26,fontWeight:700,color:c,fontFamily:M.mono}}>{n}</div>
+                      <div style={{fontSize:12,color:M.gray500,marginTop:4}}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+                <Section title="Project details">
+                  <DetailRow label="Tier" value={tier}/>
+                  <DetailRow label="API keys" value={String(keys.length)} mono/>
+                  <DetailRow label="Failed traces" value={String(failed)} mono/>
+                  <DetailRow label="Latest eval" value={latest?`${((latest.task_completion_rate||0)*100).toFixed(0)}% pass`:"—"}/>
+                  <DetailRow label="Health" value={successRate!=="—"?`${successRate}%`:"—"}/>
+                </Section>
               </div>
             )}
 
             {tab==="traces"&&(
-              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,overflow:"hidden"}}>
-                <div style={{display:"flex",alignItems:"center",padding:"10px 16px",borderBottom:`1px solid ${M.gray200}`,gap:8}}>
-                  {["all","completed","failed"].map(s=>(
-                    <button key={s} onClick={()=>setFilter(s)}
-                      style={{background:filter===s?M.blueLight:"transparent",border:`1px solid ${filter===s?M.blue:M.gray300}`,borderRadius:4,color:filter===s?M.blue:M.gray600,fontSize:12,padding:"4px 12px",cursor:"pointer"}}>{s}</button>
+              <div style={{display:"grid",gap:12}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:10}}>
+                  {[[traces.length,"In range",M.blue],[tracesTabCompleted,"OK",M.green],[tracesTabFailed,"Failed",M.red],[`${tracesTabAvgLat}ms`,"Avg latency",tracesTabAvgLat>500?M.amber:M.green]].map(([v,l,c])=>(
+                    <div key={l} style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,padding:"12px 14px"}}>
+                      <div style={{fontSize:10,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600}}>{l}</div>
+                      <div style={{fontSize:20,fontWeight:700,color:c,fontFamily:M.mono,marginTop:4}}>{v}</div>
+                    </div>
                   ))}
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:12,padding:"6px 16px",borderBottom:`1px solid ${M.gray200}`,background:M.gray50}}>
-                  {["","ID","Case","Latency","Failure","Time"].map((h,i)=>(
-                    <span key={i} style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,minWidth:i===0?8:i===1?64:i===3?70:i===4?100:i===5?80:undefined,flex:i===2?1:undefined}}>{h}</span>
-                  ))}
-                </div>
-                {traces.length===0&&!tLoad&&<EmptyState title="No traces yet" body="Instrument your agent and send traces to this project." hint="pip install cortexops"/>}
-                {traces.map((t,i)=>(
-                  <div key={t.trace_id} onClick={()=>setSelected(t)}
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderBottom:`1px solid ${M.gray200}`,cursor:"pointer",animation:`slideIn .15s ease ${Math.min(i,8)*.03}s both`}}
-                    onMouseEnter={e=>e.currentTarget.style.background=M.gray50}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <StatusDot status={t.status}/>
-                    <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500,minWidth:64}}>{t.trace_id?.slice(0,8)}</span>
-                    <span style={{flex:1,fontSize:14,color:M.gray900}}>{t.case_id||"live trace"}</span>
-                    <LatencyChip ms={t.total_latency_ms||0}/>
-                    <span style={{minWidth:100,fontSize:12}}>
-                      {t.failure_kind?<span style={{background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4,fontFamily:M.mono,fontSize:11}}>{t.failure_kind.replace("FailureKind.","")}</span>:<span style={{color:M.gray400}}>—</span>}
-                    </span>
-                    <span style={{fontSize:12,color:M.gray500,minWidth:80,textAlign:"right"}}>{t.created_at?new Date(t.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"}):""}</span>
+                <Section
+                  title="Trace explorer"
+                  subtitle={`${filteredTraces.length} shown · ${traces.length} loaded${traceDateActive?` · ${traceDateLabel(traceDatePreset,traceDateFrom,traceDateTo)}`:""}`}
+                  action={
+                    <input value={traceSearch} onChange={e=>setTraceSearch(e.target.value)} placeholder="Search ID, case, failure…"
+                      style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"6px 10px",fontSize:12,color:M.gray900,minWidth:200}}/>
+                  } noPad>
+                  <div style={{padding:"10px 18px",borderBottom:`1px solid ${M.gray200}`,display:"grid",gap:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,marginRight:4}}>Status</span>
+                      {["all","completed","failed"].map(s=>(
+                        <button key={s} onClick={()=>setFilter(s)}
+                          style={{background:filter===s?M.blueLight:"transparent",border:`1px solid ${filter===s?M.blue:M.gray300}`,borderRadius:6,color:filter===s?M.blue:M.gray600,fontSize:12,padding:"5px 12px",cursor:"pointer",fontWeight:filter===s?600:500,textTransform:"capitalize"}}>{s}</button>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,marginRight:4}}>Date range</span>
+                      {TRACE_DATE_PRESETS.map(([key,label])=>(
+                        <button key={key} onClick={()=>setTraceDatePreset(key)}
+                          style={{background:traceDatePreset===key?M.blueLight:"transparent",border:`1px solid ${traceDatePreset===key?M.blue:M.gray300}`,borderRadius:6,color:traceDatePreset===key?M.blue:M.gray600,fontSize:12,padding:"5px 12px",cursor:"pointer",fontWeight:traceDatePreset===key?600:500}}>{label}</button>
+                      ))}
+                      {traceDateActive&&(
+                        <button onClick={()=>{setTraceDatePreset("all");setTraceDateFrom("");setTraceDateTo("");}}
+                          style={{background:"none",border:"none",color:M.gray500,fontSize:12,cursor:"pointer",padding:"5px 8px"}}>Clear</button>
+                      )}
+                    </div>
+                    {traceDatePreset==="custom"&&(
+                      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:M.gray600}}>
+                          From
+                          <input type="date" value={traceDateFrom} onChange={e=>setTraceDateFrom(e.target.value)}
+                            style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"5px 8px",fontSize:12,color:M.gray900}}/>
+                        </label>
+                        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:M.gray600}}>
+                          To
+                          <input type="date" value={traceDateTo} onChange={e=>setTraceDateTo(e.target.value)}
+                            style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"5px 8px",fontSize:12,color:M.gray900}}/>
+                        </label>
+                        {!traceDateFrom&&!traceDateTo&&<span style={{fontSize:11,color:M.gray500}}>Pick at least one date</span>}
+                      </div>
+                    )}
                   </div>
-                ))}
+                  {filteredTraces.length===0&&!tLoad&&<EmptyState title="No traces found" body={traceSearch||traceDateActive?"Try adjusting search or date range.":"Instrument your agent and send traces to this project."} hint="pip install cortexops"/>}
+                  {filteredTraces.map(t=><TraceRow key={t.trace_id} trace={t} onClick={()=>setSelected(t)}/>)}
+                </Section>
               </div>
             )}
 
             {tab==="evaluations"&&(
-              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,overflow:"hidden"}}>
-                {evals.length===0&&!eLoad&&<EmptyState title="No evaluations yet" body="Run golden datasets in CI or locally to populate this view." hint='cortexops eval run --dataset golden_v1.yaml'/>}
-                {evals.map((run,i)=>(
-                  <div key={run.run_id} style={{padding:"14px 16px",borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                      <StatusDot status={run.status||"completed"}/>
-                      <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500}}>{run.run_id?.slice(0,8)}</span>
-                      <div style={{flex:1,height:6,background:M.gray200,borderRadius:3,overflow:"hidden"}}>
-                        <div style={{width:`${(run.task_completion_rate||0)*100}%`,height:"100%",background:run.task_completion_rate>=.9?M.green:run.task_completion_rate>=.7?M.amber:M.red,borderRadius:3}}/>
+              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,overflow:"hidden",boxShadow:M.shadow1}}>
+                {evals.length>0&&(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:1,background:M.gray200,borderBottom:`1px solid ${M.gray200}`}}>
+                    {[["Latest pass rate",latest?`${((latest.task_completion_rate||0)*100).toFixed(0)}%`:"—",evalPassing?M.green:M.red],
+                      ["Cases",latest?`${latest.passed}/${latest.total_cases}`:"—",M.blue],
+                      ["Regressions",latest?.regressions??0,latest?.regressions?M.amber:M.green]
+                    ].map(([l,v,c])=>(
+                      <div key={l} style={{background:M.white,padding:"14px 18px"}}>
+                        <div style={{fontSize:10,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,marginBottom:4}}>{l}</div>
+                        <div style={{fontSize:22,fontWeight:700,color:c,fontFamily:M.mono}}>{v}</div>
                       </div>
-                      <span style={{fontFamily:M.mono,fontSize:13,color:M.green,fontWeight:600}}>{((run.task_completion_rate||0)*100).toFixed(0)}%</span>
-                      <span style={{fontSize:13,color:M.gray600}}>{run.passed}/{run.total_cases} pass</span>
-                      {run.regressions>0&&<span style={{fontSize:11,background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4}}>{run.regressions} regression</span>}
+                    ))}
+                  </div>
+                )}
+                {evals.length===0&&!eLoad&&<EmptyState title="No evaluations yet" body="Run golden datasets in CI or locally to populate this view." hint='python run_eval.py --project your-project'/>}
+                {evals.map((run,i)=>(
+                  <div key={run.run_id} style={{borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
+                    <div className="row-hover" onClick={()=>setExpandedEval(expandedEval===run.run_id?null:run.run_id)}
+                      style={{padding:"14px 18px",cursor:run.case_results?.length?"pointer":"default"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                        <StatusDot status={run.status||"completed"}/>
+                        <div style={{minWidth:80}}>
+                          <div style={{fontFamily:M.mono,fontSize:12,color:M.gray700,fontWeight:600}}>{run.run_id?.slice(0,8)}</div>
+                          <div style={{fontSize:10,color:M.gray500,marginTop:2}}>{timeAgo(run.created_at)}</div>
+                        </div>
+                        <div style={{flex:1}}>
+                          <div style={{height:8,background:M.gray200,borderRadius:4,overflow:"hidden"}}>
+                            <div style={{width:`${(run.task_completion_rate||0)*100}%`,height:"100%",background:run.task_completion_rate>=.9?M.green:run.task_completion_rate>=.7?M.amber:M.red,borderRadius:4}}/>
+                          </div>
+                        </div>
+                        <span style={{fontFamily:M.mono,fontSize:14,color:run.task_completion_rate>=.9?M.green:M.red,fontWeight:700,minWidth:44,textAlign:"right"}}>{((run.task_completion_rate||0)*100).toFixed(0)}%</span>
+                        <span style={{fontSize:13,color:M.gray600,minWidth:72}}>{run.passed}/{run.total_cases}</span>
+                        {run.regressions>0&&<Badge color={M.red} bg={M.redLight}>{run.regressions}↓</Badge>}
+                        {run.case_results?.length>0&&<span style={{fontSize:11,color:M.gray400}}>{expandedEval===run.run_id?"▲":"▼"}</span>}
+                      </div>
+                      <div style={{display:"flex",gap:16,paddingLeft:18,flexWrap:"wrap"}}>
+                        {[["Tool accuracy",`${(run.tool_accuracy||0).toFixed(0)}/100`],["P50",`${Math.round(run.latency_p50_ms||0)}ms`],["P95",`${Math.round(run.latency_p95_ms||0)}ms`],["Dataset",run.dataset_name||"golden"],["When",formatWhen(run.created_at)]].map(([l,v])=>(
+                          <span key={l} style={{fontSize:12,color:M.gray600}}>{l}: <span style={{color:M.gray900,fontFamily:M.mono}}>{v}</span></span>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{display:"flex",gap:20,paddingLeft:18}}>
-                      {[["Tool accuracy",`${(run.tool_accuracy||0).toFixed(0)}/100`],["P95",`${Math.round(run.latency_p95_ms||0)}ms`],["Cases",`${run.total_cases}`]].map(([l,v])=>(
-                        <span key={l} style={{fontSize:12,color:M.gray600}}>{l}: <span style={{color:M.gray900,fontFamily:M.mono}}>{v}</span></span>
-                      ))}
-                    </div>
+                    {expandedEval===run.run_id&&run.case_results?.length>0&&(
+                      <div style={{padding:"0 18px 14px",background:M.gray50,borderTop:`1px solid ${M.gray200}`}}>
+                        {run.case_results.map(cr=>(
+                          <div key={cr.case_id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:`1px solid ${M.gray200}`}}>
+                            <Badge color={cr.passed?M.green:M.red} bg={cr.passed?M.greenLight:M.redLight}>{cr.passed?"PASS":"FAIL"}</Badge>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontFamily:M.mono,fontSize:12,fontWeight:600,color:M.gray800,marginBottom:4}}>{cr.case_id}</div>
+                              <div style={{display:"flex",gap:14,flexWrap:"wrap",fontSize:11,color:M.gray500}}>
+                                <span>Score: <span style={{fontFamily:M.mono,color:M.gray800}}>{(cr.score||0).toFixed(2)}</span></span>
+                                <span>Tool acc: <span style={{fontFamily:M.mono,color:M.gray800}}>{(cr.tool_accuracy||0).toFixed(0)}</span></span>
+                                <span>Latency: <span style={{fontFamily:M.mono,color:M.gray800}}>{Math.round(cr.latency_ms||0)}ms</span></span>
+                              </div>
+                              {cr.failure_detail&&<div style={{fontSize:11,color:M.red,marginTop:6,fontFamily:M.mono}}>{cr.failure_detail}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
             {tab==="prompts"&&(
-              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,overflow:"hidden"}}>
+              <Section title="Prompt versions" subtitle={`${prompts.length} prompt${prompts.length!==1?"s":""} in catalog`} noPad>
                 {pLoad&&<div style={{padding:16,fontSize:13,color:M.gray500}}>Loading prompt versions…</div>}
-                {!pLoad&&prompts.length===0&&<EmptyState title="No prompt versions yet" body="Commit prompt versions from your agent pipeline or API to track changes against evals." hint="POST /v1/prompts"/>}
+                {!pLoad&&prompts.length===0&&(
+                  <EmptyState title="No prompt versions yet" body="Prompt versions sync when you run evals with the SDK, or commit them via POST /v1/prompts." hint="python run_eval.py --project your-project"/>
+                )}
                 {prompts.map((pv,i)=>(
-                  <div key={pv.id} style={{padding:"14px 16px",borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                      <span style={{fontFamily:M.mono,fontSize:13,color:M.blue,fontWeight:600}}>{pv.prompt_name}</span>
-                      <span style={{fontSize:11,background:M.blueLight,color:M.blue,padding:"2px 8px",borderRadius:4,fontFamily:M.mono}}>v{pv.version}</span>
-                      {pv.model&&<span style={{fontSize:12,color:M.gray500}}>{pv.model}</span>}
+                  <div key={pv.id} style={{padding:"16px 18px",borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
+                      <span style={{fontFamily:M.mono,fontSize:14,color:M.blue,fontWeight:600}}>{pv.prompt_name}</span>
+                      <Badge color={M.blue} bg={M.blueLight}>v{pv.version}</Badge>
+                      {pv.model&&<Badge>{pv.model}</Badge>}
+                      <span style={{fontSize:11,color:M.gray500,marginLeft:"auto"}}>{formatWhen(pv.created_at)}</span>
                     </div>
-                    <div style={{fontSize:12,color:M.gray600,marginBottom:8}}>{pv.commit_message||"No commit message"} · {pv.author||"unknown"}</div>
-                    <div style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:10,fontFamily:M.mono,fontSize:11,color:M.gray800,whiteSpace:"pre-wrap",maxHeight:120,overflow:"auto"}}>{pv.content}</div>
+                    <div style={{fontSize:12,color:M.gray600,marginBottom:10}}>{pv.commit_message||"No commit message"} · {pv.author||"unknown"} · temp {pv.temperature??0.7}</div>
+                    <div style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:8,padding:12,fontFamily:M.mono,fontSize:11,color:M.gray800,whiteSpace:"pre-wrap",maxHeight:160,overflow:"auto",lineHeight:1.5}}>{pv.content}</div>
                   </div>
                 ))}
-              </div>
+              </Section>
             )}
 
             {tab==="datasets"&&(
-              <EmptyState title="Datasets" body="Versioned golden cases for CI and local eval runs. Store cases as YAML and gate merges on score." hint="cortexops eval run --dataset golden_v1.yaml"/>
+              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,overflow:"hidden",boxShadow:M.shadow1}}>
+                {dLoad&&<div style={{padding:16,fontSize:13,color:M.gray500}}>Loading datasets…</div>}
+                {!dLoad&&datasets.length===0&&(
+                  <EmptyState
+                    title="No datasets yet"
+                    body="Golden datasets sync to the dashboard when you run evals against the hosted API."
+                    hint="cd examples/langgraph_payments && python run_eval.py --project your-project"
+                  />
+                )}
+                {datasets.map((ds,i)=>(
+                  <div key={ds.id} style={{borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
+                    <div className="row-hover" onClick={()=>setExpandedDataset(expandedDataset===ds.id?null:ds.id)}
+                      style={{padding:"14px 18px",cursor:"pointer"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                        <span style={{fontFamily:M.mono,fontSize:14,color:M.blue,fontWeight:600}}>{ds.name}</span>
+                        <span style={{fontSize:11,background:M.blueLight,color:M.blue,padding:"2px 8px",borderRadius:4,fontFamily:M.mono}}>{ds.case_count} cases</span>
+                        <span style={{marginLeft:"auto",fontSize:11,color:M.gray500}}>{expandedDataset===ds.id?"Hide":"Show cases"} →</span>
+                      </div>
+                      {ds.description&&<div style={{fontSize:13,color:M.gray600,lineHeight:1.45,marginBottom:4}}>{ds.description}</div>}
+                      <div style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>
+                        {ds.id?.slice(0,8)} · {ds.created_at?new Date(ds.created_at).toLocaleString():"—"}
+                      </div>
+                    </div>
+                    {expandedDataset===ds.id&&(
+                      <div style={{padding:"0 18px 14px",borderTop:`1px solid ${M.gray200}`,background:M.gray50}}>
+                        {datasetDetailLoading&&<div style={{padding:"12px 0",fontSize:13,color:M.gray500}}>Loading cases…</div>}
+                        {!datasetDetailLoading&&datasetDetail?.cases?.map((c,j)=>(
+                          <div key={c.id||j} style={{padding:"10px 0",borderBottom:j<datasetDetail.cases.length-1?`1px solid ${M.gray200}`:"none"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                              <span style={{fontFamily:M.mono,fontSize:12,color:M.gray700,fontWeight:600}}>{c.id||`case-${j+1}`}</span>
+                              {(c.tags||[]).slice(0,3).map(tag=>(
+                                <span key={tag} style={{fontSize:10,background:M.gray200,color:M.gray600,padding:"1px 6px",borderRadius:4}}>{tag}</span>
+                              ))}
+                            </div>
+                            <div style={{fontSize:13,color:M.gray800,marginBottom:4}}>{typeof c.input==="string"?c.input:JSON.stringify(c.input)}</div>
+                            {c.expected_tool_calls?.length>0&&(
+                              <div style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>
+                                tools: {c.expected_tool_calls.join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {!datasetDetailLoading&&(!datasetDetail?.cases||datasetDetail.cases.length===0)&&(
+                          <div style={{padding:"12px 0",fontSize:13,color:M.gray500}}>No cases in this dataset.</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
 
             {tab==="metrics"&&(
               <div style={{display:"grid",gap:16}}>
                 {metricTiles}
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
-                  <PanelCard title="Health score"><div style={{fontSize:24,fontWeight:600,color:M.green,fontFamily:M.mono}}>{successRate}{successRate!=="—"?"%":""}</div></PanelCard>
-                  <PanelCard title="Latency watch"><div style={{fontSize:24,fontWeight:600,color:tcColor,fontFamily:M.mono}}>{avgLat}ms avg</div></PanelCard>
-                  <PanelCard title="Drift monitor"><div style={{fontSize:24,fontWeight:600,color:latest?.regressions?M.amber:M.green,fontFamily:M.mono}}>{latest?.regressions?"Needs review":"Stable"}</div></PanelCard>
+                <div className="insight-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>
+                  <InsightCard label="Health score" value={successRate!=="—"?`${successRate}%`:"—"}
+                    sub={`${traces.length-failed} of ${traces.length} traces succeeded`}
+                    color={healthPct==null?M.gray500:healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
+                    bar={healthPct} barColor={healthPct>=95?M.green:healthPct>=80?M.amber:M.red}/>
+                  <InsightCard label="Latency watch" value={`${avgLat}ms`}
+                    sub={`P95 at ${p95}ms · ${avgLat>500?"above target":"within target"}`}
+                    color={tcColor}/>
+                  <InsightCard label="Drift monitor" value={latest?.regressions>0?`${latest.regressions} found`:"Stable"}
+                    sub={latest?.regressions>0?"Review failing eval cases":"No regressions in latest run"}
+                    color={latest?.regressions?M.amber:M.green}
+                    onClick={()=>setTab("evaluations")}/>
                 </div>
               </div>
             )}
 
             {tab==="alerts"&&(
-              <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,overflow:"hidden"}}>
-                {traces.filter(t=>t.status==="failed").length===0&&<EmptyState title="No alerts" body="All traces are healthy. Failures and quality drops will appear here."/>}
+              <Section title="Alerts" subtitle={failed?`${failed} failed trace${failed>1?"s":""} requiring attention`:"All systems healthy"} noPad>
+                {failed===0&&<EmptyState title="No alerts" body="All traces are healthy. Failures and quality drops will appear here."/>}
                 {traces.filter(t=>t.status==="failed").map(t=>(
-                  <div key={t.trace_id} onClick={()=>setSelected(t)}
-                    style={{padding:"12px 16px",borderBottom:`1px solid ${M.gray200}`,borderLeft:`4px solid ${M.red}`,cursor:"pointer"}}
-                    onMouseEnter={e=>e.currentTarget.style.background=M.redLight}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-                      <span style={{fontFamily:M.mono,fontSize:12,color:M.gray500}}>{t.trace_id?.slice(0,8)}</span>
+                  <div key={t.trace_id} onClick={()=>setSelected(t)} className="row-hover"
+                    style={{padding:"12px 18px",borderBottom:`1px solid ${M.gray200}`,borderLeft:`4px solid ${M.red}`,cursor:"pointer"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                      <span style={{fontFamily:M.mono,fontSize:12,color:M.gray700,fontWeight:600}}>{t.trace_id?.slice(0,8)}</span>
                       <span style={{flex:1,fontSize:14,color:M.gray900}}>{t.case_id||"live trace"}</span>
-                      <span style={{fontSize:11,background:M.redLight,color:M.red,padding:"2px 8px",borderRadius:4,fontFamily:M.mono}}>{t.failure_kind?.replace("FailureKind.","")||"UNKNOWN"}</span>
+                      <Badge color={M.red} bg={M.redLight}>{t.failure_kind?.replace("FailureKind.","")||"UNKNOWN"}</Badge>
+                      <LatencyChip ms={t.total_latency_ms||0}/>
                     </div>
-                    {t.failure_detail&&<div style={{fontSize:12,color:M.gray600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.failure_detail}</div>}
+                    {t.failure_detail&&<div style={{fontSize:12,color:M.gray600,lineHeight:1.45}}>{t.failure_detail}</div>}
+                    <div style={{fontSize:11,color:M.gray500,marginTop:6}}>{formatWhen(t.created_at)} · {timeAgo(t.created_at)}</div>
                   </div>
                 ))}
-              </div>
+              </Section>
             )}
 
             {tab==="api-keys"&&(
@@ -682,36 +1197,44 @@ export default function App(){
             )}
 
             {tab==="usage"&&(
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
-                <PanelCard title="Monthly traces">
-                  {qLoad?<div style={{fontSize:13,color:M.gray500}}>Loading…</div>:<>
-                    <div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{quota?.monthly_traces?.used??"—"}</div>
-                    <div style={{fontSize:13,color:M.gray600,marginTop:6}}>
-                      {quota?.monthly_traces?.unlimited?"Unlimited (Pro)":`of ${quota?.monthly_traces?.limit?.toLocaleString()??"5,000"} limit`}
-                    </div>
-                    {!quota?.monthly_traces?.unlimited&&quota?.monthly_traces?.percent_used!=null&&(
-                      <div style={{marginTop:10,height:8,background:M.gray200,borderRadius:4,overflow:"hidden"}}>
-                        <div style={{width:`${Math.min(quota.monthly_traces.percent_used,100)}%`,height:"100%",background:quota.monthly_traces.percent_used>90?M.red:quota.monthly_traces.percent_used>70?M.amber:M.green}}/>
+              <div style={{display:"grid",gap:16}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>
+                  <Section title="Monthly traces">
+                    {qLoad?<div style={{fontSize:13,color:M.gray500}}>Loading…</div>:<>
+                      <div style={{fontSize:32,fontWeight:700,fontFamily:M.mono}}>{quota?.monthly_traces?.used??"—"}</div>
+                      <div style={{fontSize:13,color:M.gray600,marginTop:6}}>
+                        {quota?.monthly_traces?.unlimited?"Unlimited (Pro)":`of ${quota?.monthly_traces?.limit?.toLocaleString()??"5,000"} monthly limit`}
                       </div>
-                    )}
-                  </>}
-                </PanelCard>
-                <PanelCard title="Retention">
-                  <div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{quota?.retention_days??"—"}</div>
-                  <div style={{fontSize:13,color:M.gray600,marginTop:6}}>days of trace history</div>
-                </PanelCard>
-                <PanelCard title="Plan">
-                  <div style={{fontSize:28,fontWeight:600,textTransform:"capitalize"}}>{quota?.tier||tier}</div>
-                  <div style={{fontSize:13,color:M.gray600,marginTop:6}}>
-                    {quota?.features?.slack_alerts?"Slack alerts · ":""}
-                    {quota?.features?.llm_judge?"LLM judge · ":""}
-                    {quota?.features?.prompt_versioning?"Prompt versioning":""}
+                      {!quota?.monthly_traces?.unlimited&&quotaPct!=null&&(
+                        <div style={{marginTop:12,height:10,background:M.gray200,borderRadius:5,overflow:"hidden"}}>
+                          <div style={{width:`${Math.min(quotaPct,100)}%`,height:"100%",background:quotaPct>90?M.red:quotaPct>70?M.amber:M.green}}/>
+                        </div>
+                      )}
+                    </>}
+                  </Section>
+                  <Section title="Retention & plan">
+                    <div style={{fontSize:32,fontWeight:700,fontFamily:M.mono,textTransform:"capitalize"}}>{quota?.tier||tier}</div>
+                    <DetailRow label="Trace history" value={`${quota?.retention_days??7} days`}/>
+                    <DetailRow label="Failed in view" value={String(failed)} mono/>
+                  </Section>
+                  <Section title="In this session">
+                    <DetailRow label="Traces loaded" value={String(traces.length)} mono/>
+                    <DetailRow label="Eval runs" value={String(evals.length)} mono/>
+                    <DetailRow label="Datasets" value={String(datasets.length)} mono/>
+                    <DetailRow label="Prompts" value={String(prompts.length)} mono/>
+                  </Section>
+                </div>
+                <Section title="Plan features">
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:8}}>
+                    {[["Slack alerts",quota?.features?.slack_alerts],["LLM judge",quota?.features?.llm_judge],["Prompt versioning",quota?.features?.prompt_versioning],["Extended retention",tier==="pro"]].map(([f,on])=>(
+                      <div key={f} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:M.gray50,borderRadius:8,border:`1px solid ${M.gray200}`}}>
+                        <span style={{color:on?M.green:M.gray400,fontWeight:700}}>{on?"✓":"—"}</span>
+                        <span style={{fontSize:13,color:M.gray700}}>{f}</span>
+                      </div>
+                    ))}
                   </div>
-                  {quota?.upgrade_url&&<a href={quota.upgrade_url} style={{display:"inline-block",marginTop:12,color:M.blue,fontSize:13}}>Upgrade to Pro</a>}
-                </PanelCard>
-                <PanelCard title="Traces in view"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{traces.length}</div></PanelCard>
-                <PanelCard title="Eval runs loaded"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono}}>{evals.length}</div></PanelCard>
-                <PanelCard title="Failed traces"><div style={{fontSize:28,fontWeight:600,fontFamily:M.mono,color:failed?M.red:M.green}}>{failed}</div></PanelCard>
+                  {quota?.upgrade_url&&tier!=="pro"&&<a href={quota.upgrade_url} style={{display:"inline-block",marginTop:14,color:M.blue,fontSize:13,fontWeight:600}}>Upgrade to Pro →</a>}
+                </Section>
               </div>
             )}
 

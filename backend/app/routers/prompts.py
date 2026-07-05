@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..auth import get_current_key_info
 from ..db import get_db
 from ..models.records import Project, PromptVersion
-from ..tiers import TierInfo
+from ..tiers import TierInfo, require_scope
 
 router = APIRouter(prefix="/v1/prompts", tags=["prompts"])
 
@@ -62,8 +62,15 @@ async def _ensure_project(db: AsyncSession, name: str) -> Project:
 
 
 @router.post("", response_model=PromptResponse, status_code=201)
-async def create_prompt_version(body: PromptCreate, db: AsyncSession = Depends(get_db)):
+async def create_prompt_version(
+    body: PromptCreate,
+    db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
     """Commit a new version of a prompt."""
+    require_scope(tier_info, "read_write")
+    if tier_info.project != body.project and tier_info.project != "__dev__":
+        raise HTTPException(403, "You can only commit prompts for your own project.")
     await _ensure_project(db, body.project)
 
     result = await db.execute(

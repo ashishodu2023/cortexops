@@ -98,6 +98,10 @@ class DatasetResponse(BaseModel):
     project: str
 
 
+class DatasetDetailResponse(DatasetResponse):
+    cases: list[dict]
+
+
 class EvalRunRequest(BaseModel):
     dataset_id: str
     fail_on: str | None = None
@@ -267,20 +271,20 @@ async def create_dataset(
         project=tier_info.project,
         name=body.name,
         description=body.description,
-        cases=json.dumps([c for c in body.cases]),
+        cases=json.dumps(body.cases),
         case_count=len(body.cases),
-        created_at=datetime.now(timezone.utc).isoformat(),
     )
     db.add(record)
-    await db.commit()
+    await db.flush()
+    await db.refresh(record)
 
     return DatasetResponse(
-        id=dataset_id,
-        name=body.name,
-        description=body.description,
-        case_count=len(body.cases),
-        created_at=record.created_at,
-        project=tier_info.project,
+        id=record.id,
+        name=record.name,
+        description=record.description or "",
+        case_count=record.case_count,
+        created_at=record.created_at.isoformat() if record.created_at else "",
+        project=record.project,
     )
 
 
@@ -310,8 +314,45 @@ async def list_datasets(
             name=r.name,
             description=r.description or "",
             case_count=r.case_count,
-            created_at=r.created_at,
+            created_at=r.created_at.isoformat() if r.created_at else "",
             project=r.project,
         )
         for r in records
     ]
+
+
+@router.get(
+    "/datasets/{dataset_id}",
+    response_model=DatasetDetailResponse,
+    responses={
+        401: {"description": "Invalid or missing API key"},
+        404: {"description": "Dataset not found"},
+    },
+    summary="Get a dataset with its cases",
+)
+async def get_dataset(
+    dataset_id: str,
+    tier_info: TierInfo = Depends(get_current_key_info),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(EvalDatasetRecord).where(EvalDatasetRecord.id == dataset_id)
+    )
+    record = result.scalar_one_or_none()
+    if not record:
+        raise HTTPException(404, "Dataset not found")
+    if record.project != tier_info.project and tier_info.project != "__dev__":
+        raise HTTPException(403, "You can only view datasets for your own project.")
+    try:
+        cases = json.loads(record.cases or "[]")
+    except json.JSONDecodeError:
+        cases = []
+    return DatasetDetailResponse(
+        id=record.id,
+        name=record.name,
+        description=record.description or "",
+        case_count=record.case_count,
+        created_at=record.created_at.isoformat() if record.created_at else "",
+        project=record.project,
+        cases=cases,
+    )
