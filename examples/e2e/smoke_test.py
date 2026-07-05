@@ -64,10 +64,8 @@ def main() -> int:
     check("quota", r.status_code == 200, f"HTTP {r.status_code}")
 
     # 4. Ingest + list traces
-    trace_id = str(uuid.uuid4())
     payload = {
         "project": PROJECT,
-        "trace_id": trace_id,
         "case_id": "smoke-test",
         "status": "failed",
         "total_latency_ms": 890.0,
@@ -83,6 +81,9 @@ def main() -> int:
                    headers={"X-API-Key": API_KEY, "Content-Type": "application/json"},
                    json=payload, timeout=15)
     check("ingest trace", r.status_code == 201, f"HTTP {r.status_code}")
+    trace_id = ""
+    if r.status_code == 201:
+        trace_id = r.json().get("trace_id", "")
 
     r = httpx.get(f"{BASE_URL}/v1/traces",
                   headers={"X-API-Key": API_KEY},
@@ -102,7 +103,7 @@ def main() -> int:
     else:
         check("create dataset", r.status_code == 201, f"HTTP {r.status_code}")
         dataset_id = r.json().get("id", "") if r.status_code == 201 else ""
-        if dataset_id:
+        if dataset_id and trace_id:
             r = httpx.post(
                 f"{BASE_URL}/v1/eval/datasets/{dataset_id}/cases/from-trace",
                 headers={"X-API-Key": API_KEY, "Content-Type": "application/json"},
