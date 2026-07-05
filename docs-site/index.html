@@ -211,6 +211,7 @@ strong{color:var(--text)}
 
       <div class="nav-section">Getting started</div>
       <a class="nav-item active" onclick="show('intro')">Introduction</a>
+      <a class="nav-item" onclick="show('features')">Features guide</a>
       <a class="nav-item" onclick="show('install')">Installation</a>
       <a class="nav-item" onclick="show('quickstart')">Quickstart</a>
 
@@ -309,8 +310,152 @@ const sections={
 </table>
 
 <div class="callout callout-blue"><div class="callout-title">Free trial</div>Pro includes a 14-day free trial. No card required to start. Get your key at <a href="https://getcortexops.com/?trial=1" target="_blank" rel="noopener">getcortexops.com/#pricing</a>.</div>
+
+<div class="callout callout-green"><div class="callout-title">Full feature catalog</div>See the <a href="#features" onclick="show('features');return false">Features guide</a> for every capability and exactly how to access each one — SDK, dashboard, API, and CLI.</div>
     `,
-    prev:null,next:{id:'install',label:'Installation'}
+    prev:null,next:{id:'features',label:'Features guide'}
+  },
+
+  features:{
+    breadcrumb:'Docs / Getting started',
+    title:'Features guide',
+    lead:'Every CortexOps capability — what it does, which tier includes it, and how to access it (SDK, dashboard, API, or CLI).',
+    html:`
+<h2>Where to access CortexOps</h2>
+<table class="metric-table">
+<thead><tr><th>Surface</th><th>URL</th><th>Use for</th></tr></thead>
+<tbody>
+<tr><td><strong>Python SDK</strong></td><td><code>pip install cortexops</code></td><td>Local evals, tracing, CI gates, API client</td></tr>
+<tr><td><strong>CLI</strong></td><td><code>cortexops eval run …</code></td><td>Run eval suites from terminal or GitHub Actions</td></tr>
+<tr><td><strong>Dashboard</strong></td><td><a href="https://app.getcortexops.com" target="_blank" rel="noopener">app.getcortexops.com</a></td><td>Traces, evals, datasets, keys — browser UI (sign in with <code>cxo-</code> key)</td></tr>
+<tr><td><strong>REST API</strong></td><td><a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">api.getcortexops.com/docs</a></td><td>Programmatic access — traces, evals, keys, prompts</td></tr>
+<tr><td><strong>Website</strong></td><td><a href="https://getcortexops.com" target="_blank" rel="noopener">getcortexops.com</a></td><td>Pro trial checkout, pricing, framework guides</td></tr>
+</tbody>
+</table>
+
+<h2>Get your API key</h2>
+<table class="metric-table">
+<thead><tr><th>Scenario</th><th>How</th></tr></thead>
+<tbody>
+<tr><td>First free key (new project)</td><td><code>POST /v1/keys/bootstrap</code> — rate-limited, no auth. See <a href="#api-keys" onclick="show('api-keys');return false">Keys API</a>.</td></tr>
+<tr><td>Additional keys</td><td>Dashboard → <strong>API Keys</strong> tab, or <code>POST /v1/keys</code> with existing key</td></tr>
+<tr><td>Pro subscription</td><td><a href="https://getcortexops.com/?trial=1" target="_blank" rel="noopener">getcortexops.com/?trial=1</a> — key emailed after PayPal checkout</td></tr>
+<tr><td>Dashboard sign-in</td><td><a href="https://app.getcortexops.com" target="_blank" rel="noopener">app.getcortexops.com</a> → paste <code>cxo-</code> key → JWT session (1 hour)</td></tr>
+</tbody>
+</table>
+
+<h2>All features</h2>
+<p>Click doc links for deep dives. <span class="badge" style="display:inline-block;margin:0 4px">Pro</span> = requires Pro tier for hosted/API features.</p>
+
+<h3>Evaluation &amp; quality</h3>
+<table class="metric-table">
+<thead><tr><th>Feature</th><th>Tier</th><th>How to access</th></tr></thead>
+<tbody>
+<tr><td><strong>Golden dataset evals</strong></td><td>Free</td><td>SDK: <code>EvalSuite.run(dataset="golden.yaml", agent=…)</code> · <a href="#datasets" onclick="show('datasets');return false">Docs</a></td></tr>
+<tr><td><strong>CI eval gate</strong></td><td>Free</td><td><code>fail_on="task_completion &lt; 0.90"</code> in GitHub Actions · <a href="#ci" onclick="show('ci');return false">Docs</a></td></tr>
+<tr><td><strong>5 built-in metrics</strong></td><td>Free</td><td>Auto on every eval case · <a href="#metrics" onclick="show('metrics');return false">Docs</a></td></tr>
+<tr><td><strong>LLM-as-judge scoring</strong></td><td>Pro</td><td>YAML <code>judge: llm</code> or <code>POST /v1/eval/judge</code> · <a href="#judge" onclick="show('judge');return false">Docs</a></td></tr>
+<tr><td><strong>Eval run history</strong></td><td>Pro</td><td>SDK sync: <code>client.push_eval(summary)</code> · Dashboard → <strong>Evaluations</strong> · <code>GET /v1/evals</code></td></tr>
+<tr><td><strong>Eval diff / compare runs</strong></td><td>Pro</td><td>Dashboard → Evaluations → Compare · <code>GET /v1/evals/diff?a=…&amp;b=…</code></td></tr>
+<tr><td><strong>Async eval runs</strong></td><td>Pro</td><td><code>POST /v1/evals</code> (Celery queue) · <a href="#api-evals" onclick="show('api-evals');return false">Evals API</a></td></tr>
+<tr><td><strong>Promote failed trace → golden case</strong></td><td>Pro</td><td>Dashboard → Traces → waterfall → <strong>Promote</strong> · <code>POST …/cases/from-trace</code> · <a href="#promote-trace" onclick="show('promote-trace');return false">Docs</a></td></tr>
+<tr><td><strong>Golden datasets (hosted)</strong></td><td>Pro</td><td>Dashboard → <strong>Datasets</strong> · <code>POST /v1/eval/datasets</code> · SDK <code>client.create_dataset()</code></td></tr>
+</tbody>
+</table>
+
+<h3>Tracing &amp; observability</h3>
+<table class="metric-table">
+<thead><tr><th>Feature</th><th>Tier</th><th>How to access</th></tr></thead>
+<tbody>
+<tr><td><strong>Local tracing</strong></td><td>Free</td><td>SDK: <code>CortexTracer.wrap(agent)</code> · <code>tracer._traces</code> · <a href="#tracer" onclick="show('tracer');return false">Docs</a></td></tr>
+<tr><td><strong>Framework auto-wrap</strong></td><td>Free</td><td>LangGraph, CrewAI, generic callables · <a href="#langgraph" onclick="show('langgraph');return false">LangGraph</a> · <a href="#crewai" onclick="show('crewai');return false">CrewAI</a></td></tr>
+<tr><td><strong>Hosted trace storage</strong></td><td>Pro</td><td>SDK with <code>api_key</code> + <code>api_url</code> · <code>POST /v1/traces</code> · <a href="#hosted" onclick="show('hosted');return false">Docs</a></td></tr>
+<tr><td><strong>Trace waterfall view</strong></td><td>Pro</td><td>Dashboard → <strong>Traces</strong> → click any row · node-level timing + tool calls</td></tr>
+<tr><td><strong>FailureKind analytics</strong></td><td>Pro</td><td>Dashboard → <strong>Overview</strong> — breakdown by failure type</td></tr>
+<tr><td><strong>PII redaction on ingest</strong></td><td>Pro</td><td>Automatic on <code>POST /v1/traces</code> — email, card, SSN, phone</td></tr>
+<tr><td><strong>Trace quota &amp; retention</strong></td><td>All</td><td>Dashboard → <strong>Usage</strong> · <code>GET /v1/traces/quota</code> (Free: 5k/mo, 7d · Pro: unlimited, 90d)</td></tr>
+<tr><td><strong>Idempotent trace ingest</strong></td><td>Pro</td><td><code>Idempotency-Key</code> header on <code>POST /v1/traces</code></td></tr>
+</tbody>
+</table>
+
+<h3>Prompts &amp; alerts</h3>
+<table class="metric-table">
+<thead><tr><th>Feature</th><th>Tier</th><th>How to access</th></tr></thead>
+<tbody>
+<tr><td><strong>Prompt versioning</strong></td><td>Pro</td><td>Dashboard → <strong>Prompt Versions</strong> · <code>POST /v1/prompts</code> · <a href="#prompts" onclick="show('prompts');return false">Docs</a></td></tr>
+<tr><td><strong>Prompt diff</strong></td><td>Pro</td><td><code>GET /v1/prompts/diff?version_a=1&amp;version_b=2</code></td></tr>
+<tr><td><strong>Slack eval alerts</strong></td><td>Pro</td><td>Set <code>CORTEXOPS_SLACK_WEBHOOK_URL</code> on Railway · fires after eval completes · <a href="#alerts" onclick="show('alerts');return false">Docs</a></td></tr>
+<tr><td><strong>Generic webhook alerts</strong></td><td>Pro</td><td><code>CORTEXOPS_WEBHOOK_URL</code> env var on API service</td></tr>
+</tbody>
+</table>
+
+<h3>Dashboard tabs</h3>
+<p>Sign in at <a href="https://app.getcortexops.com" target="_blank" rel="noopener">app.getcortexops.com</a> with your <code>cxo-</code> key.</p>
+<table class="metric-table">
+<thead><tr><th>Tab</th><th>Section</th><th>What you do there</th></tr></thead>
+<tbody>
+<tr><td><strong>Overview</strong></td><td>Monitor</td><td>Health score, trace volume, FailureKind breakdown, recent evals</td></tr>
+<tr><td><strong>Traces</strong></td><td>Monitor</td><td>Browse runs, filter by status/date, waterfall detail, promote to golden case</td></tr>
+<tr><td><strong>Alerts</strong></td><td>Monitor</td><td>Recent eval failures and regression summary</td></tr>
+<tr><td><strong>Metrics</strong></td><td>Monitor</td><td>Task completion, latency, error rate trends</td></tr>
+<tr><td><strong>Evaluations</strong></td><td>Quality</td><td>Eval run history, pass rates, compare two runs</td></tr>
+<tr><td><strong>Prompt Versions</strong></td><td>Quality</td><td>Prompt catalog linked to eval runs</td></tr>
+<tr><td><strong>Datasets</strong></td><td>Quality</td><td>Golden cases — view, inspect, used in CI</td></tr>
+<tr><td><strong>Projects</strong></td><td>Manage</td><td>Project metadata and tier info</td></tr>
+<tr><td><strong>API Keys</strong></td><td>Manage</td><td>List, rotate, revoke keys</td></tr>
+<tr><td><strong>Usage</strong></td><td>Manage</td><td>Monthly trace quota, tier features, upgrade link</td></tr>
+<tr><td><strong>Settings</strong></td><td>Manage</td><td>Live refresh interval, session info</td></tr>
+</tbody>
+</table>
+
+<h3>API &amp; auth</h3>
+<table class="metric-table">
+<thead><tr><th>Feature</th><th>Tier</th><th>How to access</th></tr></thead>
+<tbody>
+<tr><td><strong>API key auth</strong></td><td>All</td><td><code>X-API-Key: cxo-…</code> on all endpoints · <a href="#api-keys" onclick="show('api-keys');return false">Keys API</a></td></tr>
+<tr><td><strong>JWT dashboard sessions</strong></td><td>All</td><td><code>POST /v1/auth/token/issue</code> → <code>Authorization: Bearer …</code> · <a href="#api-auth" onclick="show('api-auth');return false">Auth docs</a></td></tr>
+<tr><td><strong>Key bootstrap</strong></td><td>All</td><td><code>POST /v1/keys/bootstrap</code> — first key for new project</td></tr>
+<tr><td><strong>Key rotate / revoke</strong></td><td>All</td><td>Dashboard → API Keys · <code>POST /v1/keys/{id}/rotate</code> · <code>DELETE /v1/keys/{id}</code></td></tr>
+<tr><td><strong>Read-only key scope</strong></td><td>All</td><td>Create with <code>"scope": "read_only"</code> — GET only, no ingest</td></tr>
+<tr><td><strong>Interactive API docs</strong></td><td>All</td><td><a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">api.getcortexops.com/docs</a> (Swagger)</td></tr>
+</tbody>
+</table>
+
+<h3>SDK quick reference</h3>
+<div class="code-block"><pre><span class="ck">from</span> cortexops <span class="ck">import</span> CortexTracer, EvalSuite
+<span class="ck">from</span> cortexops.client <span class="ck">import</span> CortexClient
+
+<span class="cm"># Local eval (Free)</span>
+results = EvalSuite.run(dataset=<span class="cs">"golden.yaml"</span>, agent=agent, fail_on=<span class="cs">"task_completion &lt; 0.90"</span>)
+
+<span class="cm"># Hosted tracing (Pro)</span>
+tracer = CortexTracer(project=<span class="cs">"my-agent"</span>, api_key=<span class="cs">"cxo-..."</span>, api_url=<span class="cs">"https://api.getcortexops.com"</span>)
+agent  = tracer.wrap(your_app)
+
+<span class="cm"># API client (Pro)</span>
+client = CortexClient(api_key=<span class="cs">"cxo-..."</span>)
+client.push_trace(tracer.last_trace())
+client.push_eval(results)
+client.add_case_from_trace(dataset_id=<span class="cs">"ds-..."</span>, trace_id=<span class="cs">"trace-..."</span>)</pre><button class="copy-btn" onclick="copy(this,'from cortexops import CortexTracer, EvalSuite')">Copy</button></div>
+
+<h2>Free vs Pro summary</h2>
+<table class="metric-table">
+<thead><tr><th>Feature</th><th>Free</th><th>Pro</th></tr></thead>
+<tbody>
+<tr><td>SDK + local evals + CI gate</td><td class="t-yes">✓</td><td class="t-yes">✓</td></tr>
+<tr><td>Hosted traces + dashboard</td><td class="t-no">✗</td><td class="t-yes">✓</td></tr>
+<tr><td>Promote trace → golden case</td><td class="t-no">✗</td><td class="t-yes">✓</td></tr>
+<tr><td>FailureKind analytics</td><td class="t-no">✗</td><td class="t-yes">✓</td></tr>
+<tr><td>Slack / webhook alerts</td><td class="t-no">✗</td><td class="t-yes">✓</td></tr>
+<tr><td>LLM judge + prompt versioning</td><td class="t-no">✗</td><td class="t-yes">✓</td></tr>
+<tr><td>Trace retention</td><td>—</td><td>90 days</td></tr>
+<tr><td>Monthly trace limit (hosted)</td><td>5,000</td><td>Unlimited</td></tr>
+</tbody>
+</table>
+
+<div class="callout callout-blue"><div class="callout-title">Sync local evals to dashboard</div><code>cd examples/langgraph_payments &amp;&amp; python run_eval.py --sync-only</code> — pushes traces and eval results to the hosted API.</div>
+    `,
+    prev:{id:'intro',label:'Introduction'},next:{id:'install',label:'Installation'}
   },
 
   install:{
@@ -350,7 +495,7 @@ cortexops login   <span class="cm"># saves key to ~/.cortexops/credentials</span
 cd cortexops/sdk
 pip install -e .</pre><button class="copy-btn" onclick="copy(this,'git clone https://github.com/ashishodu2023/cortexops.git\ncd cortexops/sdk\npip install -e .')">Copy</button></div>
     `,
-    prev:{id:'intro',label:'Introduction'},next:{id:'quickstart',label:'Quickstart'}
+    prev:{id:'features',label:'Features guide'},next:{id:'quickstart',label:'Quickstart'}
   },
 
   quickstart:{
@@ -1493,7 +1638,7 @@ results.cost_per_case  <span class="cm"># per-case breakdown</span></pre></div>
 
 };
 
-const sectionOrder=['intro','install','quickstart','tracer','datasets','promote-trace','metrics','ci','langgraph','crewai','generic','hosted','alerts','prompts','judge','api-traces','api-evals','api-keys','api-auth','api-admin','changelog','faq','roadmap'];
+const sectionOrder=['intro','features','install','quickstart','tracer','datasets','promote-trace','metrics','ci','langgraph','crewai','generic','hosted','alerts','prompts','judge','api-traces','api-evals','api-keys','api-auth','api-admin','changelog','faq','roadmap'];
 
 function show(id){
   const s=sections[id];
