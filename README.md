@@ -26,7 +26,7 @@ Evaluate · Observe · Operate — for LangGraph, CrewAI, and AutoGen.
 ![Tests](docs/images/tests.png)
 
 
-[Website](https://getcortexops.com) · [PyPI](https://pypi.org/project/cortexops) · [Docs](https://github.com/ashishodu2023/cortexops)
+[Website](https://getcortexops.com) · [Dashboard](https://app.getcortexops.com) · [Docs](https://docs.getcortexops.com) · [PyPI](https://pypi.org/project/cortexops)
 ---
 
 ## The problem
@@ -89,8 +89,12 @@ tracer = CortexTracer(
 graph = tracer.wrap(your_langgraph_app)
 ```
 
-Traces are stored for 90 days. View them at
-[api.getcortexops.com/docs](https://api.getcortexops.com/docs).
+Traces are stored for 90 days. View them in the
+[dashboard](https://app.getcortexops.com) or via the
+[API docs](https://api.getcortexops.com/docs).
+
+When a production trace fails, promote it to a golden dataset case in one click —
+then run the same case in CI before the next deploy.
 
 ### Pricing
 
@@ -164,7 +168,8 @@ cortexops/
 │   │   ├── models/             # DB records + API schemas
 │   │   └── worker/             # Celery async eval tasks
 │   └── Dockerfile
-├── frontend/                   # React + TypeScript dashboard
+├── frontend-new/               # React dashboard (app.getcortexops.com)
+├── docs-site/                  # Static docs (docs.getcortexops.com)
 ├── examples/
 │   └── langgraph_payments/     # Full runnable demo
 │       ├── agent.py
@@ -221,8 +226,12 @@ Add custom metrics by subclassing `cortexops.Metric`.
 ---
 ## Roadmap
 
-### v0.5.0 — coming soon
-- [ ] Trace waterfall dashboard view (visual node timeline)
+### v0.5.0 — shipped
+- [x] Trace waterfall dashboard view (visual node timeline)
+- [x] Production → CI: promote failed traces to golden dataset cases
+- [x] FailureKind analytics on dashboard Overview
+
+### v0.5.x — next
 - [ ] Prompt version tracking in SDK (`tracer.set_prompt(name, version)`)
 - [ ] Slack webhook alerts on quality regression
 - [ ] Auto email on Pro key provision (remove manual step)
@@ -241,7 +250,6 @@ Add custom metrics by subclassing `cortexops.Metric`.
 - [ ] SOC 2 compliance mode (audit logs, data residency)
 - [ ] Enterprise SSO (SAML/OIDC)
 - [ ] LangGraph Studio integration
-- [ ] Automated eval case generation from production failures
 
 Want to work on any of these? See [open issues](https://github.com/ashishodu2023/cortexops/issues) or open a [discussion](https://github.com/ashishodu2023/cortexops/discussions).
 
@@ -280,7 +288,7 @@ MIT — see [LICENSE](LICENSE).
 ---
 
 <p align="center">
-  <a href="https://cortexops.ai">cortexops.ai</a> ·
+  <a href="https://getcortexops.com">getcortexops.com</a> ·
   <a href="https://github.com/ashishodu2023/cortexops/issues">Issues</a> ·
   <a href="https://github.com/ashishodu2023/cortexops/discussions">Discussions</a>
 </p>
