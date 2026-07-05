@@ -88,6 +88,7 @@ class AgentState(TypedDict):
     tool_results: dict[str, Any]
     output: str
     next: str
+    pending_args: dict[str, Any]
 
 
 def _mock_llm_decision(state: AgentState) -> dict[str, Any]:
@@ -101,7 +102,7 @@ def _mock_llm_decision(state: AgentState) -> dict[str, Any]:
         ref_id = ref_match.group(0) if ref_match else "REF-0000"
         return {"tool": "lookup_refund", "args": {"refund_id": ref_id}}
 
-    if any(kw in user_input for kw in ["dispute", "charge", "wrong", "error", "unauthorized", "not received", "item"]):
+    if any(kw in user_input for kw in ["dispute", "charge", "wrong", "error", "unauthorized", "not received", "delivered", "arrived", "item"]):
         if "classify_dispute" not in already_called:
             return {"tool": "classify_dispute", "args": {"description": state["input"]}}
         if "route_escalation" not in already_called:
@@ -115,25 +116,24 @@ def router_node(state: AgentState) -> AgentState:
     """Decide next tool or finish."""
     decision = _mock_llm_decision(state)
     if decision["tool"] is None:
-        return {**state, "next": "responder"}
-    return {**state, "next": decision["tool"], "_pending_tool": decision}
+        return {**state, "next": "responder", "pending_args": {}}
+    return {**state, "next": decision["tool"], "pending_args": decision.get("args", {})}
 
 
 def tool_node(state: AgentState) -> AgentState:
     """Execute the selected tool."""
-    pending = state.get("_pending_tool", {})
-    tool_name = pending.get("tool")
-    tool_args = pending.get("args", {})
+    tool_name = state.get("next", "")
+    if tool_name not in TOOLS:
+        return {**state, "next": "responder", "pending_args": {}}
 
-    if not tool_name or tool_name not in TOOLS:
-        return {**state, "next": "responder"}
-
+    tool_args = state.get("pending_args") or {}
     result = TOOLS[tool_name](**tool_args)
     return {
         **state,
         "tool_calls_made": [*state.get("tool_calls_made", []), tool_name],
         "tool_results": {**state.get("tool_results", {}), tool_name: result},
         "next": "router",
+        "pending_args": {},
     }
 
 
@@ -201,6 +201,7 @@ def build_agent():
                     "tool_results": {},
                     "output": "",
                     "next": "router",
+                    "pending_args": {},
                 }
                 for _ in range(10):  # max iterations
                     if state["next"] == "router":
@@ -223,7 +224,8 @@ def build_agent():
 if __name__ == "__main__":
     from cortexops import CortexTracer
 
-    tracer = CortexTracer(project="payments-agent")
+    project = os.getenv("CORTEXOPS_PROJECT", "ashish-cortexops-dev")
+    tracer = CortexTracer(project=project)
     agent = tracer.wrap(build_agent())
 
     test_inputs = [
@@ -232,7 +234,7 @@ if __name__ == "__main__":
         "My item REF-9902 still hasn't arrived",
     ]
 
-    print("CortexOps — payments agent demo\n" + "=" * 40)
+    print(f"CortexOps — payments agent demo ({project})\n" + "=" * 40)
     for q in test_inputs:
         print(f"\nInput : {q}")
         result = agent.invoke({"input": q})

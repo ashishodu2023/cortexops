@@ -50,6 +50,34 @@ class CaseResultResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CaseResultIngest(BaseModel):
+    case_id: str
+    passed: bool
+    score: float
+    task_completion: bool
+    tool_accuracy: float
+    latency_ms: float
+    failure_kind: str | None = None
+    failure_detail: str | None = None
+
+
+class EvalSummaryIngest(BaseModel):
+    run_id: str | None = None
+    project: str
+    dataset_version: int = 1
+    total_cases: int
+    passed: int
+    failed: int
+    warnings: int = 0
+    task_completion_rate: float
+    tool_accuracy: float
+    latency_p50_ms: float
+    latency_p95_ms: float
+    regressions: int = 0
+    baseline_run_id: str | None = None
+    case_results: list[CaseResultIngest] = []
+
+
 class EvalSummaryResponse(BaseModel):
     run_id: str
     project: str

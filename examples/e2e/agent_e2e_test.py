@@ -15,7 +15,7 @@ Usage:
 
     # Set env vars
     export CORTEXOPS_API_KEY=cxo-...
-    export CORTEXOPS_PROJECT=payments-agent
+    export CORTEXOPS_PROJECT=ashish-cortexops-dev
     export OPENAI_API_KEY=sk-...       # for real LLM calls
     # export USE_MOCK_LLM=1            # set this to skip real LLM and use mocks
 
@@ -31,18 +31,45 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
 
 # ── Config ─────────────────────────────────────────────────────────────────
-API_KEY       = os.getenv("CORTEXOPS_API_KEY", "")
-PROJECT       = os.getenv("CORTEXOPS_PROJECT", "payments-agent")
+_CREDENTIALS_FILE = Path.home() / ".cortexops" / "credentials"
+
+
+def _resolve_api_key() -> str:
+    if key := os.getenv("CORTEXOPS_API_KEY", ""):
+        return key
+    if _CREDENTIALS_FILE.exists():
+        try:
+            return json.loads(_CREDENTIALS_FILE.read_text()).get("api_key", "") or ""
+        except Exception:
+            pass
+    return ""
+
+
+def _resolve_project() -> str:
+    if proj := os.getenv("CORTEXOPS_PROJECT", ""):
+        return proj
+    if _CREDENTIALS_FILE.exists():
+        try:
+            return json.loads(_CREDENTIALS_FILE.read_text()).get("project", "") or "ashish-cortexops-dev"
+        except Exception:
+            pass
+    return "ashish-cortexops-dev"
+
+
+API_KEY       = _resolve_api_key()
+PROJECT       = _resolve_project()
 API_URL       = os.getenv("CORTEXOPS_API_URL", "https://api.getcortexops.com")
 OPENAI_KEY    = os.getenv("OPENAI_API_KEY", "")
 USE_MOCK_LLM  = os.getenv("USE_MOCK_LLM", "1") == "1"  # default to mock — no cost

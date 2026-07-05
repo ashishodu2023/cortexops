@@ -31,7 +31,7 @@ class CortexClient:
 
     def _headers(self) -> dict[str, str]:
         return {
-            "Authorization": f"Bearer {self.api_key}",
+            "X-API-Key": self.api_key,
             "Content-Type": "application/json",
         }
 
@@ -66,8 +66,17 @@ class CortexClient:
     def list_traces(self, project: str, limit: int = 50) -> list[dict]:
         return self._get("/v1/traces", {"project": project, "limit": limit})
 
-    def push_eval(self, summary: EvalSummary) -> dict:
-        return self._post("/v1/evals", summary.model_dump(mode="json"))
+    def push_eval(self, summary) -> dict:
+        """Push a completed EvalSuite summary to POST /v1/evals/ingest."""
+        if hasattr(summary, "model_dump"):
+            data = summary.model_dump(mode="json")
+        else:
+            data = dict(summary)
+        for cr in data.get("case_results", []):
+            cr.pop("trace", None)
+            if cr.get("failure_kind") and hasattr(cr["failure_kind"], "value"):
+                cr["failure_kind"] = cr["failure_kind"].value
+        return self._post("/v1/evals/ingest", data)
 
     def list_runs(self, project: str, limit: int = 10) -> list[dict]:
         return self._get("/v1/evals", {"project": project, "limit": limit})

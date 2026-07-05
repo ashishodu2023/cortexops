@@ -1,19 +1,25 @@
 from __future__ import annotations
 
+import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from ..auth import get_current_key_info
 from ..db import get_db
 from ..models.records import CaseResultRecord, EvalRun, Project
 from ..models.schemas import (
     EvalDiffResponse,
     EvalRunRequest,
     EvalRunResponse,
+    EvalSummaryIngest,
     EvalSummaryResponse,
     CaseResultResponse,
 )
+from ..tiers import TierInfo
 from ..worker.tasks import run_eval_task
 
 router = APIRouter(prefix="/v1/evals", tags=["evaluations"])
@@ -63,6 +69,68 @@ async def trigger_eval_run(
     )
 
 
+@router.post("/ingest", response_model=EvalSummaryResponse, status_code=201)
+async def ingest_eval_summary(
+    body: EvalSummaryIngest,
+    db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
+    """Store a completed local eval run (from SDK EvalSuite) for dashboard display."""
+    if tier_info.project != body.project and tier_info.project != "__dev__":
+        raise HTTPException(403, "You can only ingest evals for your own project.")
+
+    await _ensure_project(db, body.project)
+    run_id = body.run_id or str(uuid.uuid4())
+    now = datetime.utcnow()
+
+    run = EvalRun(
+        id=run_id,
+        project=body.project,
+        dataset_version=body.dataset_version,
+        status="completed",
+        total_cases=body.total_cases,
+        passed=body.passed,
+        failed=body.failed,
+        warnings=body.warnings,
+        task_completion_rate=body.task_completion_rate,
+        tool_accuracy=body.tool_accuracy,
+        latency_p50_ms=body.latency_p50_ms,
+        latency_p95_ms=body.latency_p95_ms,
+        regressions=body.regressions,
+        baseline_run_id=body.baseline_run_id,
+        completed_at=now,
+    )
+    db.add(run)
+    await db.flush()
+
+    for cr in body.case_results:
+        fk = cr.failure_kind
+        if fk and fk.startswith("FailureKind."):
+            fk = fk.replace("FailureKind.", "")
+        db.add(
+            CaseResultRecord(
+                id=str(uuid.uuid4()),
+                run_id=run_id,
+                case_id=cr.case_id,
+                passed=cr.passed,
+                score=cr.score,
+                task_completion=cr.task_completion,
+                tool_accuracy=cr.tool_accuracy,
+                latency_ms=cr.latency_ms,
+                failure_kind=fk,
+                failure_detail=cr.failure_detail,
+            )
+        )
+
+    await db.flush()
+    await db.refresh(run)
+    result = await db.execute(
+        select(EvalRun).options(selectinload(EvalRun.case_results)).where(EvalRun.id == run_id)
+    )
+    stored = result.scalar_one()
+    return _run_to_response(stored)
+
+
 @router.get("", response_model=list[EvalSummaryResponse])
 async def list_eval_runs(
     project: str = Query(...),
@@ -71,6 +139,7 @@ async def list_eval_runs(
 ):
     result = await db.execute(
         select(EvalRun)
+        .options(selectinload(EvalRun.case_results))
         .where(EvalRun.project == project)
         .order_by(EvalRun.created_at.desc())
         .limit(limit)
