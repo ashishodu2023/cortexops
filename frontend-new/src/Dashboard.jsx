@@ -51,9 +51,16 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.b
   .overview-layout{grid-template-columns:1fr!important}
 }
 @media (max-width:768px){
-  .dash-sidebar{display:none!important}
+  .dash-sidebar-desktop{display:none!important}
+  .mobile-menu-btn{display:inline-flex!important}
+  .header-hide-mobile{display:none!important}
   .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+.mobile-menu-btn{display:none;align-items:center;justify-content:center;background:${M.gray100};border:1px solid ${M.gray200};border-radius:6px;width:36px;height:36px;cursor:pointer;color:${M.gray800};flex-shrink:0;padding:0}
+.mobile-nav-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:190;animation:fadeIn .2s ease}
+.mobile-nav-drawer{position:fixed;top:0;left:0;bottom:0;width:min(280px,88vw);z-index:200;background:${M.white};border-right:1px solid ${M.gray200};display:flex;flex-direction:column;box-shadow:${M.shadow2};animation:slideDrawer .22s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideDrawer{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 @media (max-width:900px){
   .login-hero{grid-template-columns:1fr!important;padding-top:40px!important}
   .login-hero h1{font-size:36px!important}
@@ -528,6 +535,181 @@ function EmptyState({title,body,hint}){
   );
 }
 
+function HamburgerIcon(){
+  return(
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M4 7h16M4 12h16M4 17h16"/>
+    </svg>
+  );
+}
+
+function DeltaStat({label,value,unit,goodWhenPositive=true}){
+  const n=typeof value==="number"?value:parseFloat(value)||0;
+  const flat=Math.abs(n)<0.0001;
+  const positive=goodWhenPositive?n>0:n<0;
+  const color=flat?M.gray500:positive?M.green:M.red;
+  const sign=n>0?"+":"";
+  const display=unit==="pp"?`${sign}${(n*100).toFixed(1)}pp`:unit==="pts"?`${sign}${n.toFixed(1)} pts`:unit==="ms"?`${sign}${Math.round(n)}ms`:`${sign}${n.toFixed(1)}`;
+  return(
+    <div style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:8,padding:"12px 14px"}}>
+      <div style={{fontSize:10,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,marginBottom:4}}>{label}</div>
+      <div style={{fontSize:20,fontWeight:700,color,fontFamily:M.mono}}>{flat?"—":display}</div>
+    </div>
+  );
+}
+
+function OnboardingChecklist({tracesCount,evalsCount,datasetsCount,onGoTraces,onGoEvals}){
+  const steps=[
+    {id:"sdk",label:"Install the SDK",detail:"pip install cortexops",done:true,hint:"pip install cortexops"},
+    {id:"trace",label:"Send your first trace",detail:"Instrument your agent with CortexTracer",done:tracesCount>0,action:onGoTraces,actionLabel:"View traces"},
+    {id:"eval",label:"Run golden evals",detail:"Push dataset + prompt to the dashboard",done:evalsCount>0,action:onGoEvals,actionLabel:"View evals"},
+    {id:"dataset",label:"Sync golden dataset",detail:"python run_eval.py --sync-only",done:datasetsCount>0},
+  ];
+  const doneCount=steps.filter(s=>s.done).length;
+  if(doneCount>=steps.length)return null;
+  return(
+    <div style={{background:`linear-gradient(135deg, ${M.blueLight} 0%, ${M.white} 70%)`,border:`1px solid ${M.gray200}`,borderRadius:12,padding:"18px 20px",boxShadow:M.shadow1}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:14,flexWrap:"wrap"}}>
+        <div>
+          <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".08em",fontWeight:700,marginBottom:4}}>Getting started</div>
+          <div style={{fontSize:16,fontWeight:600,color:M.gray900}}>Set up your project ({doneCount}/{steps.length})</div>
+          <div style={{fontSize:13,color:M.gray600,marginTop:4}}>Complete these steps to populate traces, evals, and datasets.</div>
+        </div>
+        <div style={{height:8,width:120,background:M.gray200,borderRadius:4,overflow:"hidden",marginTop:6}}>
+          <div style={{width:`${(doneCount/steps.length)*100}%`,height:"100%",background:M.blue,borderRadius:4,transition:"width .3s ease"}}/>
+        </div>
+      </div>
+      <div style={{display:"grid",gap:8}}>
+        {steps.map((s,i)=>(
+          <div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:M.white,borderRadius:8,border:`1px solid ${M.gray200}`}}>
+            <div style={{width:22,height:22,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,background:s.done?M.greenLight:M.gray100,color:s.done?M.green:M.gray500,border:`1px solid ${s.done?M.green:M.gray300}`}}>
+              {s.done?"✓":i+1}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:600,color:M.gray900,marginBottom:2}}>{s.label}</div>
+              <div style={{fontSize:12,color:M.gray600,lineHeight:1.45}}>{s.detail}</div>
+              {s.hint&&<div style={{fontFamily:M.mono,fontSize:11,color:M.gray500,marginTop:4}}>{s.hint}</div>}
+            </div>
+            {s.action&&!s.done&&<button onClick={s.action} style={{background:M.blueLight,color:M.blue,border:"none",borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0}}>{s.actionLabel}</button>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EvalDiffPanel({diff,runA,runB,loading,error,onClose}){
+  if(!diff&&!loading&&!error)return null;
+  const mapA=Object.fromEntries((runA?.case_results||[]).map(c=>[c.case_id,c]));
+  const mapB=Object.fromEntries((runB?.case_results||[]).map(c=>[c.case_id,c]));
+  const renderCase=(cid,kind)=>{
+    const a=mapA[cid],b=mapB[cid];
+    const color=kind==="regression"?M.red:M.green;
+    const bg=kind==="regression"?M.redLight:M.greenLight;
+    return(
+      <div key={cid} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:`1px solid ${M.gray200}`}}>
+        <Badge color={color} bg={bg}>{kind==="regression"?"REGRESSED":"IMPROVED"}</Badge>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:M.mono,fontSize:12,fontWeight:600,color:M.gray800,marginBottom:4}}>{cid}</div>
+          <div style={{display:"flex",gap:14,flexWrap:"wrap",fontSize:11,color:M.gray500}}>
+            <span>Score: <span style={{fontFamily:M.mono,color:M.gray800}}>{(a?.score??0).toFixed(1)}</span> → <span style={{fontFamily:M.mono,color}}>{(b?.score??0).toFixed(1)}</span></span>
+            <span>Pass: <span style={{fontFamily:M.mono,color:M.gray800}}>{a?.passed?"yes":"no"}</span> → <span style={{fontFamily:M.mono,color:b?.passed?M.green:M.red}}>{b?.passed?"yes":"no"}</span></span>
+            {b?.failure_detail&&<span style={{color:M.red,fontFamily:M.mono}}>{b.failure_detail}</span>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  return(
+    <div style={{borderBottom:`1px solid ${M.gray200}`,background:M.gray50,padding:"16px 18px"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:14}}>
+        <div>
+          <div style={{fontSize:14,fontWeight:600,color:M.gray900}}>Run comparison</div>
+          <div style={{fontSize:12,color:M.gray600,marginTop:2,fontFamily:M.mono}}>
+            {runA?.run_id?.slice(0,8)} (baseline) → {runB?.run_id?.slice(0,8)} (current)
+          </div>
+        </div>
+        <button onClick={onClose} style={{background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"6px 10px",fontSize:12,cursor:"pointer",color:M.gray700}}>Close</button>
+      </div>
+      {loading&&<div style={{fontSize:13,color:M.gray500}}>Computing diff…</div>}
+      {error&&<div style={{fontSize:13,color:M.red,background:M.redLight,padding:"10px 12px",borderRadius:6}}>{error}</div>}
+      {diff&&!loading&&(
+        <>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10,marginBottom:16}}>
+            <DeltaStat label="Task completion" value={diff.task_completion_delta} unit="pp"/>
+            <DeltaStat label="Tool accuracy" value={diff.tool_accuracy_delta} unit="pts"/>
+            <DeltaStat label="P95 latency" value={diff.latency_p95_delta_ms} unit="ms" goodWhenPositive={false}/>
+          </div>
+          {diff.regressions?.length>0&&(
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:11,color:M.red,textTransform:"uppercase",letterSpacing:".07em",fontWeight:700,marginBottom:8}}>Regressions ({diff.regressions.length})</div>
+              {diff.regressions.map(cid=>renderCase(cid,"regression"))}
+            </div>
+          )}
+          {diff.improvements?.length>0&&(
+            <div>
+              <div style={{fontSize:11,color:M.green,textTransform:"uppercase",letterSpacing:".07em",fontWeight:700,marginBottom:8}}>Improvements ({diff.improvements.length})</div>
+              {diff.improvements.map(cid=>renderCase(cid,"improvement"))}
+            </div>
+          )}
+          {!diff.regressions?.length&&!diff.improvements?.length&&(
+            <div style={{fontSize:13,color:M.gray600,padding:"8px 0"}}>No significant case-level score changes between these runs.</div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function SidebarNav({tab,setTab,project,tier,live,setLive,logout,failed,onNavigate}){
+  const go=(id)=>{setTab(id);onNavigate?.();};
+  return(
+    <>
+      <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${M.gray200}`,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+          <div style={{width:28,height:28,background:M.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1.5 Q10.5 7 7 12.5" stroke={M.ink} strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M4 1.5 Q8 7 4 12.5" stroke={M.ink} strokeWidth="1.5" strokeLinecap="round" opacity=".4"/>
+              <circle cx="7" cy="1.5" r="1.3" fill={M.ink}/><circle cx="7" cy="12.5" r="1.3" fill={M.ink}/>
+            </svg>
+          </div>
+          <div>
+            <div style={{fontSize:14,fontWeight:600,color:M.gray900}}>CortexOps</div>
+            <div style={{fontSize:11,color:M.gray500}}>Dashboard</div>
+          </div>
+        </div>
+        <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project</div>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+          <span style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em",background:tier==="pro"?M.blueLight:M.greenLight,color:tier==="pro"?M.blue:M.green,padding:"2px 7px",borderRadius:4}}>{tier}</span>
+        </div>
+        <div style={{fontFamily:M.mono,fontSize:12,color:M.gray800,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"7px 9px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={project}>{project}</div>
+      </div>
+      <nav style={{flex:1,minHeight:0,overflow:"auto",padding:"8px 8px 10px"}} aria-label="Dashboard">
+        {NAV.map(({section,items})=>(
+          <div key={section} style={{marginBottom:12}}>
+            <div style={{fontSize:10,color:M.gray400,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600,padding:"4px 12px 6px"}}>{section}</div>
+            {items.map(([id,label])=>(
+              <button key={id} onClick={()=>go(id)}
+                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",textAlign:"left",background:tab===id?M.blueLight:"transparent",color:tab===id?M.blue:M.gray700,border:"none",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:tab===id?600:500,cursor:"pointer",fontFamily:M.sans,marginBottom:2,gap:10}}>
+                <span style={{display:"flex",alignItems:"center",gap:9}}><NavIcon id={id}/>{label}</span>
+                {id==="alerts"&&failed>0&&<span style={{background:M.red,color:M.ink,borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:600,minWidth:18,textAlign:"center"}}>{failed}</span>}
+              </button>
+            ))}
+          </div>
+        ))}
+      </nav>
+      <div style={{padding:"12px 14px",borderTop:`1px solid ${M.gray200}`,flexShrink:0,background:M.white}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,cursor:"pointer"}} onClick={()=>setLive(l=>!l)}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:live?M.green:M.gray400,animation:live?"pulse 1.5s infinite":"none"}}/>
+          <span style={{fontSize:12,color:live?M.green:M.gray500,fontWeight:500}}>{live?"Live · 5s":"Paused"}</span>
+        </div>
+        <button onClick={logout} style={{width:"100%",background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray800,fontSize:13,fontWeight:500,cursor:"pointer",padding:"8px 12px"}}>Sign out</button>
+      </div>
+    </>
+  );
+}
+
 function PanelCard({title,children}){
   return(
     <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:8,padding:18,boxShadow:M.shadow1}}>
@@ -556,6 +738,13 @@ export default function App(){
   const[expandedDataset,setExpandedDataset]=useState(null);
   const[datasetDetail,setDatasetDetail]=useState(null);
   const[datasetDetailLoading,setDatasetDetailLoading]=useState(false);
+  const[navOpen,setNavOpen]=useState(false);
+  const[compareMode,setCompareMode]=useState(false);
+  const[diffRunA,setDiffRunA]=useState("");
+  const[diffRunB,setDiffRunB]=useState("");
+  const[evalDiff,setEvalDiff]=useState(null);
+  const[diffLoading,setDiffLoading]=useState(false);
+  const[diffError,setDiffError]=useState("");
   const ref=useRef(null);
 
   const token=session?.access_token;
@@ -629,8 +818,23 @@ export default function App(){
     return()=>{cancelled=true;};
   },[selected?.trace_id,token]);
 
+  useEffect(()=>{
+    if(!compareMode||!diffRunA||!diffRunB||!token){setEvalDiff(null);setDiffError("");return;}
+    let cancelled=false;
+    setDiffLoading(true);
+    setDiffError("");
+    apiFetch(token,`/v1/evals/diff?a=${encodeURIComponent(diffRunA)}&b=${encodeURIComponent(diffRunB)}`)
+      .then(d=>{if(!cancelled)setEvalDiff(d);})
+      .catch(e=>{if(!cancelled){setEvalDiff(null);setDiffError(e.message);}})
+      .finally(()=>{if(!cancelled)setDiffLoading(false);});
+    return()=>{cancelled=true;};
+  },[compareMode,diffRunA,diffRunB,token]);
+
+  useEffect(()=>{if(!navOpen)return;const onKey=e=>{if(e.key==="Escape")setNavOpen(false);};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);},[navOpen]);
+
   const login=(sess)=>{saveSession(sess);setSession(sess);};
-  const logout=()=>{clearSession();setSession(null);setSelected(null);setTraceDetail(null);};
+  const logout=()=>{clearSession();setSession(null);setSelected(null);setTraceDetail(null);setNavOpen(false);};
+  const goTab=(id)=>{setTab(id);setNavOpen(false);};
 
   const rotateKey=async(keyId)=>{
     setActionError("");
@@ -702,23 +906,23 @@ export default function App(){
         spark={evals.slice(0,10).reverse().map(e=>(e.task_completion_rate||0)*100)} loading={eLoad}
         delta={prev?`${Math.abs((latest.task_completion_rate-prev.task_completion_rate)*100).toFixed(1)}%`:undefined}
         deltaUp={prev&&latest.task_completion_rate>=prev.task_completion_rate}
-        onClick={()=>setTab("evaluations")}/>
+        onClick={()=>goTab("evaluations")}/>
       <Tile label="Error rate" value={errRate} unit="%" color={parseFloat(errRate)>5?M.red:M.green}
         hint={`${failed} failed of ${traces.length} traces`}
         spark={traces.slice(0,20).reverse().map(t=>t.status==="failed"?100:0)} loading={tLoad}
-        onClick={()=>setTab("alerts")}/>
+        onClick={()=>goTab("alerts")}/>
       <Tile label="Avg latency" value={avgLat} unit="ms" color={tcColor}
         hint="Mean across recent traces"
         spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}
-        onClick={()=>setTab("metrics")}/>
+        onClick={()=>goTab("metrics")}/>
       <Tile label="P95 latency" value={p95} unit="ms" color={p95>2000?M.red:p95>1000?M.amber:M.blue}
         hint="Slowest 5% of traces"
         spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}
-        onClick={()=>setTab("metrics")}/>
+        onClick={()=>goTab("metrics")}/>
       <Tile label="Total traces" value={traces.length} color={M.blue}
         hint={quota?.monthly_traces?`${quota.monthly_traces.used?.toLocaleString()??"—"} this month`:"In current view"}
         spark={traces.slice(0,20).map(()=>1)} loading={tLoad}
-        onClick={()=>setTab("traces")}/>
+        onClick={()=>goTab("traces")}/>
     </div>
   );
 
@@ -726,74 +930,54 @@ export default function App(){
     <>
       <style>{G}</style>
       <div style={{display:"flex",height:"100vh",background:M.gray50}}>
-        {/* Left nav */}
-        <aside className="dash-sidebar" style={{width:248,height:"100vh",minHeight:0,background:M.white,borderRight:`1px solid ${M.gray200}`,display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
-          <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${M.gray200}`,flexShrink:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-              <div style={{width:28,height:28,background:M.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 1.5 Q10.5 7 7 12.5" stroke={M.ink} strokeWidth="1.5" strokeLinecap="round"/>
-                  <path d="M4 1.5 Q8 7 4 12.5" stroke={M.ink} strokeWidth="1.5" strokeLinecap="round" opacity=".4"/>
-                  <circle cx="7" cy="1.5" r="1.3" fill={M.ink}/><circle cx="7" cy="12.5" r="1.3" fill={M.ink}/>
-                </svg>
-              </div>
-              <div>
-                <div style={{fontSize:14,fontWeight:600,color:M.gray900}}>CortexOps</div>
-                <div style={{fontSize:11,color:M.gray500}}>Dashboard</div>
-              </div>
-            </div>
-            <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project</div>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-              <span style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em",background:tier==="pro"?M.blueLight:M.greenLight,color:tier==="pro"?M.blue:M.green,padding:"2px 7px",borderRadius:4}}>{tier}</span>
-            </div>
-            <div style={{fontFamily:M.mono,fontSize:12,color:M.gray800,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"7px 9px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={project}>{project}</div>
-          </div>
-          <nav style={{flex:1,minHeight:0,overflow:"auto",padding:"8px 8px 10px"}} aria-label="Dashboard">
-            {NAV.map(({section,items})=>(
-              <div key={section} style={{marginBottom:12}}>
-                <div style={{fontSize:10,color:M.gray400,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600,padding:"4px 12px 6px"}}>{section}</div>
-                {items.map(([id,label])=>(
-                  <button key={id} onClick={()=>setTab(id)}
-                    style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",textAlign:"left",background:tab===id?M.blueLight:"transparent",color:tab===id?M.blue:M.gray700,border:"none",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:tab===id?600:500,cursor:"pointer",fontFamily:M.sans,marginBottom:2,gap:10}}>
-                    <span style={{display:"flex",alignItems:"center",gap:9}}><NavIcon id={id}/>{label}</span>
-                    {id==="alerts"&&failed>0&&<span style={{background:M.red,color:M.ink,borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:600,minWidth:18,textAlign:"center"}}>{failed}</span>}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </nav>
-          <div style={{padding:"12px 14px",borderTop:`1px solid ${M.gray200}`,flexShrink:0,background:M.white}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,cursor:"pointer"}} onClick={()=>setLive(l=>!l)}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:live?M.green:M.gray400,animation:live?"pulse 1.5s infinite":"none"}}/>
-              <span style={{fontSize:12,color:live?M.green:M.gray500,fontWeight:500}}>{live?"Live · 5s":"Paused"}</span>
-            </div>
-            <button onClick={logout} style={{width:"100%",background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray800,fontSize:13,fontWeight:500,cursor:"pointer",padding:"8px 12px"}}>Sign out</button>
-          </div>
+        {/* Desktop sidebar */}
+        <aside className="dash-sidebar dash-sidebar-desktop" style={{width:248,height:"100vh",minHeight:0,background:M.white,borderRight:`1px solid ${M.gray200}`,display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
+          <SidebarNav tab={tab} setTab={setTab} project={project} tier={tier} live={live} setLive={setLive} logout={logout} failed={failed}/>
         </aside>
+
+        {navOpen&&(
+          <>
+            <div className="mobile-nav-overlay" onClick={()=>setNavOpen(false)} aria-hidden="true"/>
+            <aside className="mobile-nav-drawer" role="dialog" aria-label="Navigation menu" style={{display:"flex",flexDirection:"column"}}>
+              <SidebarNav tab={tab} setTab={setTab} project={project} tier={tier} live={live} setLive={setLive} logout={logout} failed={failed} onNavigate={()=>setNavOpen(false)}/>
+            </aside>
+          </>
+        )}
 
         {/* Main */}
         <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
           <header style={{minHeight:56,background:M.white,borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",padding:"10px 20px",gap:12,flexShrink:0}}>
+            <button type="button" className="mobile-menu-btn" onClick={()=>setNavOpen(true)} aria-label="Open navigation menu">
+              <HamburgerIcon/>
+            </button>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
                 <h1 style={{fontSize:18,fontWeight:600,color:M.gray900,margin:0}}>{activeLabel}</h1>
                 <Badge color={tier==="pro"?M.blue:M.green} bg={tier==="pro"?M.blueLight:M.greenLight}>{tier}</Badge>
-                <span style={{fontFamily:M.mono,fontSize:11,color:M.gray500}}>{project}</span>
+                <span className="header-hide-mobile" style={{fontFamily:M.mono,fontSize:11,color:M.gray500}}>{project}</span>
                 {live&&<Badge color={M.green} bg={M.greenLight}>● Live</Badge>}
               </div>
-              {tabHint&&<p style={{fontSize:12,color:M.gray500,margin:"4px 0 0",lineHeight:1.4}}>{tabHint}</p>}
+              {tabHint&&<p className="header-hide-mobile" style={{fontSize:12,color:M.gray500,margin:"4px 0 0",lineHeight:1.4}}>{tabHint}</p>}
             </div>
             <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
-              {(tLoad||eLoad)&&<span style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>Updating…</span>}
+              {(tLoad||eLoad)&&<span className="header-hide-mobile" style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>Updating…</span>}
               <button onClick={()=>{rT();rE();rQ();rK();rP();rD();}} style={{background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray700,fontSize:13,padding:"6px 12px",cursor:"pointer",fontWeight:500}}>↻ Refresh</button>
-              <button onClick={logout} style={{background:"none",border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray600,fontSize:13,padding:"6px 12px",cursor:"pointer",fontWeight:500}}>Sign out</button>
-              <a href="https://getcortexops.com" style={{fontSize:13,color:M.blueSoft,textDecoration:"none"}}>getcortexops.com</a>
+              <button onClick={logout} className="header-hide-mobile" style={{background:"none",border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray600,fontSize:13,padding:"6px 12px",cursor:"pointer",fontWeight:500}}>Sign out</button>
+              <a href="https://getcortexops.com" className="header-hide-mobile" style={{fontSize:13,color:M.blueSoft,textDecoration:"none"}}>getcortexops.com</a>
             </div>
           </header>
 
           <div style={{flex:1,overflow:"auto",padding:20}}>
             {tab==="overview"&&(
               <div style={{display:"grid",gap:16}}>
+                <OnboardingChecklist
+                  tracesCount={traces.length}
+                  evalsCount={evals.length}
+                  datasetsCount={datasets.length}
+                  onGoTraces={()=>goTab("traces")}
+                  onGoEvals={()=>goTab("evaluations")}
+                />
+
                 <div style={{background:`linear-gradient(135deg, ${statusBg} 0%, ${M.white} 55%)`,border:`1px solid ${M.gray200}`,borderRadius:12,padding:"18px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,flexWrap:"wrap",boxShadow:M.shadow1}}>
                   <div>
                     <div style={{fontSize:11,color:M.gray500,textTransform:"uppercase",letterSpacing:".08em",fontWeight:700,marginBottom:6}}>Project status</div>
@@ -806,9 +990,9 @@ export default function App(){
                     </div>
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    <QuickLink label="View traces" onClick={()=>setTab("traces")}/>
-                    <QuickLink label="Run evals" onClick={()=>setTab("evaluations")} color={M.green}/>
-                    {failed>0&&<QuickLink label="Review alerts" onClick={()=>setTab("alerts")} color={M.red}/>}
+                    <QuickLink label="View traces" onClick={()=>goTab("traces")}/>
+                    <QuickLink label="Run evals" onClick={()=>goTab("evaluations")} color={M.green}/>
+                    {failed>0&&<QuickLink label="Review alerts" onClick={()=>goTab("alerts")} color={M.red}/>}
                   </div>
                 </div>
 
@@ -821,20 +1005,20 @@ export default function App(){
                         sub={healthPct!=null?`${completed}/${traces.length} traces succeeded`:"Instrument agents to measure health"}
                         color={healthPct==null?M.gray500:healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
                         bar={healthPct} barColor={healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
-                        onClick={()=>setTab("metrics")} loading={tLoad}/>
+                        onClick={()=>goTab("metrics")} loading={tLoad}/>
                       <InsightCard label="Eval gate" value={latest?(evalPassing?"Passing":"Failing"):"No data"}
                         sub={latest?`${((latest.task_completion_rate||0)*100).toFixed(0)}% · ${latest.passed}/${latest.total_cases} cases · 90% threshold`:"Run golden dataset evals"}
                         color={latest?(evalPassing?M.green:M.red):M.gray500}
                         bar={latest?(latest.task_completion_rate||0)*100:null} barColor={evalPassing?M.green:M.red}
-                        onClick={()=>setTab("evaluations")} loading={eLoad}/>
+                        onClick={()=>goTab("evaluations")} loading={eLoad}/>
                       <InsightCard label="Regressions" value={latest?(latest.regressions??0):"—"}
                         sub={latest?(latest.regressions>0?"Review failing cases in latest run":"Stable vs previous run"):"Tracked across eval history"}
                         color={latest?(latest.regressions>0?M.amber:M.green):M.gray500}
-                        onClick={()=>setTab("evaluations")} loading={eLoad}/>
+                        onClick={()=>goTab("evaluations")} loading={eLoad}/>
                     </div>
 
                     <Section title="Recent traces" subtitle="Click any row to open the node waterfall"
-                      action={traces.length>0?<button onClick={()=>setTab("traces")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>:null}
+                      action={traces.length>0?<button onClick={()=>goTab("traces")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>:null}
                       noPad>
                       {traces.slice(0,8).map(t=>(
                         <TraceRow key={t.trace_id} trace={t} onClick={()=>setSelected(t)}/>
@@ -844,7 +1028,7 @@ export default function App(){
 
                     {latest?.case_results?.length>0&&(
                       <Section title="Latest eval cases" subtitle={`Run ${latest.run_id?.slice(0,8)} · ${formatWhen(latest.created_at)}`}
-                        action={<button onClick={()=>setTab("evaluations")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>All runs →</button>}>
+                        action={<button onClick={()=>goTab("evaluations")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>All runs →</button>}>
                         <div style={{display:"grid",gap:8}}>
                           {latest.case_results.slice(0,6).map(cr=>(
                             <div key={cr.case_id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:M.gray50,borderRadius:8,border:`1px solid ${M.gray200}`}}>
@@ -885,7 +1069,7 @@ export default function App(){
                     <Section title="Workspace" subtitle="Resources in this project">
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                         {[[evals.length,"Eval runs","evaluations"],[datasets.length,"Datasets","datasets"],[prompts.length,"Prompts","prompts"],[keys.length,"API keys","api-keys"]].map(([n,l,dest])=>(
-                          <button key={l} onClick={()=>setTab(dest)} className="card-hover" style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:8,padding:"12px",cursor:"pointer",textAlign:"left"}}>
+                          <button key={l} onClick={()=>goTab(dest)} className="card-hover" style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:8,padding:"12px",cursor:"pointer",textAlign:"left"}}>
                             <div style={{fontSize:22,fontWeight:700,color:M.gray900,fontFamily:M.mono}}>{n}</div>
                             <div style={{fontSize:11,color:M.gray500,marginTop:2}}>{l}</div>
                           </button>
@@ -895,7 +1079,7 @@ export default function App(){
 
                     {failed>0&&(
                       <Section title="Active alerts" subtitle={`${failed} failed trace${failed>1?"s":""} need review`}
-                        action={<button onClick={()=>setTab("alerts")} style={{background:"none",border:"none",color:M.red,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>}
+                        action={<button onClick={()=>goTab("alerts")} style={{background:"none",border:"none",color:M.red,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>}
                         noPad>
                         {traces.filter(t=>t.status==="failed").slice(0,4).map(t=>(
                           <TraceRow key={t.trace_id} trace={t} onClick={()=>setSelected(t)} showCase={false}/>
@@ -992,6 +1176,53 @@ export default function App(){
 
             {tab==="evaluations"&&(
               <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,overflow:"hidden",boxShadow:M.shadow1}}>
+                <div style={{padding:"12px 18px",borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",background:M.gray50}}>
+                  <div style={{fontSize:13,color:M.gray600}}>{evals.length} run{evals.length!==1?"s":""} · compare baseline vs current</div>
+                  <button
+                    onClick={()=>{
+                      if(compareMode){setCompareMode(false);setEvalDiff(null);setDiffError("");return;}
+                      setCompareMode(true);
+                      if(evals.length>=2){setDiffRunA(evals[1].run_id);setDiffRunB(evals[0].run_id);}
+                      else if(evals.length===1){setDiffRunA("");setDiffRunB(evals[0].run_id);}
+                    }}
+                    disabled={evals.length<2}
+                    title={evals.length<2?"Need at least 2 runs to compare":undefined}
+                    style={{background:compareMode?M.blue:M.white,color:compareMode?M.ink:M.blue,border:`1px solid ${M.blue}`,borderRadius:6,padding:"6px 12px",fontSize:12,fontWeight:600,cursor:evals.length<2?"not-allowed":"pointer",opacity:evals.length<2?.5:1}}
+                  >
+                    {compareMode?"Close compare":"Compare runs"}
+                  </button>
+                </div>
+                {compareMode&&evals.length>=2&&(
+                  <div style={{padding:"12px 18px",borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                    <label style={{fontSize:12,color:M.gray600,display:"flex",alignItems:"center",gap:6}}>
+                      Baseline
+                      <select value={diffRunA} onChange={e=>setDiffRunA(e.target.value)}
+                        style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"5px 8px",fontSize:12,color:M.gray900,fontFamily:M.mono}}>
+                        <option value="">Select run…</option>
+                        {evals.map(r=><option key={r.run_id} value={r.run_id}>{r.run_id?.slice(0,8)} · {((r.task_completion_rate||0)*100).toFixed(0)}% · {timeAgo(r.created_at)}</option>)}
+                      </select>
+                    </label>
+                    <span style={{color:M.gray500}}>→</span>
+                    <label style={{fontSize:12,color:M.gray600,display:"flex",alignItems:"center",gap:6}}>
+                      Current
+                      <select value={diffRunB} onChange={e=>setDiffRunB(e.target.value)}
+                        style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"5px 8px",fontSize:12,color:M.gray900,fontFamily:M.mono}}>
+                        <option value="">Select run…</option>
+                        {evals.map(r=><option key={r.run_id} value={r.run_id}>{r.run_id?.slice(0,8)} · {((r.task_completion_rate||0)*100).toFixed(0)}% · {timeAgo(r.created_at)}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                )}
+                {compareMode&&(
+                  <EvalDiffPanel
+                    diff={evalDiff}
+                    runA={evals.find(r=>r.run_id===diffRunA)}
+                    runB={evals.find(r=>r.run_id===diffRunB)}
+                    loading={diffLoading}
+                    error={diffError}
+                    onClose={()=>{setCompareMode(false);setEvalDiff(null);setDiffError("");}}
+                  />
+                )}
                 {evals.length>0&&(
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:1,background:M.gray200,borderBottom:`1px solid ${M.gray200}`}}>
                     {[["Latest pass rate",latest?`${((latest.task_completion_rate||0)*100).toFixed(0)}%`:"—",evalPassing?M.green:M.red],
@@ -1005,17 +1236,23 @@ export default function App(){
                     ))}
                   </div>
                 )}
-                {evals.length===0&&!eLoad&&<EmptyState title="No evaluations yet" body="Run golden datasets in CI or locally to populate this view." hint='python run_eval.py --project your-project'/>}
+                {evals.length===0&&!eLoad&&<EmptyState title="No evaluations yet" body="Run golden datasets in CI or locally to populate this view." hint="python run_eval.py --sync-only"/>}
                 {evals.map((run,i)=>(
                   <div key={run.run_id} style={{borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
                     <div className="row-hover" onClick={()=>setExpandedEval(expandedEval===run.run_id?null:run.run_id)}
                       style={{padding:"14px 18px",cursor:run.case_results?.length?"pointer":"default"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
                         <StatusDot status={run.status||"completed"}/>
                         <div style={{minWidth:80}}>
                           <div style={{fontFamily:M.mono,fontSize:12,color:M.gray700,fontWeight:600}}>{run.run_id?.slice(0,8)}</div>
                           <div style={{fontSize:10,color:M.gray500,marginTop:2}}>{timeAgo(run.created_at)}</div>
                         </div>
+                        {compareMode&&(
+                          <div style={{display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>
+                            <button onClick={()=>setDiffRunA(run.run_id)} style={{background:diffRunA===run.run_id?M.amberLight:"transparent",border:`1px solid ${diffRunA===run.run_id?M.amber:M.gray300}`,borderRadius:4,padding:"2px 8px",fontSize:10,cursor:"pointer",color:diffRunA===run.run_id?M.amber:M.gray500}}>A</button>
+                            <button onClick={()=>setDiffRunB(run.run_id)} style={{background:diffRunB===run.run_id?M.blueLight:"transparent",border:`1px solid ${diffRunB===run.run_id?M.blue:M.gray300}`,borderRadius:4,padding:"2px 8px",fontSize:10,cursor:"pointer",color:diffRunB===run.run_id?M.blue:M.gray500}}>B</button>
+                          </div>
+                        )}
                         <div style={{flex:1}}>
                           <div style={{height:8,background:M.gray200,borderRadius:4,overflow:"hidden"}}>
                             <div style={{width:`${(run.task_completion_rate||0)*100}%`,height:"100%",background:run.task_completion_rate>=.9?M.green:run.task_completion_rate>=.7?M.amber:M.red,borderRadius:4}}/>
@@ -1153,7 +1390,7 @@ export default function App(){
                   <InsightCard label="Drift monitor" value={latest?.regressions>0?`${latest.regressions} found`:"Stable"}
                     sub={latest?.regressions>0?"Review failing eval cases":"No regressions in latest run"}
                     color={latest?.regressions?M.amber:M.green}
-                    onClick={()=>setTab("evaluations")}/>
+                    onClick={()=>goTab("evaluations")}/>
                 </div>
               </div>
             )}
