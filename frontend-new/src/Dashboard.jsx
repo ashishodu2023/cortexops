@@ -4,9 +4,13 @@ import {
   apiFetch,
   clearSession,
   ensureSession,
+  isAuthError,
   issueToken,
+  keyIdFromToken,
   loadSession,
+  refreshSession,
   saveSession,
+  sessionExpired,
 } from "./api.js";
 
 const M = {
@@ -14,6 +18,7 @@ const M = {
   green:"#2DD4A7",greenLight:"rgba(45,212,167,.12)",
   red:"#F26D6D",redLight:"rgba(242,109,109,.12)",
   amber:"#F5B23D",amberLight:"rgba(245,178,61,.12)",
+  purple:"#7B4F9E",purpleLight:"rgba(123,79,158,.14)",
   gray50:"#0B0F1A",gray100:"#111726",gray200:"rgba(255,255,255,.11)",
   gray300:"rgba(255,255,255,.18)",gray400:"rgba(255,255,255,.38)",gray500:"rgba(255,255,255,.42)",
   gray600:"rgba(255,255,255,.62)",gray700:"rgba(255,255,255,.72)",gray800:"rgba(255,255,255,.86)",gray900:"rgba(255,255,255,.92)",
@@ -24,10 +29,20 @@ const M = {
   sans:"'Google Sans','Segoe UI',Roboto,sans-serif",
 };
 
+const HOME_URL="https://www.getcortexops.com";
+const REFRESH_OPTIONS=[5,10,15,30];
+const REFRESH_KEY="cxo_refresh_sec";
+
+function loadRefreshSec(){
+  const n=parseInt(localStorage.getItem(REFRESH_KEY)||"5",10);
+  return REFRESH_OPTIONS.includes(n)?n:5;
+}
+
 const G=`
 @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap');
+html{color-scheme:dark}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:${M.gray50};color:${M.gray900};font-family:${M.sans};-webkit-font-smoothing:antialiased}
+body{background:${M.gray50};color:${M.gray900};font-family:${M.sans};-webkit-font-smoothing:antialiased;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 a,button,input{outline-offset:3px}
 a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.blueSoft}}
 ::-webkit-scrollbar{width:4px;height:4px}
@@ -55,6 +70,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.b
   .mobile-menu-btn{display:inline-flex!important}
   .header-hide-mobile{display:none!important}
   .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .trace-panel{width:100%!important;max-width:100vw!important}
 }
 .mobile-menu-btn{display:none;align-items:center;justify-content:center;background:${M.gray100};border:1px solid ${M.gray200};border-radius:6px;width:36px;height:36px;cursor:pointer;color:${M.gray800};flex-shrink:0;padding:0}
 .mobile-nav-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:190;animation:fadeIn .2s ease}
@@ -277,9 +293,10 @@ const FAILURE_KIND_COLORS={
   hallucination:M.red,
   timeout:M.blueSoft,
   output_format:M.blue,
+  latency_exceeded:M.amber,
   plan_deviation:M.amber,
   context_overflow:M.red,
-  unknown:M.gray500,
+  unknown:M.purple,
 };
 
 function normFailureKind(k){
@@ -346,6 +363,11 @@ function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
   useEffect(()=>{
     if(datasets?.length&&!promoteDs)setPromoteDs(datasets[0].id);
   },[datasets,promoteDs]);
+  useEffect(()=>{
+    const onKey=e=>{if(e.key==="Escape")onClose();};
+    window.addEventListener("keydown",onKey);
+    return()=>window.removeEventListener("keydown",onKey);
+  },[onClose]);
   const promote=async()=>{
     if(!token||!promoteDs||!trace?.trace_id)return;
     setPromoting(true);setPromoteErr("");setPromoteOk("");
@@ -361,9 +383,10 @@ function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
   };
   const canPromote=!!token&&datasets?.length>0;
   return(
-    <div style={{position:"fixed",top:0,right:0,bottom:0,width:560,background:M.white,borderLeft:`1px solid ${M.gray200}`,zIndex:100,display:"flex",flexDirection:"column",boxShadow:"-4px 0 24px rgba(0,0,0,.35)",animation:"slideIn .2s ease"}}>
+    <div className="trace-panel" style={{position:"fixed",top:0,right:0,bottom:0,width:560,background:M.white,borderLeft:`1px solid ${M.gray200}`,zIndex:100,display:"flex",flexDirection:"column",boxShadow:"-4px 0 24px rgba(0,0,0,.35)",animation:"slideIn .2s ease"}}>
       <div style={{padding:"16px 20px",borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
         <div style={{minWidth:0}}>
+          <button type="button" onClick={onClose} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer",padding:0,marginBottom:8}}>← Back</button>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
             <StatusDot status={trace.status}/>
             <div style={{fontSize:16,fontWeight:600,color:M.gray900}}>Trace detail</div>
@@ -485,14 +508,14 @@ function LoginScreen({onLogin}){
   return(
     <div style={{minHeight:"100vh",background:M.gray50,color:M.gray900}}>
       <nav style={{position:"sticky",top:0,zIndex:50,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",borderBottom:`1px solid ${M.gray200}`,background:"rgba(11,15,26,.86)",backdropFilter:"blur(14px)"}}>
-        <a href="https://getcortexops.com" style={{display:"flex",alignItems:"center",gap:12,color:M.gray900,textDecoration:"none"}}>
+        <a href={HOME_URL} style={{display:"flex",alignItems:"center",gap:12,color:M.gray900,textDecoration:"none"}}>
           <LogoMark/>
           <span style={{fontSize:17,fontWeight:700}}>CortexOps</span>
         </a>
         <div className="login-nav-links" style={{display:"flex",alignItems:"center",gap:18,fontSize:14,color:M.gray600}}>
-          <a href="https://getcortexops.com/#trusted" style={{color:"inherit",textDecoration:"none"}}>Trusted by</a>
-          <a href="https://getcortexops.com/#frameworks" style={{color:"inherit",textDecoration:"none"}}>Frameworks</a>
-          <a href="https://getcortexops.com/#pricing" style={{color:"inherit",textDecoration:"none"}}>Pricing</a>
+          <a href={`${HOME_URL}/#trusted`} style={{color:"inherit",textDecoration:"none"}}>Trusted by</a>
+          <a href={`${HOME_URL}/#frameworks`} style={{color:"inherit",textDecoration:"none"}}>Frameworks</a>
+          <a href={`${HOME_URL}/#pricing`} style={{color:"inherit",textDecoration:"none"}}>Pricing</a>
           <a href="https://docs.getcortexops.com" style={{color:"inherit",textDecoration:"none"}}>Docs</a>
           <a href="#login" className="login-cta" style={{background:M.blue,color:M.ink,textDecoration:"none",borderRadius:7,padding:"9px 14px",fontWeight:700,boxShadow:"0 14px 30px rgba(26,115,232,.28)"}}>Open dashboard</a>
         </div>
@@ -547,9 +570,9 @@ function LoginScreen({onLogin}){
             {loading?"Connecting…":"Open dashboard →"}
           </button>
           <p style={{color:M.gray500,fontSize:12,marginTop:16,textAlign:"center"}}>
-            <a href="https://getcortexops.com" style={{color:M.blueSoft}}>getcortexops.com</a>
+            <a href={HOME_URL} style={{color:M.blueSoft}}>getcortexops.com</a>
             {" · "}
-            <a href="https://getcortexops.com/?trial=1" style={{color:M.blueSoft}}>Get Pro key</a>
+            <a href={`${HOME_URL}/?trial=1`} style={{color:M.blueSoft}}>Get Pro key</a>
           </p>
         </div>
       </section>
@@ -629,6 +652,21 @@ const TAB_HINTS={
   projects:"Workspace bound to your API key.",
   settings:"Refresh, API endpoint, and session.",
 };
+
+const VALID_TABS=new Set(NAV.flatMap(g=>g.items.map(([id])=>id)));
+
+function parseRoute(hash){
+  const raw=(hash||"#/overview").replace(/^#/,"");
+  const [path,query]=raw.split("?");
+  const tab=(path.replace(/^\//,"")||"overview").split("/")[0];
+  const traceId=query?new URLSearchParams(query).get("trace"):null;
+  return{tab:VALID_TABS.has(tab)?tab:"overview",traceId};
+}
+
+function buildRoute(tab,traceId){
+  const base=tab==="overview"?"#/overview":`#/${tab}`;
+  return traceId?`${base}?trace=${encodeURIComponent(traceId)}`:base;
+}
 
 function EmptyState({title,body,hint}){
   return(
@@ -766,13 +804,13 @@ function EvalDiffPanel({diff,runA,runB,loading,error,onClose}){
   );
 }
 
-function SidebarNav({tab,setTab,project,tier,live,setLive,logout,failed,onNavigate}){
+function SidebarNav({tab,setTab,project,tier,live,setLive,refreshSec,setRefreshSec,logout,failed,onNavigate}){
   const go=(id)=>{setTab(id);onNavigate?.();};
   return(
     <>
       <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${M.gray200}`,flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-          <div style={{width:28,height:28,background:M.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <a href={HOME_URL} style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,textDecoration:"none",color:"inherit"}} title="CortexOps home">
+          <div style={{width:28,height:28,background:M.blue,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
               <path d="M7 1.5 Q10.5 7 7 12.5" stroke={M.ink} strokeWidth="1.5" strokeLinecap="round"/>
               <path d="M4 1.5 Q8 7 4 12.5" stroke={M.ink} strokeWidth="1.5" strokeLinecap="round" opacity=".4"/>
@@ -783,7 +821,7 @@ function SidebarNav({tab,setTab,project,tier,live,setLive,logout,failed,onNaviga
             <div style={{fontSize:14,fontWeight:600,color:M.gray900}}>CortexOps</div>
             <div style={{fontSize:11,color:M.gray500}}>Dashboard</div>
           </div>
-        </div>
+        </a>
         <div style={{fontSize:11,color:M.gray500,marginBottom:4}}>Project</div>
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
           <span style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em",background:tier==="pro"?M.blueLight:M.greenLight,color:tier==="pro"?M.blue:M.green,padding:"2px 7px",borderRadius:4}}>{tier}</span>
@@ -805,10 +843,20 @@ function SidebarNav({tab,setTab,project,tier,live,setLive,logout,failed,onNaviga
         ))}
       </nav>
       <div style={{padding:"12px 14px",borderTop:`1px solid ${M.gray200}`,flexShrink:0,background:M.white}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,cursor:"pointer"}} onClick={()=>setLive(l=>!l)}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,cursor:"pointer"}} onClick={()=>setLive(l=>!l)}>
           <div style={{width:8,height:8,borderRadius:"50%",background:live?M.green:M.gray400,animation:live?"pulse 1.5s infinite":"none"}}/>
-          <span style={{fontSize:12,color:live?M.green:M.gray500,fontWeight:500}}>{live?"Live · 5s":"Paused"}</span>
+          <span style={{fontSize:12,color:live?M.green:M.gray500,fontWeight:500}}>{live?`Live · ${refreshSec}s`:"Paused"}</span>
         </div>
+        {live&&(
+          <div style={{display:"flex",gap:4,marginBottom:10}}>
+            {REFRESH_OPTIONS.map(sec=>(
+              <button key={sec} type="button" onClick={()=>setRefreshSec(sec)}
+                style={{flex:1,background:refreshSec===sec?M.blueLight:"transparent",border:`1px solid ${refreshSec===sec?M.blue:M.gray300}`,borderRadius:5,color:refreshSec===sec?M.blue:M.gray500,fontSize:10,fontWeight:refreshSec===sec?600:500,padding:"4px 0",cursor:"pointer"}}>
+                {sec}s
+              </button>
+            ))}
+          </div>
+        )}
         <button onClick={logout} style={{width:"100%",background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray800,fontSize:13,fontWeight:500,cursor:"pointer",padding:"8px 12px"}}>Sign out</button>
       </div>
     </>
@@ -825,16 +873,24 @@ function PanelCard({title,children}){
 }
 
 export default function App(){
+  const initRoute=typeof window!=="undefined"?parseRoute(window.location.hash):{tab:"overview",traceId:null};
   const[session,setSession]=useState(null);
   const[authReady,setAuthReady]=useState(false);
-  const[tab,setTab]=useState("overview");
+  const[tab,setTab]=useState(initRoute.tab);
   const[filter,setFilter]=useState("all");
   const[live,setLive]=useState(true);
-  const[selected,setSelected]=useState(null);
+  const[refreshSec,setRefreshSecState]=useState(loadRefreshSec);
+  const setRefreshSec=useCallback((sec)=>{
+    setRefreshSecState(sec);
+    localStorage.setItem(REFRESH_KEY,String(sec));
+  },[]);
+  const[selected,setSelected]=useState(initRoute.traceId?{trace_id:initRoute.traceId}:null);
   const[traceDetail,setTraceDetail]=useState(null);
   const[detailLoading,setDetailLoading]=useState(false);
   const[rotatedKey,setRotatedKey]=useState(null);
   const[actionError,setActionError]=useState("");
+  const[actionOk,setActionOk]=useState("");
+  const[keyAction,setKeyAction]=useState("");
   const[traceSearch,setTraceSearch]=useState("");
   const[traceDatePreset,setTraceDatePreset]=useState("all");
   const[traceDateFrom,setTraceDateFrom]=useState("");
@@ -853,47 +909,78 @@ export default function App(){
   const ref=useRef(null);
 
   const token=session?.access_token;
+  const sessionKeyId=session?.key_id||keyIdFromToken(token);
   const project=session?.project||"payments-agent";
   const tier=session?.tier||"free";
 
   useEffect(()=>{
     const initial=loadSession();
-    if(initial)setSession(initial);
     if(!initial){setAuthReady(true);return;}
-    let cancelled=false;
+
+    const finish=(sess)=>{
+      setSession(sess);
+      setAuthReady(true);
+    };
+
+    if(!sessionExpired(initial)){
+      finish(initial);
+      if(initial.expires_at-Date.now()<15*60_000){
+        ensureSession(initial)
+          .then(next=>{saveSession(next);setSession(next);})
+          .catch(e=>{if(isAuthError(e)){clearSession();setSession(null);}});
+      }
+      return;
+    }
+
     ensureSession(initial)
-      .then((next)=>{
-        if(cancelled)return;
-        setSession(next);
-        saveSession(next);
+      .then(next=>finish(next))
+      .catch(e=>{
+        if(!isAuthError(e)&&initial.access_token){
+          finish(initial);
+          return;
+        }
+        clearSession();
         setAuthReady(true);
-      })
-      .catch(()=>{
-        if(!cancelled){clearSession();setSession(null);setAuthReady(true);}
       });
-    return()=>{cancelled=true;};
   },[]);
+
+  useEffect(()=>{
+    if(!token)return;
+    const tick=async()=>{
+      const current=loadSession();
+      if(!current?.api_key||!sessionExpired(current))return;
+      try{
+        const next=await refreshSession(current);
+        setSession(next);
+      }catch(e){
+        if(isAuthError(e)){clearSession();setSession(null);}
+      }
+    };
+    const id=setInterval(tick,60_000);
+    return()=>clearInterval(id);
+  },[token]);
 
   const traceDateQuery=tab==="traces"?buildTraceDateQuery(traceDatePreset,traceDateFrom,traceDateTo):"";
   const traceLimit=tab==="traces"&&traceDatePreset!=="all"?500:100;
-  const tPath=token?`/v1/traces?project=${encodeURIComponent(project)}&limit=${traceLimit}${filter!=="all"?`&status=${filter}`:""}${traceDateQuery}`:null;
+  const statusQuery=tab==="traces"&&filter!=="all"?`&status=${encodeURIComponent(filter)}`:"";
+  const tPath=token?`/v1/traces?project=${encodeURIComponent(project)}&limit=${traceLimit}${statusQuery}${traceDateQuery}`:null;
   const ePath=token?`/v1/evals?project=${encodeURIComponent(project)}&limit=20`:null;
   const qPath=token?"/v1/traces/quota":null;
   const kPath=token?`/v1/keys/${encodeURIComponent(project)}`:null;
   const pPath=token?`/v1/prompts/catalog?project=${encodeURIComponent(project)}`:null;
   const dPath=token?"/v1/eval/datasets":null;
 
-  const{data:rawTraces,loading:tLoad,refetch:rT}=useFetch(token,tPath);
+  const{data:rawTraces,loading:tLoad,error:tError,refetch:rT}=useFetch(token,tPath);
   const{data:rawEvals,loading:eLoad,refetch:rE}=useFetch(token,ePath);
   const{data:quota,loading:qLoad,refetch:rQ}=useFetch(token,qPath);
-  const{data:rawKeys,loading:kLoad,refetch:rK}=useFetch(token,kPath);
+  const{data:rawKeys,loading:kLoad,error:kError,refetch:rK}=useFetch(token,kPath);
   const{data:rawPrompts,loading:pLoad,error:pError,refetch:rP}=useFetch(token,pPath);
   const{data:rawDatasets,loading:dLoad,error:dError,refetch:rD}=useFetch(token,dPath);
 
   useEffect(()=>{
-    if(live&&token){ref.current=setInterval(()=>{rT();rE();rQ();rP();rD();},5000);}
+    if(live&&token){ref.current=setInterval(()=>{rT();rE();rQ();rP();rD();},refreshSec*1000);}
     return()=>clearInterval(ref.current);
-  },[live,token,rT,rE,rQ,rP,rD]);
+  },[live,token,refreshSec,rT,rE,rQ,rP,rD]);
 
   useEffect(()=>{
     if(!token)return;
@@ -937,30 +1024,147 @@ export default function App(){
 
   useEffect(()=>{if(!navOpen)return;const onKey=e=>{if(e.key==="Escape")setNavOpen(false);};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);},[navOpen]);
 
-  const login=(sess)=>{saveSession(sess);setSession(sess);};
-  const logout=()=>{clearSession();setSession(null);setSelected(null);setTraceDetail(null);setNavOpen(false);};
-  const goTab=(id)=>{setTab(id);setNavOpen(false);};
+  const tracesList=Array.isArray(rawTraces)?rawTraces:[];
+
+  useEffect(()=>{
+    if(!session)return;
+    const h=window.location.hash;
+    if(!h||h==="#login"){
+      history.replaceState({tab:"overview",traceId:null},"","#/overview");
+      setTab("overview");
+      return;
+    }
+    const route=parseRoute(h);
+    setTab(route.tab);
+    if(route.traceId){
+      const found=tracesList.find(tr=>tr.trace_id===route.traceId);
+      setSelected(found||{trace_id:route.traceId});
+    }else{
+      setSelected(null);
+      setTraceDetail(null);
+    }
+  },[session?.access_token]);
+
+  useEffect(()=>{
+    if(!session)return;
+    const onHash=()=>{
+      const route=parseRoute(window.location.hash);
+      setTab(route.tab);
+      setNavOpen(false);
+      if(route.traceId){
+        const found=tracesList.find(tr=>tr.trace_id===route.traceId);
+        setSelected(found||{trace_id:route.traceId});
+      }else{
+        setSelected(null);
+        setTraceDetail(null);
+      }
+    };
+    window.addEventListener("hashchange",onHash);
+    return()=>window.removeEventListener("hashchange",onHash);
+  },[session,rawTraces]);
+
+  useEffect(()=>{
+    if(!session)return;
+    const onPop=()=>{
+      const route=history.state?.tab
+        ?{tab:history.state.tab,traceId:history.state.traceId||null}
+        :parseRoute(window.location.hash);
+      setTab(route.tab);
+      setNavOpen(false);
+      if(route.traceId){
+        const found=tracesList.find(tr=>tr.trace_id===route.traceId);
+        setSelected(found||{trace_id:route.traceId});
+      }else{
+        setSelected(null);
+        setTraceDetail(null);
+      }
+    };
+    window.addEventListener("popstate",onPop);
+    return()=>window.removeEventListener("popstate",onPop);
+  },[session,rawTraces]);
+
+  useEffect(()=>{
+    if(!selected?.trace_id||selected.status)return;
+    const found=tracesList.find(tr=>tr.trace_id===selected.trace_id);
+    if(found)setSelected(found);
+  },[rawTraces,selected?.trace_id,selected?.status]);
+
+  const login=(sess)=>{
+    saveSession(sess);setSession(sess);
+    history.replaceState({tab:"overview",traceId:null},"","#/overview");
+    setTab("overview");setSelected(null);setTraceDetail(null);
+  };
+  const logout=()=>{
+    clearSession();setSession(null);setSelected(null);setTraceDetail(null);setNavOpen(false);
+    history.replaceState(null,"","#login");
+  };
+
+  const pushRoute=useCallback((nextTab,traceId=null,replace=false)=>{
+    const hash=buildRoute(nextTab,traceId);
+    const state={tab:nextTab,traceId};
+    if(replace)history.replaceState(state,"",hash);
+    else history.pushState(state,"",hash);
+  },[]);
+
+  const goTab=useCallback((id)=>{
+    pushRoute(id,null);
+    setTab(id);
+    setSelected(null);
+    setTraceDetail(null);
+    setNavOpen(false);
+    if(id!=="traces"){setFilter("all");}
+  },[pushRoute]);
+
+  const openTrace=useCallback((t)=>{
+    if(!t?.trace_id)return;
+    pushRoute(tab,t.trace_id);
+    setSelected(t);
+  },[tab,pushRoute]);
+
+  const closeTrace=useCallback(()=>{
+    pushRoute(tab,null);
+    setSelected(null);
+    setTraceDetail(null);
+  },[tab,pushRoute]);
 
   const rotateKey=async(keyId)=>{
-    setActionError("");
+    setActionError("");setActionOk("");setKeyAction(keyId);
     try{
-      const res=await apiFetch(token,`/v1/keys/${keyId}/rotate`,{method:"POST"});
+      const res=await apiFetch(token,`/v1/keys/${encodeURIComponent(keyId)}/rotate`,{method:"POST",body:"{}"});
       setRotatedKey(res.new_key);
       if(res.new_key){
-        const next=await issueToken(res.new_key);
-        saveSession(next);
-        setSession(next);
+        try{
+          const next=await issueToken(res.new_key);
+          saveSession(next);
+          setSession(next);
+        }catch(e){
+          setActionError(`Key rotated but session refresh failed: ${e.message}. Copy the new key and sign in again.`);
+        }
       }
+      setActionOk(res.message||"Key rotated successfully.");
       rK();
     }catch(e){setActionError(e.message);}
+    finally{setKeyAction("");}
   };
 
   const revokeKey=async(keyId)=>{
-    setActionError("");
+    if(!window.confirm("Revoke this API key? Apps using it will stop working immediately."))return;
+    setActionError("");setActionOk("");setKeyAction(keyId);
+    const isCurrent=sessionKeyId&&sessionKeyId===keyId;
     try{
-      await apiFetch(token,`/v1/keys/${keyId}`,{method:"DELETE"});
+      await apiFetch(token,`/v1/keys/${encodeURIComponent(keyId)}`,{method:"DELETE"});
+      if(isCurrent){
+        clearSession();
+        setSession(null);
+        setSelected(null);
+        setTraceDetail(null);
+        history.replaceState(null,"","#login");
+        return;
+      }
+      setActionOk("API key revoked.");
       rK();
     }catch(e){setActionError(e.message);}
+    finally{setKeyAction("");}
   };
 
   if(!authReady)return<><style>{G}</style><div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:M.gray600}}>Loading session…</div></>;
@@ -991,6 +1195,7 @@ export default function App(){
   const statusColor={healthy:M.green,degraded:M.amber,critical:M.red,unknown:M.gray500}[overallStatus];
   const statusBg={healthy:M.greenLight,degraded:M.amberLight,critical:M.redLight,unknown:M.gray100}[overallStatus];
   const filteredTraces=traces.filter(t=>{
+    if(tab==="traces"&&filter!=="all"&&t.status!==filter)return false;
     if(traceSearch.trim()){
       const q=traceSearch.toLowerCase();
       const match=(t.trace_id||"").toLowerCase().includes(q)||(t.case_id||"").toLowerCase().includes(q)||(t.failure_kind||"").toLowerCase().includes(q);
@@ -1001,6 +1206,7 @@ export default function App(){
   const traceDateActive=tab==="traces"&&traceDatePreset!=="all";
   const tracesTabFailed=traces.filter(t=>t.status==="failed").length;
   const tracesTabCompleted=traces.length-tracesTabFailed;
+  const tracesTabAvgLat=traces.length>0?Math.round(traces.reduce((s,t)=>s+(t.total_latency_ms||0),0)/traces.length):0;
   const failureKindStats=buildFailureKindStats(traces,evals);
   const failureKindTotal=failureKindStats.reduce((s,[,n])=>s+n,0);
   const quotaPct=quota?.monthly_traces?.percent_used??null;
@@ -1038,14 +1244,14 @@ export default function App(){
       <div style={{display:"flex",height:"100vh",background:M.gray50}}>
         {/* Desktop sidebar */}
         <aside className="dash-sidebar dash-sidebar-desktop" style={{width:248,height:"100vh",minHeight:0,background:M.white,borderRight:`1px solid ${M.gray200}`,display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
-          <SidebarNav tab={tab} setTab={setTab} project={project} tier={tier} live={live} setLive={setLive} logout={logout} failed={failed}/>
+          <SidebarNav tab={tab} setTab={goTab} project={project} tier={tier} live={live} setLive={setLive} refreshSec={refreshSec} setRefreshSec={setRefreshSec} logout={logout} failed={failed}/>
         </aside>
 
         {navOpen&&(
           <>
             <div className="mobile-nav-overlay" onClick={()=>setNavOpen(false)} aria-hidden="true"/>
             <aside className="mobile-nav-drawer" role="dialog" aria-label="Navigation menu" style={{display:"flex",flexDirection:"column"}}>
-              <SidebarNav tab={tab} setTab={setTab} project={project} tier={tier} live={live} setLive={setLive} logout={logout} failed={failed} onNavigate={()=>setNavOpen(false)}/>
+              <SidebarNav tab={tab} setTab={goTab} project={project} tier={tier} live={live} setLive={setLive} refreshSec={refreshSec} setRefreshSec={setRefreshSec} logout={logout} failed={failed} onNavigate={()=>setNavOpen(false)}/>
             </aside>
           </>
         )}
@@ -1061,15 +1267,14 @@ export default function App(){
                 <h1 style={{fontSize:18,fontWeight:600,color:M.gray900,margin:0}}>{activeLabel}</h1>
                 <Badge color={tier==="pro"?M.blue:M.green} bg={tier==="pro"?M.blueLight:M.greenLight}>{tier}</Badge>
                 <span className="header-hide-mobile" style={{fontFamily:M.mono,fontSize:11,color:M.gray500}}>{project}</span>
-                {live&&<Badge color={M.green} bg={M.greenLight}>● Live</Badge>}
+                {live&&<Badge color={M.green} bg={M.greenLight}>● Live · {refreshSec}s</Badge>}
               </div>
               {tabHint&&<p className="header-hide-mobile" style={{fontSize:12,color:M.gray500,margin:"4px 0 0",lineHeight:1.4}}>{tabHint}</p>}
             </div>
             <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
               {(tLoad||eLoad)&&<span className="header-hide-mobile" style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>Updating…</span>}
               <button onClick={()=>{rT();rE();rQ();rK();rP();rD();}} style={{background:M.gray100,border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray700,fontSize:13,padding:"6px 12px",cursor:"pointer",fontWeight:500}}>↻ Refresh</button>
-              <button onClick={logout} className="header-hide-mobile" style={{background:"none",border:`1px solid ${M.gray200}`,borderRadius:6,color:M.gray600,fontSize:13,padding:"6px 12px",cursor:"pointer",fontWeight:500}}>Sign out</button>
-              <a href="https://getcortexops.com" className="header-hide-mobile" style={{fontSize:13,color:M.blueSoft,textDecoration:"none"}}>getcortexops.com</a>
+              <a href={HOME_URL} style={{fontSize:13,color:M.blueSoft,textDecoration:"none",whiteSpace:"nowrap"}}>Home</a>
             </div>
           </header>
 
@@ -1134,7 +1339,7 @@ export default function App(){
                       action={traces.length>0?<button onClick={()=>goTab("traces")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>:null}
                       noPad>
                       {traces.slice(0,8).map(t=>(
-                        <TraceRow key={t.trace_id} trace={t} onClick={()=>setSelected(t)}/>
+                        <TraceRow key={t.trace_id} trace={t} onClick={()=>openTrace(t)}/>
                       ))}
                       {traces.length===0&&!tLoad&&<EmptyState title="No traces yet" body="Instrument your agent with CortexTracer to see live runs here." hint="pip install cortexops"/>}
                     </Section>
@@ -1195,7 +1400,7 @@ export default function App(){
                         action={<button onClick={()=>goTab("alerts")} style={{background:"none",border:"none",color:M.red,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>}
                         noPad>
                         {traces.filter(t=>t.status==="failed").slice(0,4).map(t=>(
-                          <TraceRow key={t.trace_id} trace={t} onClick={()=>setSelected(t)} showCase={false}/>
+                          <TraceRow key={t.trace_id} trace={t} onClick={()=>openTrace(t)} showCase={false}/>
                         ))}
                       </Section>
                     )}
@@ -1231,6 +1436,7 @@ export default function App(){
 
             {tab==="traces"&&(
               <div style={{display:"grid",gap:12}}>
+                {tError&&<div style={{background:M.redLight,color:M.red,border:"1px solid rgba(197,34,31,.2)",borderRadius:6,padding:"10px 12px",fontSize:13}}>Failed to load traces: {tError}</div>}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:10}}>
                   {[[traces.length,"In range",M.blue],[tracesTabCompleted,"OK",M.green],[tracesTabFailed,"Failed",M.red],[`${tracesTabAvgLat}ms`,"Avg latency",tracesTabAvgLat>500?M.amber:M.green]].map(([v,l,c])=>(
                     <div key={l} style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,padding:"12px 14px"}}>
@@ -1241,7 +1447,7 @@ export default function App(){
                 </div>
                 <Section
                   title="Trace explorer"
-                  subtitle={`${filteredTraces.length} shown · ${traces.length} loaded${traceDateActive?` · ${traceDateLabel(traceDatePreset,traceDateFrom,traceDateTo)}`:""}`}
+                  subtitle={`${filteredTraces.length} shown · ${traces.length} loaded${traceDateActive?` · ${traceDateLabel(traceDatePreset,traceDateFrom,traceDateTo)}`:""}${filter!=="all"?` · ${filter} only`:""}`}
                   action={
                     <input value={traceSearch} onChange={e=>setTraceSearch(e.target.value)} placeholder="Search ID, case, failure…"
                       style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"6px 10px",fontSize:12,color:M.gray900,minWidth:200}}/>
@@ -1250,18 +1456,18 @@ export default function App(){
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <span style={{fontSize:10,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,marginRight:4}}>Status</span>
                       {["all","completed","failed"].map(s=>(
-                        <button key={s} onClick={()=>setFilter(s)}
+                        <button key={s} type="button" onClick={()=>setFilter(s)}
                           style={{background:filter===s?M.blueLight:"transparent",border:`1px solid ${filter===s?M.blue:M.gray300}`,borderRadius:6,color:filter===s?M.blue:M.gray600,fontSize:12,padding:"5px 12px",cursor:"pointer",fontWeight:filter===s?600:500,textTransform:"capitalize"}}>{s}</button>
                       ))}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <span style={{fontSize:10,color:M.gray500,textTransform:"uppercase",letterSpacing:".06em",fontWeight:600,marginRight:4}}>Date range</span>
                       {TRACE_DATE_PRESETS.map(([key,label])=>(
-                        <button key={key} onClick={()=>setTraceDatePreset(key)}
+                        <button key={key} type="button" onClick={()=>setTraceDatePreset(key)}
                           style={{background:traceDatePreset===key?M.blueLight:"transparent",border:`1px solid ${traceDatePreset===key?M.blue:M.gray300}`,borderRadius:6,color:traceDatePreset===key?M.blue:M.gray600,fontSize:12,padding:"5px 12px",cursor:"pointer",fontWeight:traceDatePreset===key?600:500}}>{label}</button>
                       ))}
                       {traceDateActive&&(
-                        <button onClick={()=>{setTraceDatePreset("all");setTraceDateFrom("");setTraceDateTo("");}}
+                        <button type="button" onClick={()=>{setTraceDatePreset("all");setTraceDateFrom("");setTraceDateTo("");}}
                           style={{background:"none",border:"none",color:M.gray500,fontSize:12,cursor:"pointer",padding:"5px 8px"}}>Clear</button>
                       )}
                     </div>
@@ -1281,8 +1487,9 @@ export default function App(){
                       </div>
                     )}
                   </div>
-                  {filteredTraces.length===0&&!tLoad&&<EmptyState title="No traces found" body={traceSearch||traceDateActive?"Try adjusting search or date range.":"Instrument your agent and send traces to this project."} hint="pip install cortexops"/>}
-                  {filteredTraces.map(t=><TraceRow key={t.trace_id} trace={t} onClick={()=>setSelected(t)}/>)}
+                  {tLoad&&<div style={{padding:"24px 18px",fontSize:13,color:M.gray500}}>Loading traces…</div>}
+                  {!tLoad&&filteredTraces.length===0&&<EmptyState title="No traces found" body={traceSearch||traceDateActive||filter!=="all"?"Try adjusting search, status filter, or date range.":"Instrument your agent and send traces to this project."} hint="pip install cortexops"/>}
+                  {!tLoad&&filteredTraces.map(t=><TraceRow key={t.trace_id} trace={t} onClick={()=>openTrace(t)}/>)}
                 </Section>
               </div>
             )}
@@ -1517,7 +1724,7 @@ export default function App(){
                   </div>
                 )}
                 {traces.filter(t=>t.status==="failed").map(t=>(
-                  <div key={t.trace_id} onClick={()=>setSelected(t)} className="row-hover"
+                  <div key={t.trace_id} onClick={()=>openTrace(t)} className="row-hover"
                     style={{padding:"12px 18px",borderBottom:`1px solid ${M.gray200}`,borderLeft:`4px solid ${M.red}`,cursor:"pointer"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
                       <span style={{fontFamily:M.mono,fontSize:12,color:M.gray700,fontWeight:600}}>{t.trace_id?.slice(0,8)}</span>
@@ -1535,6 +1742,13 @@ export default function App(){
             {tab==="api-keys"&&(
               <div style={{maxWidth:720,display:"grid",gap:14}}>
                 {actionError&&<div style={{background:M.redLight,color:M.red,border:"1px solid rgba(197,34,31,.2)",borderRadius:6,padding:"10px 12px",fontSize:13}}>{actionError}</div>}
+                {actionOk&&<div style={{background:M.greenLight,color:M.green,border:"1px solid rgba(45,212,167,.3)",borderRadius:6,padding:"10px 12px",fontSize:13}}>{actionOk}</div>}
+                {kError&&<div style={{background:M.redLight,color:M.red,border:"1px solid rgba(197,34,31,.2)",borderRadius:6,padding:"10px 12px",fontSize:13}}>Failed to load keys: {kError}</div>}
+                {session?.scope==="read_only"&&(
+                  <div style={{background:M.amberLight,color:M.gray700,border:`1px solid ${M.amber}`,borderRadius:6,padding:"10px 12px",fontSize:13}}>
+                    Your key has <strong>read_only</strong> scope. Rotate and revoke require a read_write key.
+                  </div>
+                )}
                 {rotatedKey&&(
                   <PanelCard title="New key — copy now">
                     <div style={{fontFamily:M.mono,fontSize:13,background:M.greenLight,border:`1px solid rgba(45,212,167,.3)`,borderRadius:4,padding:"10px 12px",wordBreak:"break-all"}}>{rotatedKey}</div>
@@ -1553,16 +1767,20 @@ export default function App(){
                         <div style={{fontSize:11,color:M.gray500,marginTop:4}}>Created {k.created_at?new Date(k.created_at).toLocaleDateString():"—"}{k.last_used_at?` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`:""}</div>
                       </div>
                       <span style={{fontSize:11,color:k.is_active?M.green:M.red,fontWeight:600}}>{k.is_active?"active":"revoked"}</span>
-                      {k.is_active&&<>
-                        <button onClick={()=>rotateKey(k.id)} style={{background:M.blueLight,color:M.blue,border:"none",borderRadius:4,padding:"6px 10px",fontSize:12,cursor:"pointer",fontWeight:600}}>Rotate</button>
-                        <button onClick={()=>revokeKey(k.id)} style={{background:M.redLight,color:M.red,border:"none",borderRadius:4,padding:"6px 10px",fontSize:12,cursor:"pointer",fontWeight:600}}>Revoke</button>
+                      {sessionKeyId===k.id&&<Badge color={M.blue} bg={M.blueLight}>current</Badge>}
+                      {k.is_active&&session?.scope!=="read_only"&&<>
+                        <button type="button" disabled={!!keyAction} onClick={()=>rotateKey(k.id)} style={{background:M.blueLight,color:M.blue,border:"none",borderRadius:4,padding:"6px 10px",fontSize:12,cursor:keyAction?"wait":"pointer",fontWeight:600,opacity:keyAction&&keyAction!==k.id?.6:1}}>
+                          {keyAction===k.id?"…":"Rotate"}
+                        </button>
+                        <button type="button" disabled={!!keyAction} onClick={()=>revokeKey(k.id)} style={{background:M.redLight,color:M.red,border:"none",borderRadius:4,padding:"6px 10px",fontSize:12,cursor:keyAction?"wait":"pointer",fontWeight:600,opacity:keyAction&&keyAction!==k.id?.6:1}}>
+                          {keyAction===k.id?"…":"Revoke"}
+                        </button>
                       </>}
                     </div>
                   ))}
                 </PanelCard>
                 <PanelCard title="Session">
-                  <div style={{fontSize:13,color:M.gray600,marginBottom:10}}>Dashboard uses a short-lived JWT (1 hour). Sign out to clear the session.</div>
-                  <button onClick={logout} style={{background:M.redLight,color:M.red,border:`1px solid rgba(197,34,31,.2)`,borderRadius:4,padding:"10px 14px",fontWeight:600,cursor:"pointer"}}>Sign out</button>
+                  <div style={{fontSize:13,color:M.gray600}}>Your session is saved in this browser and auto-refreshes hourly. Use <strong>Sign out</strong> in the sidebar to clear it.</div>
                 </PanelCard>
               </div>
             )}
@@ -1616,16 +1834,25 @@ export default function App(){
                   <div style={{fontSize:12,color:M.gray500,marginTop:8}}>Project is determined by your API key.</div>
                 </PanelCard>
                 <PanelCard title="Live refresh">
-                  <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:14}}>
+                  <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:14,marginBottom:14}}>
                     <input type="checkbox" checked={live} onChange={e=>setLive(e.target.checked)}/>
-                    Poll traces and evaluations every 5 seconds
+                    Enable live polling
                   </label>
+                  <div style={{fontSize:12,color:M.gray500,marginBottom:8}}>Refresh interval</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {REFRESH_OPTIONS.map(sec=>(
+                      <button key={sec} type="button" onClick={()=>setRefreshSec(sec)}
+                        style={{flex:1,background:refreshSec===sec?M.blueLight:M.gray50,border:`1px solid ${refreshSec===sec?M.blue:M.gray300}`,borderRadius:6,color:refreshSec===sec?M.blue:M.gray600,fontSize:13,fontWeight:refreshSec===sec?600:500,padding:"8px 0",cursor:"pointer"}}>
+                        {sec}s
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:12,color:M.gray500,marginTop:10}}>
+                    {live?`Polling traces and evals every ${refreshSec} seconds.`:"Live polling is paused."}
+                  </div>
                 </PanelCard>
                 <PanelCard title="API">
                   <div style={{fontFamily:M.mono,fontSize:13,color:M.gray700}}>{API}</div>
-                </PanelCard>
-                <PanelCard title="Account">
-                  <button onClick={logout} style={{background:M.gray100,border:`1px solid ${M.gray300}`,borderRadius:4,padding:"10px 14px",cursor:"pointer"}}>Sign out</button>
                 </PanelCard>
               </div>
             )}
@@ -1639,7 +1866,7 @@ export default function App(){
             apiFetch(token,`/v1/eval/datasets/${expandedDataset}`).then(setDatasetDetail).catch(()=>{});
           }
         }}
-        onClose={()=>{setSelected(null);setTraceDetail(null);}}/>}
+        onClose={closeTrace}/>}
     </>
   );
 }

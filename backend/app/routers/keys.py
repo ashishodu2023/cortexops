@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..auth import generate_api_key, get_current_key_info
 from ..db import get_db
 from ..models.records import ApiKey, Project
-from ..tiers import TierInfo
+from ..tiers import TierInfo, require_scope
 
 router = APIRouter(prefix="/v1/keys", tags=["api keys"])
 
@@ -147,7 +147,7 @@ async def list_api_keys(
             project=k.project,
             name=k.name,
             tier=k.tier,
-            scope="read_write",
+            scope=getattr(k, "scope", "read_write") or "read_write",
             is_active=k.is_active,
             created_at=k.created_at,
             last_used_at=k.last_used_at,
@@ -172,6 +172,7 @@ async def rotate_api_key(
     Rotate an API key — revoke old key and issue new one with same tier/project.
     Old key is invalidated immediately. New key is shown once — store it immediately.
     """
+    require_scope(tier_info, "read_write")
     result = await db.execute(select(ApiKey).where(ApiKey.id == key_id))
     old_key = result.scalar_one_or_none()
 
@@ -222,6 +223,7 @@ async def revoke_api_key(
     tier_info: TierInfo = Depends(get_current_key_info),
 ):
     """Revoke a key immediately. All requests using it will receive 401."""
+    require_scope(tier_info, "read_write")
     result = await db.execute(select(ApiKey).where(ApiKey.id == key_id))
     key = result.scalar_one_or_none()
 
@@ -262,7 +264,7 @@ async def get_key_info(
         project=key.project,
         name=key.name,
         tier=key.tier,
-        scope="read_write",
+        scope=getattr(key, "scope", "read_write") or "read_write",
         is_active=key.is_active,
         created_at=key.created_at,
         last_used_at=key.last_used_at,

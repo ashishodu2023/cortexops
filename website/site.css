@@ -4,28 +4,35 @@
   --surface-2:#172033;
   --blue:#1A73E8;
   --blue-soft:#60A5FA;
+  --blue-light:rgba(26,115,232,.18);
   --green:#2DD4A7;
+  --green-light:rgba(45,212,167,.12);
   --amber:#B06000;
   --amber-soft:#F5B23D;
+  --amber-light:rgba(245,178,61,.12);
   --red:#C5221F;
   --red-soft:#F26D6D;
+  --red-light:rgba(242,109,109,.12);
   --purple:#7B4F9E;
   --text:rgba(255,255,255,.92);
   --muted:rgba(255,255,255,.62);
   --faint:rgba(255,255,255,.42);
   --line:rgba(255,255,255,.11);
   --line-soft:rgba(255,255,255,.09);
+  --shadow:0 24px 80px rgba(0,0,0,.45);
   --sans:'Google Sans','Segoe UI',Roboto,sans-serif;
   --mono:'Roboto Mono','Courier New',monospace;
 }
+html{color-scheme:dark;scroll-behavior:smooth;scroll-padding-top:80px}
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;scroll-padding-top:80px}
 body{
   font-family:var(--sans);
   background:var(--bg);
   color:var(--text);
   -webkit-font-smoothing:antialiased;
   line-height:1.5;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
 }
 a{color:var(--blue-soft);text-decoration:none}
 a:hover{text-decoration:underline}
@@ -312,24 +319,38 @@ a.framework-item:hover{border-color:rgba(96,165,250,.45);transform:translateY(-2
 
 .modal-overlay{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
   z-index:100;align-items:center;justify-content:center;padding:20px;
 }
 .modal-overlay.open{display:flex}
 .modal{
-  background:#fff;color:#202124;border-radius:12px;padding:28px 28px 24px;
-  width:100%;max-width:420px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.45);
+  background:var(--surface);color:var(--text);border:1px solid var(--line);
+  border-radius:12px;padding:28px 28px 24px;width:100%;max-width:420px;
+  position:relative;box-shadow:var(--shadow);animation:modalIn .2s ease;
 }
-.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:#80868B;line-height:1}
-.modal h3{font-size:20px;margin-bottom:6px}
-.modal p{font-size:14px;color:#5F6368;margin-bottom:18px}
+@keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.modal-close{position:absolute;top:12px;right:14px;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:6px;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--muted);line-height:1;display:grid;place-items:center}
+.modal-close:hover{color:var(--text);background:rgba(255,255,255,.1)}
+.modal h3{font-size:20px;margin-bottom:6px;color:#fff}
+.modal p{font-size:14px;color:var(--muted);margin-bottom:18px}
 .modal .field{margin-bottom:14px}
-.modal label{display:block;font-size:12px;font-weight:500;color:#5F6368;margin-bottom:6px}
-.modal input{width:100%;border:1px solid #DADCE0;border-radius:6px;padding:10px 12px;font-size:14px;outline:none;font-family:var(--sans)}
-.modal input:focus{border-color:var(--blue)}
-.modal-error{display:none;background:#FCE8E6;color:#C5221F;font-size:13px;padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid rgba(197,34,31,.2)}
+.modal label{display:block;font-size:12px;font-weight:500;color:var(--faint);margin-bottom:6px}
+.modal input{
+  width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;
+  padding:10px 12px;font-size:14px;outline:none;font-family:var(--sans);color:var(--text);
+}
+.modal input:focus{border-color:var(--blue-soft);box-shadow:0 0 0 2px rgba(96,165,250,.2)}
+.modal-error{
+  display:none;background:var(--red-light);color:var(--red-soft);font-size:13px;
+  padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid rgba(242,109,109,.25);
+}
 .modal-success{display:none;text-align:center;padding:12px 0}
-.modal-success .check{width:48px;height:48px;border-radius:50%;background:#E6F4EA;color:#137333;display:grid;place-items:center;margin:0 auto 12px;font-size:22px;font-weight:700}
-.payment-badge{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:#80868B}
+.modal-success .check{
+  width:48px;height:48px;border-radius:50%;background:var(--green-light);color:var(--green);
+  border:1px solid rgba(45,212,167,.22);display:grid;place-items:center;margin:0 auto 12px;
+  font-size:22px;font-weight:700;
+}
+.payment-badge{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--faint)}
 
 .page-hero{padding:72px 0 24px}
 .page-hero .hero-title{font-size:48px}

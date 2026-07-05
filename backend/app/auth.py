@@ -79,13 +79,31 @@ async def _tier_from_jwt(credentials: HTTPAuthorizationCredentials, db: AsyncSes
             detail="Invalid token payload.",
         )
 
+    key_id = payload.get("key_id") or ""
+    tier = payload.get("tier", "free")
+    scope = payload.get("scope", "read_write") or "read_write"
+
+    if key_id:
+        ApiKey = _get_model()
+        result = await db.execute(
+            select(ApiKey).where(ApiKey.id == key_id, ApiKey.is_active)
+        )
+        key_record = result.scalar_one_or_none()
+        if not key_record:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="API key has been revoked. Sign in again.",
+            )
+        tier = key_record.tier
+        scope = getattr(key_record, "scope", "read_write") or "read_write"
+
     monthly_traces = await _monthly_trace_count(db, project)
     return TierInfo(
         project=project,
-        tier=payload.get("tier", "free"),
-        key_id=payload.get("key_id", ""),
+        tier=tier,
+        key_id=key_id,
         monthly_traces=monthly_traces,
-        scope=payload.get("scope", "read_write") or "read_write",
+        scope=scope,
     )
 
 

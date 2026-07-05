@@ -106,6 +106,7 @@ class TokenResponse(BaseModel):
     project: str
     tier: str
     scope: str
+    key_id: str
 
 
 class TokenPayload(BaseModel):
@@ -216,6 +217,7 @@ async def issue_jwt(
         project=key_record.project,
         tier=key_record.tier,
         scope=scope,
+        key_id=key_record.id,
     )
 
 
