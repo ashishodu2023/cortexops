@@ -17,7 +17,7 @@ class CortexClient:
         history = client.list_runs(project="payments-agent", limit=10)
     """
 
-    DEFAULT_BASE_URL = "https://api.cortexops.ai"
+    DEFAULT_BASE_URL = "https://api.getcortexops.com"
 
     def __init__(
         self,
@@ -66,7 +66,7 @@ class CortexClient:
     def list_traces(self, project: str, limit: int = 50) -> list[dict]:
         return self._get("/v1/traces", {"project": project, "limit": limit})
 
-    def push_eval(self, summary) -> dict:
+    def push_eval(self, summary, *, dataset: dict | None = None, prompt: dict | None = None) -> dict:
         """Push a completed EvalSuite summary to POST /v1/evals/ingest."""
         if hasattr(summary, "model_dump"):
             data = summary.model_dump(mode="json")
@@ -76,7 +76,15 @@ class CortexClient:
             cr.pop("trace", None)
             if cr.get("failure_kind") and hasattr(cr["failure_kind"], "value"):
                 cr["failure_kind"] = cr["failure_kind"].value
+        if dataset:
+            data["dataset"] = dataset
+        if prompt:
+            data["prompt"] = prompt
         return self._post("/v1/evals/ingest", data)
+
+    def project_for_key(self) -> str:
+        """Return the project bound to the current API key."""
+        return self._get("/v1/traces/quota")["project"]
 
     def list_runs(self, project: str, limit: int = 10) -> list[dict]:
         return self._get("/v1/evals", {"project": project, "limit": limit})

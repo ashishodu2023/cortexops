@@ -593,13 +593,19 @@ export default function App(){
   const{data:rawEvals,loading:eLoad,refetch:rE}=useFetch(token,ePath);
   const{data:quota,loading:qLoad,refetch:rQ}=useFetch(token,qPath);
   const{data:rawKeys,loading:kLoad,refetch:rK}=useFetch(token,kPath);
-  const{data:rawPrompts,loading:pLoad,refetch:rP}=useFetch(token,pPath);
-  const{data:rawDatasets,loading:dLoad,refetch:rD}=useFetch(token,dPath);
+  const{data:rawPrompts,loading:pLoad,error:pError,refetch:rP}=useFetch(token,pPath);
+  const{data:rawDatasets,loading:dLoad,error:dError,refetch:rD}=useFetch(token,dPath);
 
   useEffect(()=>{
     if(live&&token){ref.current=setInterval(()=>{rT();rE();rQ();rP();rD();},5000);}
     return()=>clearInterval(ref.current);
   },[live,token,rT,rE,rQ,rP,rD]);
+
+  useEffect(()=>{
+    if(!token)return;
+    if(tab==="datasets")rD();
+    if(tab==="prompts")rP();
+  },[tab,token,rD,rP]);
 
   useEffect(()=>{
     if(!expandedDataset||!token){setDatasetDetail(null);return;}
@@ -1050,10 +1056,15 @@ export default function App(){
             )}
 
             {tab==="prompts"&&(
-              <Section title="Prompt versions" subtitle={`${prompts.length} prompt${prompts.length!==1?"s":""} in catalog`} noPad>
+              <Section title="Prompt versions" subtitle={`${prompts.length} prompt${prompts.length!==1?"s":""} in ${project}`} noPad>
                 {pLoad&&<div style={{padding:16,fontSize:13,color:M.gray500}}>Loading prompt versions…</div>}
-                {!pLoad&&prompts.length===0&&(
-                  <EmptyState title="No prompt versions yet" body="Prompt versions sync when you run evals with the SDK, or commit them via POST /v1/prompts." hint="python run_eval.py --project your-project"/>
+                {pError&&<div style={{margin:16,background:M.redLight,color:M.red,border:"1px solid rgba(242,109,109,.25)",borderRadius:8,padding:"12px 14px",fontSize:13}}>Could not load prompts: {pError}</div>}
+                {!pLoad&&!pError&&prompts.length===0&&(
+                  <EmptyState
+                    title={`No prompts for “${project}”`}
+                    body="Artifacts sync to the project tied to your API key, not the --project flag. Sign out and log in with the key you used for run_eval.py, then run sync again."
+                    hint="python run_eval.py --sync-only"
+                  />
                 )}
                 {prompts.map((pv,i)=>(
                   <div key={pv.id} style={{padding:"16px 18px",borderBottom:`1px solid ${M.gray200}`,animation:`slideIn .15s ease ${i*.04}s both`}}>
@@ -1072,12 +1083,17 @@ export default function App(){
 
             {tab==="datasets"&&(
               <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,overflow:"hidden",boxShadow:M.shadow1}}>
+                <div style={{padding:"14px 18px",borderBottom:`1px solid ${M.gray200}`,background:M.gray50}}>
+                  <div style={{fontSize:15,fontWeight:600,color:M.gray900}}>Golden datasets</div>
+                  <div style={{fontSize:12,color:M.gray600,marginTop:4}}>Scoped to project <span style={{fontFamily:M.mono,color:M.blue}}>{project}</span></div>
+                </div>
                 {dLoad&&<div style={{padding:16,fontSize:13,color:M.gray500}}>Loading datasets…</div>}
-                {!dLoad&&datasets.length===0&&(
+                {dError&&<div style={{margin:16,background:M.redLight,color:M.red,border:"1px solid rgba(242,109,109,.25)",borderRadius:8,padding:"12px 14px",fontSize:13}}>Could not load datasets: {dError}</div>}
+                {!dLoad&&!dError&&datasets.length===0&&(
                   <EmptyState
-                    title="No datasets yet"
-                    body="Golden datasets sync to the dashboard when you run evals against the hosted API."
-                    hint="cd examples/langgraph_payments && python run_eval.py --project your-project"
+                    title={`No datasets for “${project}”`}
+                    body="Your eval runner syncs to whichever project your API key belongs to. Check the sidebar project matches, or re-login with the correct cxo- key."
+                    hint="python run_eval.py --sync-only"
                   />
                 )}
                 {datasets.map((ds,i)=>(

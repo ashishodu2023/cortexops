@@ -61,6 +61,21 @@ class CaseResultIngest(BaseModel):
     failure_detail: str | None = None
 
 
+class DatasetIngestSnapshot(BaseModel):
+    name: str
+    description: str = ""
+    cases: list[dict] = []
+
+
+class PromptIngestSnapshot(BaseModel):
+    prompt_name: str
+    content: str
+    model: str = ""
+    temperature: float = 0.7
+    commit_message: str = ""
+    author: str = ""
+
+
 class EvalSummaryIngest(BaseModel):
     run_id: str | None = None
     project: str
@@ -76,6 +91,8 @@ class EvalSummaryIngest(BaseModel):
     regressions: int = 0
     baseline_run_id: str | None = None
     case_results: list[CaseResultIngest] = []
+    dataset: DatasetIngestSnapshot | None = None
+    prompt: PromptIngestSnapshot | None = None
 
 
 class EvalSummaryResponse(BaseModel):

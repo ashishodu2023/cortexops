@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime
 
@@ -10,14 +11,16 @@ from sqlalchemy.orm import selectinload
 
 from ..auth import get_current_key_info
 from ..db import get_db
-from ..models.records import CaseResultRecord, EvalRun, Project
+from ..models.records import CaseResultRecord, EvalDataset, EvalRun, Project, PromptVersion
 from ..models.schemas import (
+    DatasetIngestSnapshot,
     EvalDiffResponse,
     EvalRunRequest,
     EvalRunResponse,
     EvalSummaryIngest,
     EvalSummaryResponse,
     CaseResultResponse,
+    PromptIngestSnapshot,
 )
 from ..tiers import TierInfo
 from ..worker.tasks import run_eval_task
@@ -33,6 +36,60 @@ async def _ensure_project(db: AsyncSession, name: str) -> Project:
         db.add(project)
         await db.flush()
     return project
+
+
+async def _upsert_dataset(
+    db: AsyncSession,
+    project: str,
+    snapshot: DatasetIngestSnapshot | None,
+) -> None:
+    if not snapshot or not snapshot.name or not snapshot.cases:
+        return
+    existing = await db.execute(
+        select(EvalDataset).where(
+            EvalDataset.project == project,
+            EvalDataset.name == snapshot.name,
+        )
+    )
+    if existing.scalar_one_or_none():
+        return
+    db.add(
+        EvalDataset(
+            project=project,
+            name=snapshot.name,
+            description=snapshot.description or "",
+            cases=json.dumps(snapshot.cases),
+            case_count=len(snapshot.cases),
+        )
+    )
+
+
+async def _upsert_prompt(
+    db: AsyncSession,
+    project: str,
+    snapshot: PromptIngestSnapshot | None,
+) -> None:
+    if not snapshot or not snapshot.prompt_name or not snapshot.content:
+        return
+    existing = await db.execute(
+        select(PromptVersion).where(
+            PromptVersion.project == project,
+            PromptVersion.prompt_name == snapshot.prompt_name,
+        )
+    )
+    if existing.scalar_one_or_none():
+        return
+    pv = PromptVersion(
+        project=project,
+        prompt_name=snapshot.prompt_name,
+        version=1,
+        content=snapshot.content,
+        model=snapshot.model,
+        temperature=snapshot.temperature,
+        commit_message=snapshot.commit_message,
+        author=snapshot.author,
+    )
+    db.add(pv)
 
 
 @router.post("", response_model=EvalRunResponse, status_code=202)
@@ -79,13 +136,14 @@ async def ingest_eval_summary(
     if tier_info.project != body.project and tier_info.project != "__dev__":
         raise HTTPException(403, "You can only ingest evals for your own project.")
 
-    await _ensure_project(db, body.project)
+    project = tier_info.project if tier_info.project != "__dev__" else body.project
+    await _ensure_project(db, project)
     run_id = body.run_id or str(uuid.uuid4())
     now = datetime.utcnow()
 
     run = EvalRun(
         id=run_id,
-        project=body.project,
+        project=project,
         dataset_version=body.dataset_version,
         status="completed",
         total_cases=body.total_cases,
@@ -121,6 +179,9 @@ async def ingest_eval_summary(
                 failure_detail=cr.failure_detail,
             )
         )
+
+    await _upsert_dataset(db, project, body.dataset)
+    await _upsert_prompt(db, project, body.prompt)
 
     await db.flush()
     await db.refresh(run)
