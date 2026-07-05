@@ -233,7 +233,7 @@ Add custom metrics by subclassing `cortexops.Metric`.
 
 ### v0.5.x — next
 - [ ] Prompt version tracking in SDK (`tracer.set_prompt(name, version)`)
-- [ ] Slack webhook alerts on quality regression
+- [x] Slack webhook alerts on quality regression
 - [ ] Auto email on Pro key provision (remove manual step)
 - [ ] Trace sampling configuration (`sample_rate=0.1`)
 - [ ] pytest plugin for eval gates (`@cortexops.eval_gate(...)`)

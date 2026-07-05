@@ -176,6 +176,20 @@ async def get_current_project(
     return info.project
 
 
+async def get_optional_key_info(
+    raw_key: str | None = Security(_api_key_header),
+    credentials: HTTPAuthorizationCredentials | None = Security(_bearer),
+    db: AsyncSession = Depends(get_db),
+) -> TierInfo | None:
+    """Return TierInfo when credentials are valid; None when absent or invalid."""
+    if not raw_key and not (credentials and credentials.credentials):
+        return None
+    try:
+        return await get_current_key_info(raw_key, credentials, db)
+    except HTTPException:
+        return None
+
+
 class OptionalAuth:
     """Use this when auth is optional (public endpoints, health check)."""
     async def __call__(

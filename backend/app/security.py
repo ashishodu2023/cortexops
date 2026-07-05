@@ -98,6 +98,9 @@ class RateLimiter:
 # Global limiter — 200 requests / 60 seconds per IP
 _rate_limiter = RateLimiter(rate=200, per_seconds=60)
 
+# Stricter limiter for unauthenticated key bootstrap — 5 per hour per IP
+bootstrap_limiter = RateLimiter(rate=5, per_seconds=3600)
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Apply rate limiting per client IP. Health check is exempt."""

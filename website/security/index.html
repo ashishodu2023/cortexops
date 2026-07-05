@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security — CortexOps</title>
+  <link rel="stylesheet" href="/site.css">
+  <style>
+    .legal-page{max-width:720px;margin:0 auto;padding:96px 28px 64px}
+    .legal-page h1{font-size:36px;margin-bottom:12px}
+    .legal-page h2{font-size:20px;margin:28px 0 10px}
+    .legal-page p,.legal-page li{color:var(--muted);line-height:1.7;margin-bottom:12px}
+    .legal-page ul{padding-left:20px}
+    .legal-meta{font-size:13px;color:var(--faint);margin-bottom:32px}
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-brand"><div class="nav-mark"></div><span>CortexOps</span></a>
+  <div class="nav-links"><a href="/">Home</a><a href="https://docs.getcortexops.com">Docs</a></div>
+</nav>
+<main class="legal-page">
+  <h1>Security</h1>
+  <p class="legal-meta">Last updated: July 5, 2026</p>
+
+  <h2>API keys</h2>
+  <ul>
+    <li>Keys use <code>cxo-</code> prefix with 256-bit entropy; only SHA-256 hashes are stored.</li>
+    <li>Rotate or revoke keys instantly from the dashboard.</li>
+    <li>Production key creation requires authentication or admin internal key; first keys use rate-limited bootstrap.</li>
+  </ul>
+
+  <h2>Transport &amp; secrets</h2>
+  <ul>
+    <li>All endpoints served over HTTPS (TLS 1.2+).</li>
+    <li>JWT secrets and internal keys must be set in production — the API refuses to start with defaults.</li>
+    <li>Dashboard sessions use short-lived JWTs (1 hour); browser stores API key in localStorage for refresh.</li>
+  </ul>
+
+  <h2>Data protection</h2>
+  <ul>
+    <li>PII redaction on ingest (email, card, SSN, phone patterns).</li>
+    <li>PostgreSQL in production; SQLite disabled in production deploys.</li>
+    <li>Containers run as non-root user.</li>
+  </ul>
+
+  <h2>Report a vulnerability</h2>
+  <p>Email <a href="mailto:contact@getcortexops.com?subject=Security%20Report">contact@getcortexops.com</a> with details. We aim to respond within 48 hours.</p>
+
+  <h2>Status</h2>
+  <p>Live health: <a href="https://api.getcortexops.com/health" target="_blank" rel="noopener">api.getcortexops.com/health</a></p>
+</main>
+</body>
+</html>

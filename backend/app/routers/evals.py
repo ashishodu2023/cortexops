@@ -189,6 +189,10 @@ async def ingest_eval_summary(
         select(EvalRun).options(selectinload(EvalRun.case_results)).where(EvalRun.id == run_id)
     )
     stored = result.scalar_one()
+
+    from ..services.eval_alerts import maybe_send_eval_alerts
+    await maybe_send_eval_alerts(db, stored, case_results=list(stored.case_results or []))
+
     return _run_to_response(stored)
 
 

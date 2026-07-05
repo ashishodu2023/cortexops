@@ -103,7 +103,7 @@ class SlackAlerter:
             "elements": [{
                 "type": "button",
                 "text": {"type": "plain_text", "text": "View run"},
-                "url": f"https://app.cortexops.ai/evals/{p.run_id}",
+                "url": f"https://app.getcortexops.com/#/evals?run={p.run_id}",
                 "style": "danger" if p.failed > 0 else "primary",
             }],
         })

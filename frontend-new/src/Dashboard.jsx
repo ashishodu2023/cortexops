@@ -501,7 +501,14 @@ function LoginScreen({onLogin}){
     if(!key.startsWith("cxo-")){setErr("Key must start with cxo-");return;}
     setLoading(true);setErr("");
     try{const sess=await issueToken(key);onLogin(sess);}
-    catch(e){setErr(e.message||"Invalid API key or unreachable API");}
+    catch(e){
+      const msg=e.message||"Invalid API key or unreachable API";
+      if(/revoked/i.test(msg)){
+        setErr("This API key was revoked or rotated. Create a new key (see docs) and sign in with that key.");
+      }else{
+        setErr(msg);
+      }
+    }
     finally{setLoading(false);}
   };
   const inputStyle={width:"100%",background:M.gray50,border:`1px solid ${M.gray300}`,borderRadius:6,color:M.gray900,fontSize:14,padding:"10px 12px",outline:"none"};
@@ -563,7 +570,7 @@ function LoginScreen({onLogin}){
               onBlur={e=>e.target.style.borderColor=M.gray300}
             />
           </div>
-          <p style={{fontSize:12,color:M.gray500,marginBottom:14}}>Project is resolved from your key after login.</p>
+          <p style={{fontSize:12,color:M.gray500,marginBottom:14}}>Project is resolved from your key after login. Rotated or revoked keys cannot be reused.</p>
           {err&&<div style={{background:M.redLight,color:M.red,fontSize:13,padding:"8px 12px",borderRadius:6,marginBottom:14,border:"1px solid rgba(242,109,109,.25)"}}>{err}</div>}
           <button onClick={submit} disabled={loading||!key}
             style={{width:"100%",background:M.blue,color:M.ink,border:"none",borderRadius:7,padding:12,fontSize:15,fontWeight:700,cursor:loading||!key?"not-allowed":"pointer",opacity:loading||!key?.5:1,boxShadow:"0 14px 30px rgba(26,115,232,.28)"}}>

@@ -210,8 +210,9 @@ def t09_trace_404():
 def t10_create_free_key():
     r = httpx.post(f"{BASE_URL}/v1/keys",
                    json={"project": PROJECT, "name": "e2e-free"},
+                   headers=hdrs(),
                    timeout=10)
-    chk(r, 201, "POST /v1/keys")
+    chk(r, 201, "POST /v1/keys (authenticated)")
     d = r.json()
     assert d["raw_key"].startswith("cxo-"), "Key missing cxo- prefix"
     assert d.get("tier", "free") == "free",  f"Expected tier=free, got {d.get('tier')}"
@@ -219,6 +220,22 @@ def t10_create_free_key():
     state["free_key"]    = d["raw_key"]
     state["free_key_id"] = d["id"]
     print(f"        free key created id={d['id'][:8]}...")
+
+
+def t10b_bootstrap_key():
+    project = f"e2e-boot-{uuid.uuid4().hex[:8]}"
+    r = httpx.post(f"{BASE_URL}/v1/keys/bootstrap",
+                   json={"project": project, "name": "bootstrap"},
+                   timeout=10)
+    chk(r, 201, "POST /v1/keys/bootstrap")
+    d = r.json()
+    assert d["raw_key"].startswith("cxo-")
+    assert d["project"] == project
+    r2 = httpx.post(f"{BASE_URL}/v1/keys/bootstrap",
+                    json={"project": project, "name": "bootstrap-2"},
+                    timeout=10)
+    assert r2.status_code == 409, f"Expected 409 for second bootstrap, got {r2.status_code}"
+    print(f"        bootstrap ok for {project}; duplicate correctly 409")
 
 
 def t11_free_quota():
@@ -416,6 +433,7 @@ def main():
         ("8.  Get trace by ID",                      t08_get_trace),
         ("9.  Trace 404 for unknown ID",             t09_trace_404),
         ("10. Create free-tier key",                 t10_create_free_key),
+        ("10b. Bootstrap first key",                 t10b_bootstrap_key),
         ("11. Free key quota shape",                 t11_free_quota),
         ("12. Free key — Pro feature 402",           t12_free_pro_blocked),
         ("13. Key rotation",                         t13_rotate_key),

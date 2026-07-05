@@ -34,6 +34,7 @@ async def _run_eval_async(
     fail_on: str | None,
 ) -> dict:
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
     from ..db import AsyncSessionLocal
     from ..models.records import CaseResultRecord, EvalRun
 
@@ -90,6 +91,17 @@ async def _run_eval_async(
                 ))
 
             await db.commit()
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(EvalRun)
+                .options(selectinload(EvalRun.case_results))
+                .where(EvalRun.id == run_id)
+            )
+            completed_run = result.scalar_one_or_none()
+            if completed_run:
+                from ..services.eval_alerts import maybe_send_eval_alerts
+                await maybe_send_eval_alerts(db, completed_run)
 
         return {"run_id": run_id, "status": "completed", "passed": summary.passed, "failed": summary.failed}
 

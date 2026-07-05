@@ -217,6 +217,7 @@ strong{color:var(--text)}
       <div class="nav-section">Core SDK</div>
       <a class="nav-item" onclick="show('tracer')">CortexTracer</a>
       <a class="nav-item" onclick="show('datasets')">Golden datasets</a>
+      <a class="nav-item" onclick="show('promote-trace')">Promote from trace</a>
       <a class="nav-item" onclick="show('metrics')">Metrics</a>
       <a class="nav-item" onclick="show('ci')">CI eval gate</a>
 
@@ -478,6 +479,79 @@ tracer._traces[0].nodes           <span class="cm"># list of TraceNode</span></p
     prev:{id:'quickstart',label:'Quickstart'},next:{id:'datasets',label:'Golden datasets'}
   },
 
+  'promote-trace':{
+    breadcrumb:'Docs / Core SDK',
+    title:'Promote failed traces to golden cases',
+    lead:'Turn a production failure into a CI regression test — one click in the dashboard or one SDK call.',
+    html:`
+<h2>Why promote from trace?</h2>
+<p>When an agent fails in production, you already have the real input, tool calls, latency, and failure kind. Promoting that trace creates a golden dataset case so the same scenario runs in CI before the next deploy.</p>
+
+<div class="callout callout-green"><div class="callout-title">Differentiator</div>Most eval tools start from scratch. CortexOps closes the loop: <strong>production failure → golden case → CI gate</strong>.</div>
+
+<h2>Dashboard flow</h2>
+<ol>
+<li>Open <a href="https://app.getcortexops.com" target="_blank" rel="noopener">app.getcortexops.com</a> and sign in with your <code>cxo-</code> key</li>
+<li>Go to <strong>Traces</strong> and click a failed trace</li>
+<li>In the waterfall panel, click <strong>Promote to golden case</strong></li>
+<li>Pick a dataset (or create one) — the case is saved with <code>from-production</code> metadata</li>
+<li>Run your eval suite locally or in CI — the new case is included on next sync</li>
+</ol>
+
+<h2>API</h2>
+<div class="code-block"><pre>POST /v1/eval/datasets/{dataset_id}/cases/from-trace
+X-API-Key: cxo-...
+
+{
+  <span class="cn">"trace_id"</span>: <span class="cs">"trace-uuid"</span>,
+  <span class="cn">"case_id"</span>:  <span class="cs">"refund-timeout-prod"</span>  <span class="cm">// optional</span>
+}</pre><button class="copy-btn" onclick="copy(this,'POST /v1/eval/datasets/{dataset_id}/cases/from-trace')">Copy</button></div>
+<div class="code-block"><pre><span class="cm">// Response 201</span>
+{
+  <span class="cn">"dataset_id"</span>:   <span class="cs">"ds-uuid"</span>,
+  <span class="cn">"dataset_name"</span>: <span class="cs">"payments-regression"</span>,
+  <span class="cn">"case_id"</span>:      <span class="cs">"refund-timeout-prod"</span>,
+  <span class="cn">"case_count"</span>:   12,
+  <span class="cn">"case"</span>: {
+    <span class="cn">"id"</span>: <span class="cs">"refund-timeout-prod"</span>,
+    <span class="cn">"input"</span>: { <span class="cn">"query"</span>: <span class="cs">"..."</span> },
+    <span class="cn">"tags"</span>: [<span class="cs">"from-production"</span>],
+    <span class="cn">"metadata"</span>: {
+      <span class="cn">"source_trace_id"</span>: <span class="cs">"trace-uuid"</span>,
+      <span class="cn">"failure_kind"</span>:  <span class="cs">"tool_error"</span>
+    }
+  }
+}</pre></div>
+
+<h2>SDK</h2>
+<div class="code-block"><pre><span class="ck">from</span> cortexops <span class="ck">import</span> CortexOpsClient
+
+client = <span class="cf">CortexOpsClient</span>(api_key=<span class="cs">"cxo-..."</span>, project=<span class="cs">"payments-agent"</span>)
+
+result = client.add_case_from_trace(
+    dataset_id=<span class="cs">"ds-uuid"</span>,
+    trace_id=<span class="cs">"trace-uuid"</span>,
+    case_id=<span class="cs">"refund-timeout-prod"</span>,  <span class="cm"># optional</span>
+)
+<span class="cf">print</span>(result[<span class="cs">"case_id"</span>])</pre><button class="copy-btn" onclick="copy(this,'from cortexops import CortexOpsClient')">Copy</button></div>
+
+<h2>What gets captured</h2>
+<table class="metric-table">
+<thead><tr><th>Field</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td><code>input</code></td><td>Trace input payload</td></tr>
+<tr><td><code>expected_tool_calls</code></td><td>Tool names from trace nodes</td></tr>
+<tr><td><code>max_latency_ms</code></td><td>Production latency + 20% headroom</td></tr>
+<tr><td><code>tags</code></td><td><code>from-production</code>, failure kind</td></tr>
+<tr><td><code>metadata.source_trace_id</code></td><td>Link back to original trace</td></tr>
+</tbody>
+</table>
+
+<div class="callout callout-amber"><div class="callout-title">CI tip</div>After promoting, run <code>python run_eval.py --sync-only</code> in your example project to pull the updated dataset before your next PR.</div>
+    `,
+    prev:{id:'datasets',label:'Golden datasets'},next:{id:'metrics',label:'Metrics'}
+  },
+
   datasets:{
     breadcrumb:'Docs / Core SDK',
     title:'Golden datasets',
@@ -537,7 +611,7 @@ results = <span class="cf">EvalSuite</span>.run(
     agent=agent,
 )</pre></div>
     `,
-    prev:{id:'tracer',label:'CortexTracer'},next:{id:'metrics',label:'Metrics'}
+    prev:{id:'datasets',label:'Golden datasets'},next:{id:'promote-trace',label:'Promote from trace'}
   },
 
   metrics:{
@@ -577,7 +651,7 @@ fail_on=<span class="cs">"tool_accuracy &lt; 80"</span>
 <span class="cm"># Block when p95 latency exceeds 2 seconds</span>
 fail_on=<span class="cs">"latency_p95_ms &gt; 2000"</span></pre></div>
     `,
-    prev:{id:'datasets',label:'Golden datasets'},next:{id:'ci',label:'CI eval gate'}
+    prev:{id:'promote-trace',label:'Promote from trace'},next:{id:'ci',label:'CI eval gate'}
   },
 
   ci:{
@@ -775,36 +849,36 @@ wrapped = tracer.wrap(agent)  <span class="cm"># wraps __call__</span></pre></di
   alerts:{
     breadcrumb:'Docs / Pro features',
     title:'Slack alerts',
-    lead:'Get notified when production regresses — before your users notice.',
+    lead:'Get notified when eval runs regress — automatically after each completed run (Pro projects).',
     html:`
-<h2>Configure Slack webhook</h2>
-<div class="code-block"><pre>POST https://api.getcortexops.com/v1/projects/payments-agent/alerts
-Authorization: Bearer cxo-...
+<h2>Configure on Railway</h2>
+<p>Set these environment variables on your CortexOps API service:</p>
+<div class="code-block"><pre>CORTEXOPS_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+CORTEXOPS_ALERT_THRESHOLD=0.90        <span class="cm"># optional, default 0.90</span>
+CORTEXOPS_ALERT_CHANNEL=#cortexops-alerts  <span class="cm"># optional</span>
 
-{
-  "slack_webhook_url": "https://hooks.slack.com/services/...",
-  "threshold": {
-    "metric": "task_completion",
-    "operator": "&lt;",
-    "value": 0.90
-  }
-}</pre></div>
+<span class="cm"># Generic webhook (PagerDuty, Datadog, custom)</span>
+CORTEXOPS_WEBHOOK_URL=https://your-endpoint.example/hooks/cortexops
+CORTEXOPS_WEBHOOK_SECRET=your-signing-secret</pre></div>
 
-<h2>What triggers an alert</h2>
+<h2>When alerts fire</h2>
+<p>After each <strong>completed</strong> eval run (SDK ingest or async Celery run), CortexOps checks:</p>
 <ul>
-<li>task_completion drops below your threshold</li>
-<li>error rate exceeds your threshold</li>
-<li>p95 latency exceeds your threshold</li>
-<li>Any HALLUCINATION failure kind detected</li>
+<li>Any failed cases</li>
+<li><code>task_completion_rate</code> below threshold (default 90%)</li>
+<li>Regressions vs baseline run</li>
 </ul>
+<p>Alerts are sent only for <strong>Pro</strong> projects with a webhook configured.</p>
 
-<h2>Alert message format</h2>
-<div class="code-block"><pre>CortexOps alert — payments-agent
-  task_completion: 0.72 (threshold: 0.90)
+<h2>Slack message format</h2>
+<div class="code-block"><pre>🔴 CortexOps eval alert — payments-agent
+  Task completion: 72.0%
+  Tool accuracy: 81.2/100
+  Cases: 8 passed / 2 failed
   Failed cases: refund_approved, dispute_filed
-  View traces: https://app.getcortexops.com</pre></div>
+  [View run] → app.getcortexops.com</pre></div>
 
-<div class="callout callout-amber"><div class="callout-title">Webhook alerts</div>Generic webhook POST is also supported — send to any endpoint that accepts JSON. Works with PagerDuty, Datadog, and custom systems.</div>
+<div class="callout callout-amber"><div class="callout-title">Webhook alerts</div>Generic webhook POST is also supported — JSON payload with <code>event: eval.completed</code>. Works with PagerDuty, Datadog, and custom systems.</div>
     `,
     prev:{id:'hosted',label:'Hosted traces'},next:{id:'prompts',label:'Prompt versioning'}
   },
@@ -1071,7 +1145,8 @@ export OPENAI_API_KEY=sk-...</pre></div>
 <table class="metric-table">
 <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td>POST</td><td>/v1/keys</td><td>Create key (scope, expiry)</td></tr>
+<tr><td>POST</td><td>/v1/keys/bootstrap</td><td>First key for a new project (rate-limited)</td></tr>
+<tr><td>POST</td><td>/v1/keys</td><td>Create additional keys (auth required in production)</td></tr>
 <tr><td>GET</td><td>/v1/keys/{project}</td><td>List keys for your project</td></tr>
 <tr><td>GET</td><td>/v1/keys/{id}/info</td><td>Key metadata — tier, scope, last used</td></tr>
 <tr><td>POST</td><td>/v1/keys/{id}/rotate</td><td>Revoke old key, issue new one atomically</td></tr>
@@ -1079,8 +1154,19 @@ export OPENAI_API_KEY=sk-...</pre></div>
 </tbody>
 </table>
 
+<h2>POST /v1/keys/bootstrap — First key for a new project</h2>
+<p>Unauthenticated but rate-limited (5/hour per IP). Only works when the project has no active keys.</p>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/keys/bootstrap \
+  -H <span class="cs">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="cn">"project"</span>: <span class="cs">"my-agent"</span>,
+    <span class="cn">"name"</span>:    <span class="cs">"default"</span>
+  }'</pre></div>
+
 <h2>POST /v1/keys — Create a key</h2>
+<p>In production, requires an authenticated <code>read_write</code> key for the same project, or <code>X-Internal-Key</code> (billing/admin).</p>
 <div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/keys \
+  -H <span class="cs">"X-API-Key: cxo-..."</span> \
   -H <span class="cs">"Content-Type: application/json"</span> \
   -d '{
     <span class="cn">"project"</span>:          <span class="cs">"payments-agent"</span>,
@@ -1407,7 +1493,7 @@ results.cost_per_case  <span class="cm"># per-case breakdown</span></pre></div>
 
 };
 
-const sectionOrder=['intro','install','quickstart','tracer','datasets','metrics','ci','langgraph','crewai','generic','hosted','alerts','prompts','judge','api-traces','api-evals','api-keys','api-auth','api-admin','changelog','faq','roadmap'];
+const sectionOrder=['intro','install','quickstart','tracer','datasets','promote-trace','metrics','ci','langgraph','crewai','generic','hosted','alerts','prompts','judge','api-traces','api-evals','api-keys','api-auth','api-admin','changelog','faq','roadmap'];
 
 function show(id){
   const s=sections[id];
