@@ -14,12 +14,12 @@ import {
 } from "./api.js";
 
 const M = {
-  blue:"#1A73E8",blueDark:"#1557B0",blueLight:"rgba(26,115,232,.18)",blueSoft:"#60A5FA",
-  green:"#2DD4A7",greenLight:"rgba(45,212,167,.12)",
-  red:"#F26D6D",redLight:"rgba(242,109,109,.12)",
-  amber:"#F5B23D",amberLight:"rgba(245,178,61,.12)",
-  purple:"#7B4F9E",purpleLight:"rgba(123,79,158,.14)",
-  gray50:"#0B0F1A",gray100:"#111726",gray200:"rgba(255,255,255,.11)",
+  blue:"#DC2626",blueDark:"#991B1B",blueLight:"rgba(220,38,38,.2)",blueSoft:"#F87171",
+  green:"#F87171",greenLight:"rgba(248,113,113,.14)",
+  red:"#EF4444",redLight:"rgba(239,68,68,.18)",
+  amber:"#FCA5A5",amberLight:"rgba(252,165,165,.12)",
+  purple:"#B91C1C",purpleLight:"rgba(185,28,28,.16)",
+  gray50:"#000000",gray100:"#0D0D0D",gray200:"rgba(255,255,255,.11)",
   gray300:"rgba(255,255,255,.18)",gray400:"rgba(255,255,255,.38)",gray500:"rgba(255,255,255,.42)",
   gray600:"rgba(255,255,255,.62)",gray700:"rgba(255,255,255,.72)",gray800:"rgba(255,255,255,.86)",gray900:"rgba(255,255,255,.92)",
   white:"#111726",ink:"#FFFFFF",
@@ -294,8 +294,8 @@ const FAILURE_KIND_COLORS={
   timeout:M.blueSoft,
   output_format:M.blue,
   latency_exceeded:M.amber,
-  plan_deviation:M.amber,
-  context_overflow:M.red,
+  plan_deviation:M.purple,
+  context_overflow:M.blueDark,
   unknown:M.purple,
 };
 
@@ -524,13 +524,13 @@ function LoginScreen({onLogin}){
           <a href={`${HOME_URL}/#frameworks`} style={{color:"inherit",textDecoration:"none"}}>Frameworks</a>
           <a href={`${HOME_URL}/#pricing`} style={{color:"inherit",textDecoration:"none"}}>Pricing</a>
           <a href="https://docs.getcortexops.com" style={{color:"inherit",textDecoration:"none"}}>Docs</a>
-          <a href="#login" className="login-cta" style={{background:M.blue,color:M.ink,textDecoration:"none",borderRadius:7,padding:"9px 14px",fontWeight:700,boxShadow:"0 14px 30px rgba(26,115,232,.28)"}}>Open dashboard</a>
+          <a href="#login" className="login-cta" style={{background:M.blue,color:M.ink,textDecoration:"none",borderRadius:7,padding:"9px 14px",fontWeight:700,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>Open dashboard</a>
         </div>
       </nav>
 
       <section className="login-hero" style={{maxWidth:1180,margin:"0 auto",padding:"64px 28px 40px",display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(320px,420px)",gap:48,alignItems:"center"}}>
         <div>
-          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:M.greenLight,border:"1px solid rgba(45,212,167,.22)",color:M.green,borderRadius:99,padding:"6px 12px",fontSize:12,fontFamily:M.mono,marginBottom:22}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:M.greenLight,border:"1px solid rgba(220,38,38,.35)",color:M.green,borderRadius:99,padding:"6px 12px",fontSize:12,fontFamily:M.mono,marginBottom:22}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:M.green,animation:"pulse 1.8s infinite"}}/>
             Open source reliability infrastructure
           </div>
@@ -541,7 +541,7 @@ function LoginScreen({onLogin}){
             Trace every node, evaluate every change, monitor production health, and catch regressions before users do.
           </p>
           <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}}>
-            <a href="#login" style={{background:M.blue,color:M.ink,textDecoration:"none",borderRadius:7,padding:"12px 18px",fontWeight:700,boxShadow:"0 14px 30px rgba(26,115,232,.28)"}}>Open dashboard</a>
+            <a href="#login" style={{background:M.blue,color:M.ink,textDecoration:"none",borderRadius:7,padding:"12px 18px",fontWeight:700,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>Open dashboard</a>
             <span style={{background:"rgba(255,255,255,.05)",border:`1px solid ${M.gray200}`,borderRadius:7,padding:"12px 14px",fontFamily:M.mono,fontSize:13,color:M.gray800}}>$ pip install cortexops</span>
           </div>
           <div style={{display:"flex",gap:18,flexWrap:"wrap",fontSize:13,color:M.gray600}}>
@@ -573,7 +573,7 @@ function LoginScreen({onLogin}){
           <p style={{fontSize:12,color:M.gray500,marginBottom:14}}>Project is resolved from your key after login. Rotated or revoked keys cannot be reused.</p>
           {err&&<div style={{background:M.redLight,color:M.red,fontSize:13,padding:"8px 12px",borderRadius:6,marginBottom:14,border:"1px solid rgba(242,109,109,.25)"}}>{err}</div>}
           <button onClick={submit} disabled={loading||!key}
-            style={{width:"100%",background:M.blue,color:M.ink,border:"none",borderRadius:7,padding:12,fontSize:15,fontWeight:700,cursor:loading||!key?"not-allowed":"pointer",opacity:loading||!key?.5:1,boxShadow:"0 14px 30px rgba(26,115,232,.28)"}}>
+            style={{width:"100%",background:M.blue,color:M.ink,border:"none",borderRadius:7,padding:12,fontSize:15,fontWeight:700,cursor:loading||!key?"not-allowed":"pointer",opacity:loading||!key?.5:1,boxShadow:"0 14px 30px rgba(220,38,38,.32)"}}>
             {loading?"Connecting…":"Open dashboard →"}
           </button>
           <p style={{color:M.gray500,fontSize:12,marginTop:16,textAlign:"center"}}>
@@ -586,7 +586,7 @@ function LoginScreen({onLogin}){
 
       <section style={{maxWidth:1180,margin:"0 auto",padding:"0 28px 48px"}}>
         <div style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:14,overflow:"hidden",position:"relative",boxShadow:M.shadow2}}>
-          <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"linear-gradient(110deg,transparent 35%,rgba(96,165,250,.10) 50%,transparent 65%)",animation:"scan 4s ease-in-out infinite"}}/>
+          <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"linear-gradient(110deg,transparent 35%,rgba(220,38,38,.12) 50%,transparent 65%)",animation:"scan 4s ease-in-out infinite"}}/>
           <div style={{padding:"14px 16px",borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{fontFamily:M.mono,fontSize:13}}>Hero Dashboard</div>
             <div style={{display:"flex",gap:8}}>
@@ -596,7 +596,7 @@ function LoginScreen({onLogin}){
           </div>
           <div style={{padding:16}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
-              {[["Node","running...","#F5B23D"],["Latency","updating...","#60A5FA"],["Health Score","changing...","#2DD4A7"]].map(([l,v,c])=>(
+              {[["Node","running...","#FCA5A5"],["Latency","updating...","#F87171"],["Health Score","changing...","#DC2626"]].map(([l,v,c])=>(
                 <div key={l} style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:8,padding:"10px 11px"}}>
                   <div style={{fontSize:10,color:M.gray500,fontFamily:M.mono,marginBottom:4}}>{l}</div>
                   <div style={{fontSize:13,color:c,fontFamily:M.mono,fontWeight:700,animation:"fadePulse 1.6s ease-in-out infinite"}}>{v}</div>
@@ -604,10 +604,10 @@ function LoginScreen({onLogin}){
               ))}
             </div>
             {[
-              ["classify_intent","78%","#1A73E8","1.18s",0],
-              ["tool call animated...","32%","#7B4F9E","active",12],
-              ["evaluate_policy","52%","#0E8A6D","890ms",24],
-              ["tool: issue_refund","88%","#D14343","2.01s",36],
+              ["classify_intent","78%","#DC2626","1.18s",0],
+              ["tool call animated...","32%","#B91C1C","active",12],
+              ["evaluate_policy","52%","#991B1B","890ms",24],
+              ["tool: issue_refund","88%","#EF4444","2.01s",36],
             ].map(([name,width,color,time,left],i)=>(
               <div key={name} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
                 <div style={{width:132,fontSize:12,fontFamily:name.startsWith("tool")?M.mono:M.sans,color:name.includes("issue")?M.red:M.gray700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{name}</div>
@@ -1749,7 +1749,7 @@ export default function App(){
             {tab==="api-keys"&&(
               <div style={{maxWidth:720,display:"grid",gap:14}}>
                 {actionError&&<div style={{background:M.redLight,color:M.red,border:"1px solid rgba(197,34,31,.2)",borderRadius:6,padding:"10px 12px",fontSize:13}}>{actionError}</div>}
-                {actionOk&&<div style={{background:M.greenLight,color:M.green,border:"1px solid rgba(45,212,167,.3)",borderRadius:6,padding:"10px 12px",fontSize:13}}>{actionOk}</div>}
+                {actionOk&&<div style={{background:M.greenLight,color:M.green,border:"1px solid rgba(220,38,38,.35)",borderRadius:6,padding:"10px 12px",fontSize:13}}>{actionOk}</div>}
                 {kError&&<div style={{background:M.redLight,color:M.red,border:"1px solid rgba(197,34,31,.2)",borderRadius:6,padding:"10px 12px",fontSize:13}}>Failed to load keys: {kError}</div>}
                 {session?.scope==="read_only"&&(
                   <div style={{background:M.amberLight,color:M.gray700,border:`1px solid ${M.amber}`,borderRadius:6,padding:"10px 12px",fontSize:13}}>
