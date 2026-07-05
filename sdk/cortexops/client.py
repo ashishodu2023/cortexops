@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import urljoin
 
-from .models import EvalSummary, Trace
+from .models import Trace
 
 
 class CortexClient:
