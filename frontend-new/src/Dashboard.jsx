@@ -272,10 +272,94 @@ function LatencyChip({ms}){
   return<span style={{background:bg,color:c,fontSize:11,fontFamily:M.mono,padding:"2px 7px",borderRadius:4,fontWeight:500}}>{Math.round(ms)}ms</span>;
 }
 
-function WaterfallPanel({trace,onClose,loading}){
+const FAILURE_KIND_COLORS={
+  tool_call_mismatch:M.amber,
+  hallucination:M.red,
+  timeout:M.blueSoft,
+  output_format:M.blue,
+  plan_deviation:M.amber,
+  context_overflow:M.red,
+  unknown:M.gray500,
+};
+
+function normFailureKind(k){
+  if(!k)return"unknown";
+  return String(k).replace(/^FailureKind\./i,"").toLowerCase();
+}
+
+function buildFailureKindStats(traces,evals){
+  const counts={};
+  const bump=(kind)=>{
+    const k=normFailureKind(kind);
+    counts[k]=(counts[k]||0)+1;
+  };
+  traces.filter(t=>t.status==="failed").forEach(t=>bump(t.failure_kind||"unknown"));
+  (evals[0]?.case_results||[]).filter(cr=>!cr.passed).forEach(cr=>bump(cr.failure_kind||"unknown"));
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+}
+
+function failureKindLabel(kind){
+  return kind.replace(/_/g," ");
+}
+
+function FailureKindPanel({stats,total,onViewAlerts,loading}){
+  if(loading)return null;
+  if(!stats.length)return(
+    <Section title="Failure taxonomy" subtitle="No classified failures in recent traces or evals">
+      <div style={{fontSize:13,color:M.gray600,lineHeight:1.55}}>
+        When agents fail, CortexOps classifies the root cause — tool mismatch, timeout, hallucination, and more. Failed production traces can be promoted to golden cases in one click.
+      </div>
+    </Section>
+  );
+  const max=Math.max(...stats.map(([,n])=>n),1);
+  return(
+    <Section title="Failure taxonomy" subtitle={`${total} classified failure${total!==1?"s":""} in loaded traces & latest eval`}
+      action={onViewAlerts?<button onClick={onViewAlerts} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>View alerts →</button>:null}>
+      <div style={{display:"grid",gap:10}}>
+        {stats.map(([kind,count])=>{
+          const color=FAILURE_KIND_COLORS[kind]||M.gray500;
+          const pct=Math.round((count/max)*100);
+          return(
+            <div key={kind} style={{display:"grid",gridTemplateColumns:"140px 1fr 36px",gap:12,alignItems:"center"}}>
+              <span style={{fontSize:12,fontFamily:M.mono,color:M.gray800,textTransform:"capitalize"}}>{failureKindLabel(kind)}</span>
+              <div style={{height:10,background:M.gray200,borderRadius:5,overflow:"hidden"}}>
+                <div style={{width:`${pct}%`,minWidth:count?`${Math.max(8,pct)}%`:"0",height:"100%",background:color,borderRadius:5}}/>
+              </div>
+              <span style={{fontSize:12,fontFamily:M.mono,color,fontWeight:600,textAlign:"right"}}>{count}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{marginTop:12,fontSize:12,color:M.gray500}}>Promote any failed trace to your golden dataset to block regressions in CI.</div>
+    </Section>
+  );
+}
+
+function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
   const raw=trace.raw_trace||{};const nodes=raw.nodes||[];
   const maxMs=Math.max(...nodes.map(n=>n.latency_ms||0),trace.total_latency_ms||1);
   const copyId=()=>{if(trace.trace_id)navigator.clipboard?.writeText(trace.trace_id);};
+  const[promoteDs,setPromoteDs]=useState("");
+  const[promoting,setPromoting]=useState(false);
+  const[promoteOk,setPromoteOk]=useState("");
+  const[promoteErr,setPromoteErr]=useState("");
+  useEffect(()=>{
+    if(datasets?.length&&!promoteDs)setPromoteDs(datasets[0].id);
+  },[datasets,promoteDs]);
+  const promote=async()=>{
+    if(!token||!promoteDs||!trace?.trace_id)return;
+    setPromoting(true);setPromoteErr("");setPromoteOk("");
+    try{
+      const res=await apiFetch(token,`/v1/eval/datasets/${promoteDs}/cases/from-trace`,{
+        method:"POST",
+        body:JSON.stringify({trace_id:trace.trace_id}),
+      });
+      setPromoteOk(`Added ${res.case_id} to ${res.dataset_name} (${res.case_count} cases)`);
+      onPromoted?.(res);
+    }catch(e){setPromoteErr(e.message);}
+    finally{setPromoting(false);}
+  };
+  const canPromote=!!token&&datasets?.length>0;
   return(
     <div style={{position:"fixed",top:0,right:0,bottom:0,width:560,background:M.white,borderLeft:`1px solid ${M.gray200}`,zIndex:100,display:"flex",flexDirection:"column",boxShadow:"-4px 0 24px rgba(0,0,0,.35)",animation:"slideIn .2s ease"}}>
       <div style={{padding:"16px 20px",borderBottom:`1px solid ${M.gray200}`,display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
@@ -343,11 +427,32 @@ function WaterfallPanel({trace,onClose,loading}){
           </div>
         )}
         {trace.failure_detail&&(
-          <div>
+          <div style={{marginBottom:16}}>
             <div style={{fontSize:11,color:M.gray600,textTransform:"uppercase",letterSpacing:".07em",marginBottom:8,fontWeight:600}}>Failure detail</div>
             <div style={{background:M.redLight,borderRadius:8,padding:12,border:"1px solid rgba(197,34,31,.2)",fontFamily:M.mono,fontSize:12,color:M.red}}>{trace.failure_detail}</div>
           </div>
         )}
+        <div style={{marginTop:8,padding:"14px 0 0",borderTop:`1px solid ${M.gray200}`}}>
+          <div style={{fontSize:11,color:M.gray600,textTransform:"uppercase",letterSpacing:".07em",fontWeight:600,marginBottom:8}}>Add to golden dataset</div>
+          <div style={{fontSize:12,color:M.gray600,marginBottom:10,lineHeight:1.5}}>
+            Turn this production trace into a CI eval case — input, tool calls, and failure context are captured automatically.
+          </div>
+          {!canPromote&&<div style={{fontSize:12,color:M.gray500}}>Sync a dataset first: <span style={{fontFamily:M.mono}}>python run_eval.py --sync-only</span></div>}
+          {canPromote&&(
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+              <select value={promoteDs} onChange={e=>setPromoteDs(e.target.value)}
+                style={{flex:1,minWidth:160,background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"8px 10px",fontSize:12,color:M.gray900}}>
+                {datasets.map(d=><option key={d.id} value={d.id}>{d.name} ({d.case_count} cases)</option>)}
+              </select>
+              <button onClick={promote} disabled={promoting||!promoteDs}
+                style={{background:M.blue,color:M.ink,border:"none",borderRadius:6,padding:"8px 14px",fontSize:12,fontWeight:600,cursor:promoting?"wait":"pointer",opacity:promoting?.6:1}}>
+                {promoting?"Adding…":"Add golden case"}
+              </button>
+            </div>
+          )}
+          {promoteOk&&<div style={{marginTop:10,fontSize:12,color:M.green,background:M.greenLight,padding:"8px 10px",borderRadius:6}}>{promoteOk}</div>}
+          {promoteErr&&<div style={{marginTop:10,fontSize:12,color:M.red,background:M.redLight,padding:"8px 10px",borderRadius:6}}>{promoteErr}</div>}
+        </div>
       </div>
     </div>
   );
@@ -896,7 +1001,8 @@ export default function App(){
   const traceDateActive=tab==="traces"&&traceDatePreset!=="all";
   const tracesTabFailed=traces.filter(t=>t.status==="failed").length;
   const tracesTabCompleted=traces.length-tracesTabFailed;
-  const tracesTabAvgLat=traces.length>0?Math.round(traces.reduce((s,t)=>s+(t.total_latency_ms||0),0)/traces.length):0;
+  const failureKindStats=buildFailureKindStats(traces,evals);
+  const failureKindTotal=failureKindStats.reduce((s,[,n])=>s+n,0);
   const quotaPct=quota?.monthly_traces?.percent_used??null;
 
   const metricTiles=(
@@ -1016,6 +1122,13 @@ export default function App(){
                         color={latest?(latest.regressions>0?M.amber:M.green):M.gray500}
                         onClick={()=>goTab("evaluations")} loading={eLoad}/>
                     </div>
+
+                    <FailureKindPanel
+                      stats={failureKindStats}
+                      total={failureKindTotal}
+                      loading={tLoad}
+                      onViewAlerts={failed>0?()=>goTab("alerts"):undefined}
+                    />
 
                     <Section title="Recent traces" subtitle="Click any row to open the node waterfall"
                       action={traces.length>0?<button onClick={()=>goTab("traces")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>View all →</button>:null}
@@ -1397,7 +1510,12 @@ export default function App(){
 
             {tab==="alerts"&&(
               <Section title="Alerts" subtitle={failed?`${failed} failed trace${failed>1?"s":""} requiring attention`:"All systems healthy"} noPad>
-                {failed===0&&<EmptyState title="No alerts" body="All traces are healthy. Failures and quality drops will appear here."/>}
+                {failed===0&&<EmptyState title="No alerts" body="All traces are healthy. When failures appear, open a trace and add it to your golden dataset in one click."/>}
+                {failed>0&&datasets.length>0&&(
+                  <div style={{padding:"10px 18px",background:M.amberLight,borderBottom:`1px solid ${M.gray200}`,fontSize:12,color:M.gray700}}>
+                    Open a failed trace → <strong>Add golden case</strong> to block this regression in CI.
+                  </div>
+                )}
                 {traces.filter(t=>t.status==="failed").map(t=>(
                   <div key={t.trace_id} onClick={()=>setSelected(t)} className="row-hover"
                     style={{padding:"12px 18px",borderBottom:`1px solid ${M.gray200}`,borderLeft:`4px solid ${M.red}`,cursor:"pointer"}}>
@@ -1514,7 +1632,14 @@ export default function App(){
           </div>
         </div>
       </div>
-      {selected&&<WaterfallPanel trace={traceDetail||selected} loading={detailLoading} onClose={()=>{setSelected(null);setTraceDetail(null);}}/>}
+      {selected&&<WaterfallPanel trace={traceDetail||selected} loading={detailLoading} datasets={datasets} token={token}
+        onPromoted={(res)=>{
+          rD();
+          if(expandedDataset&&res?.dataset_id===expandedDataset&&token){
+            apiFetch(token,`/v1/eval/datasets/${expandedDataset}`).then(setDatasetDetail).catch(()=>{});
+          }
+        }}
+        onClose={()=>{setSelected(null);setTraceDetail(null);}}/>}
     </>
   );
 }

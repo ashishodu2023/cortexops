@@ -112,6 +112,19 @@ class CortexClient:
             "cases": cases,
         })
 
+    def add_case_from_trace(
+        self,
+        dataset_id: str,
+        trace_id: str,
+        *,
+        case_id: str | None = None,
+    ) -> dict:
+        """Promote a production trace into a golden dataset case."""
+        body: dict = {"trace_id": trace_id}
+        if case_id:
+            body["case_id"] = case_id
+        return self._post(f"/v1/eval/datasets/{dataset_id}/cases/from-trace", body)
+
     def commit_prompt(
         self,
         project: str,

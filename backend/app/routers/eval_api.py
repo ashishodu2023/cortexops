@@ -21,8 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_key_info
 from ..db import get_db
-from ..tiers import TierInfo, require_pro
-from ..models.records import EvalDataset as EvalDatasetRecord
+from ..tiers import TierInfo, require_pro, require_scope
+from ..models.records import EvalDataset as EvalDatasetRecord, TraceRecord
 
 router = APIRouter(prefix="/v1/eval", tags=["eval"])
 
@@ -99,6 +99,86 @@ class DatasetResponse(BaseModel):
 
 class DatasetDetailResponse(DatasetResponse):
     cases: list[dict]
+
+
+class AddCaseFromTraceRequest(BaseModel):
+    trace_id: str
+    case_id: str | None = None
+
+    @field_validator("case_id")
+    @classmethod
+    def validate_case_id(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if len(v) < 2 or len(v) > 64:
+            raise ValueError("case_id must be 2-64 characters")
+        return v
+
+
+class AddCaseFromTraceResponse(BaseModel):
+    dataset_id: str
+    dataset_name: str
+    case_id: str
+    case_count: int
+    case: dict
+
+
+def _normalize_failure_kind(kind: str | None) -> str:
+    if not kind:
+        return "unknown"
+    return kind.replace("FailureKind.", "").strip().lower() or "unknown"
+
+
+def _extract_tool_names(raw: dict) -> list[str]:
+    names: list[str] = []
+    for node in raw.get("nodes") or []:
+        if not isinstance(node, dict):
+            continue
+        for tc in node.get("tool_calls") or []:
+            name = tc.get("name") if isinstance(tc, dict) else None
+            if name and name not in names:
+                names.append(str(name))
+    return names
+
+
+def _trace_to_golden_case(
+    trace_id: str,
+    raw: dict,
+    *,
+    failure_kind: str | None,
+    failure_detail: str | None,
+    total_latency_ms: float,
+    case_id: str | None = None,
+) -> dict:
+    inp = raw.get("input")
+    if inp is None:
+        inp = {}
+    fk = _normalize_failure_kind(failure_kind)
+    cid = case_id or f"prod-{trace_id[:8]}"
+    tools = _extract_tool_names(raw)
+    tags = ["from-production", f"trace:{trace_id[:8]}", fk]
+    case: dict = {
+        "id": cid,
+        "input": inp,
+        "expected_tool_calls": tools,
+        "expected_output_contains": [],
+        "tags": tags,
+    }
+    if total_latency_ms and total_latency_ms > 0:
+        case["max_latency_ms"] = int(total_latency_ms * 1.25) or int(total_latency_ms)
+    if failure_detail:
+        case["notes"] = failure_detail[:500]
+    return case
+
+
+def _unique_case_id(base: str, existing_ids: set[str]) -> str:
+    if base not in existing_ids:
+        return base
+    n = 2
+    while f"{base}-{n}" in existing_ids:
+        n += 1
+    return f"{base}-{n}"
 
 
 class EvalRunRequest(BaseModel):
@@ -354,4 +434,80 @@ async def get_dataset(
         created_at=record.created_at.isoformat() if record.created_at else "",
         project=record.project,
         cases=cases,
+    )
+
+
+@router.post(
+    "/datasets/{dataset_id}/cases/from-trace",
+    response_model=AddCaseFromTraceResponse,
+    status_code=201,
+    responses={
+        401: {"description": "Invalid or missing API key"},
+        403: {"description": "Forbidden"},
+        404: {"description": "Dataset or trace not found"},
+        409: {"description": "Case already exists"},
+    },
+    summary="Promote a production trace into a golden dataset case",
+)
+async def add_case_from_trace(
+    dataset_id: str,
+    body: AddCaseFromTraceRequest,
+    tier_info: TierInfo = Depends(get_current_key_info),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a golden eval case from a failed (or any) production trace."""
+    require_scope(tier_info, "read_write")
+
+    ds_result = await db.execute(
+        select(EvalDatasetRecord).where(EvalDatasetRecord.id == dataset_id)
+    )
+    dataset = ds_result.scalar_one_or_none()
+    if not dataset:
+        raise HTTPException(404, "Dataset not found")
+    if dataset.project != tier_info.project and tier_info.project != "__dev__":
+        raise HTTPException(403, "You can only modify datasets for your own project.")
+
+    tr_result = await db.execute(
+        select(TraceRecord).where(TraceRecord.id == body.trace_id)
+    )
+    trace = tr_result.scalar_one_or_none()
+    if not trace:
+        raise HTTPException(404, f"Trace {body.trace_id} not found")
+    if trace.project != dataset.project:
+        raise HTTPException(403, "Trace and dataset must belong to the same project.")
+
+    try:
+        raw = json.loads(trace.raw_trace or "{}")
+    except json.JSONDecodeError:
+        raw = {}
+
+    try:
+        cases: list[dict] = json.loads(dataset.cases or "[]")
+    except json.JSONDecodeError:
+        cases = []
+
+    existing_ids = {str(c.get("id", "")) for c in cases if c.get("id")}
+    base_id = body.case_id or f"prod-{body.trace_id[:8]}"
+    case_id = _unique_case_id(base_id, existing_ids)
+
+    new_case = _trace_to_golden_case(
+        body.trace_id,
+        raw,
+        failure_kind=trace.failure_kind,
+        failure_detail=trace.failure_detail,
+        total_latency_ms=trace.total_latency_ms or 0,
+        case_id=case_id,
+    )
+    cases.append(new_case)
+    dataset.cases = json.dumps(cases)
+    dataset.case_count = len(cases)
+    await db.flush()
+    await db.refresh(dataset)
+
+    return AddCaseFromTraceResponse(
+        dataset_id=dataset.id,
+        dataset_name=dataset.name,
+        case_id=case_id,
+        case_count=dataset.case_count,
+        case=new_case,
     )
