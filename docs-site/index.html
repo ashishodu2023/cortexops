@@ -6,8 +6,8 @@
 <title>CortexOps Docs — Reliability infrastructure for AI agents</title>
 <meta name="description" content="Full documentation for CortexOps — eval gate, observability, and tracing for LangGraph and CrewAI agents.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23DC2626'/%3E%3Cpath d='M16 5 Q22 16 16 27' stroke='white' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M10 5 Q17 16 10 27' stroke='white' stroke-width='2.2' stroke-linecap='round' fill='none' opacity='.4'/%3E%3Ccircle cx='16' cy='5' r='2.5' fill='white'/%3E%3Ccircle cx='16' cy='27' r='2.5' fill='white'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23000000'/%3E%3Crect x='0.5' y='0.5' width='31' height='31' rx='5.5' fill='none' stroke='%23DC2626' stroke-opacity='0.4'/%3E%3Cpath d='M16 5 Q22 16 16 27' stroke='%23DC2626' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M10 5 Q17 16 10 27' stroke='%23F87171' stroke-width='2.2' stroke-linecap='round' fill='none' opacity='0.55'/%3E%3Ccircle cx='16' cy='5' r='2.5' fill='%23DC2626'/%3E%3Ccircle cx='16' cy='27' r='2.5' fill='%23DC2626'/%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#000000;
@@ -34,15 +34,66 @@
   --faint:rgba(255,255,255,.42);
   --line:rgba(255,255,255,.11);
   --line-soft:rgba(255,255,255,.09);
-  --sans:'Google Sans','Segoe UI',Roboto,sans-serif;
-  --mono:'Roboto Mono','Courier New',monospace;
+  --sans:'JetBrains Mono','SF Mono','Menlo','Consolas',monospace;
+  --mono:'JetBrains Mono','SF Mono','Menlo','Consolas',monospace;
   --sidebar:260px;
   --topbar:64px;
   --shadow:0 20px 70px rgba(0,0,0,.55);
 }
+/* Observability background */
+.obs-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.obs-glow{position:absolute;inset:0;background:radial-gradient(ellipse 55% 45% at 15% 20%,rgba(220,38,38,.08),transparent 70%),radial-gradient(ellipse 50% 40% at 85% 75%,rgba(59,130,246,.07),transparent 70%),radial-gradient(ellipse 42% 32% at 50% 55%,rgba(34,197,94,.04),transparent 65%)}
+.obs-grid{position:absolute;inset:-1px;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 92% 85% at 50% 35%,#000 15%,transparent 78%);animation:obsGridDrift 80s linear infinite}
+.obs-scan-v{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(220,38,38,.4),rgba(59,130,246,.28),transparent);box-shadow:0 0 14px rgba(220,38,38,.12);animation:obsScanV 14s linear infinite}
+.obs-scan-h{position:absolute;top:0;bottom:0;width:1px;background:linear-gradient(180deg,transparent,rgba(59,130,246,.22),rgba(34,197,94,.18),transparent);animation:obsScanH 20s linear infinite;animation-delay:-7s}
+.obs-svg{position:absolute;inset:0;width:100%;height:100%;opacity:.38}
+.obs-trace{fill:none;stroke-width:1.4;stroke-linecap:round;stroke-dasharray:7 13;animation:obsTraceFlow 5s linear infinite}
+.obs-trace-1{stroke:rgba(59,130,246,.55)}
+.obs-trace-2{stroke:rgba(34,197,94,.5);animation-duration:7s;animation-delay:-2s}
+.obs-trace-3{stroke:rgba(220,38,38,.45);animation-duration:6s;animation-delay:-1s}
+.obs-trace-4{stroke:rgba(139,92,246,.42);animation-duration:9s;animation-delay:-4s}
+.obs-node{position:absolute;left:var(--x);top:var(--y);width:5px;height:5px;border-radius:50%;background:var(--c,var(--brand));box-shadow:0 0 10px var(--c,var(--brand));animation:obsNodePulse 3.2s ease-in-out infinite;animation-delay:var(--d,0s)}
+.obs-node::after{content:'';position:absolute;inset:-7px;border-radius:50%;border:1px solid var(--c,var(--brand));opacity:0;animation:obsNodeRing 3.2s ease-out infinite;animation-delay:var(--d,0s)}
+.obs-spark{position:absolute;display:flex;align-items:flex-end;gap:3px;opacity:.42}
+.obs-spark-tl{top:11%;left:3%;height:34px}
+.obs-spark-br{bottom:12%;right:4%;height:26px}
+.obs-spark-mr{top:40%;right:2.5%;height:22px;opacity:.28}
+.obs-spark-bl{bottom:22%;left:6%;height:20px;opacity:.32}
+.obs-spark span{display:block;width:4px;border-radius:2px;background:linear-gradient(180deg,var(--spark,var(--blue)),transparent);transform-origin:bottom;animation:obsSparkBar 2.6s ease-in-out infinite}
+.obs-spark span:nth-child(1){height:35%;animation-delay:0s}
+.obs-spark span:nth-child(2){height:62%;--spark:var(--green);animation-delay:.25s}
+.obs-spark span:nth-child(3){height:48%;--spark:var(--brand);animation-delay:.5s}
+.obs-spark span:nth-child(4){height:78%;--spark:var(--purple);animation-delay:.15s}
+.obs-spark span:nth-child(5){height:42%;--spark:var(--cyan);animation-delay:.65s}
+.obs-spark span:nth-child(6){height:58%;--spark:var(--amber);animation-delay:.35s}
+.obs-spark span:nth-child(7){height:70%;--spark:var(--blue);animation-delay:.8s}
+.obs-spark span:nth-child(8){height:38%;--spark:var(--green);animation-delay:.45s}
+.obs-ring{position:absolute;left:var(--x);top:var(--y);width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:1px solid rgba(220,38,38,.22);animation:obsRingExpand 7s ease-out infinite;animation-delay:var(--d,0s)}
+.obs-ring-2{border-color:rgba(59,130,246,.2);animation-duration:9s}
+.obs-beacon{position:absolute;left:var(--x);top:var(--y);width:2px;height:2px;border-radius:50%;background:var(--c,var(--brand));box-shadow:0 0 8px var(--c,var(--brand));animation:obsBeacon 5s ease-in-out infinite;animation-delay:var(--d,0s)}
+.obs-wave{position:absolute;left:0;right:0;height:40px;opacity:.18;overflow:hidden}
+.obs-wave-top{top:8%}
+.obs-wave-btm{bottom:6%;opacity:.12}
+.obs-wave svg{width:200%;height:100%;animation:obsWaveSlide 18s linear infinite}
+.obs-wave-btm svg{animation-duration:22s;animation-direction:reverse}
+.obs-ticker{position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));overflow:hidden;opacity:.55}
+.obs-ticker-track{display:flex;gap:48px;white-space:nowrap;font-size:10px;font-family:var(--mono);color:var(--faint);padding-top:12px;animation:obsTicker 50s linear infinite}
+.obs-ticker-track span::before{content:'▸ ';color:var(--brand-soft);opacity:.7}
+.layout{position:relative;z-index:1}
+@keyframes obsGridDrift{0%{background-position:0 0,0 0}100%{background-position:48px 48px,48px 48px}}
+@keyframes obsScanV{0%{top:-2px;opacity:0}6%{opacity:1}94%{opacity:1}100%{top:100%;opacity:0}}
+@keyframes obsScanH{0%{left:-2px;opacity:0}8%{opacity:.75}92%{opacity:.75}100%{left:100%;opacity:0}}
+@keyframes obsTraceFlow{to{stroke-dashoffset:-40}}
+@keyframes obsNodePulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+@keyframes obsNodeRing{0%{opacity:.55;transform:scale(.5)}100%{opacity:0;transform:scale(2.4)}}
+@keyframes obsSparkBar{0%,100%{transform:scaleY(.35);opacity:.45}50%{transform:scaleY(1);opacity:1}}
+@keyframes obsRingExpand{0%{transform:scale(.25);opacity:.5}100%{transform:scale(2.6);opacity:0}}
+@keyframes obsBeacon{0%,100%{opacity:0;transform:scale(1)}12%,28%{opacity:1;transform:scale(1.6)}}
+@keyframes obsWaveSlide{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes obsTicker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;scroll-padding-top:80px;color-scheme:dark}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:var(--mono);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;font-size:14px;line-height:1.6;font-variant-ligatures:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 a{color:var(--brand-soft);text-decoration:none}
 a:hover{text-decoration:underline}
 a,button,input{outline-offset:3px}
@@ -1771,6 +1822,41 @@ window.addEventListener('hashchange',()=>{
   const hash=window.location.hash.replace('#','');
   if(sectionOrder.includes(hash))show(hash);
 });
+
+function initObsBg(){
+  if(document.querySelector('.obs-bg')||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const items=['trace.ingest OK · 142ms','eval.gate PASS · 98.2%','node.tool_lookup · 890ms','span.PaymentAgent active','webhook.alert queued','p95 latency · 1.2s','quota.used · 12%','ci.gate blocking deploy','replay.trace matched','metric.error_rate · 0.4%'];
+  const ticker=[...items,...items].map(t=>'<span>'+t+'</span>').join('');
+  const wave='M0,20 Q25,5 50,18 T100,12 T150,20 T200,8 L200,40 L0,40 Z';
+  const el=document.createElement('div');
+  el.className='obs-bg';el.setAttribute('aria-hidden','true');
+  el.innerHTML='<div class="obs-glow"></div><div class="obs-grid"></div><div class="obs-scan-v"></div><div class="obs-scan-h"></div>'
+    +'<svg class="obs-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 100 100">'
+    +'<path class="obs-trace obs-trace-1" d="M0,22 C18,8 32,38 52,18 S82,32 100,14"/>'
+    +'<path class="obs-trace obs-trace-2" d="M0,68 C22,82 44,54 66,72 S88,58 100,76"/>'
+    +'<path class="obs-trace obs-trace-3" d="M0,44 L28,36 L52,50 L76,38 L100,46"/>'
+    +'<path class="obs-trace obs-trace-4" d="M0,58 C30,48 55,62 78,52 S95,60 100,55"/></svg>'
+    +'<div class="obs-node" style="--x:11%;--y:20%;--c:var(--blue);--d:0s"></div>'
+    +'<div class="obs-node" style="--x:78%;--y:28%;--c:var(--green);--d:-1.2s"></div>'
+    +'<div class="obs-node" style="--x:62%;--y:68%;--c:var(--brand);--d:-2.4s"></div>'
+    +'<div class="obs-node" style="--x:24%;--y:72%;--c:var(--purple);--d:-.8s"></div>'
+    +'<div class="obs-node" style="--x:88%;--y:58%;--c:var(--cyan);--d:-1.8s"></div>'
+    +'<div class="obs-node" style="--x:42%;--y:14%;--c:var(--amber);--d:-3s"></div>'
+    +'<div class="obs-ring" style="--x:30%;--y:38%;--d:0s"></div>'
+    +'<div class="obs-ring obs-ring-2" style="--x:70%;--y:62%;--d:-3.5s"></div>'
+    +'<div class="obs-beacon" style="--x:18%;--y:48%;--c:var(--green);--d:0s"></div>'
+    +'<div class="obs-beacon" style="--x:55%;--y:32%;--c:var(--blue);--d:-2s"></div>'
+    +'<div class="obs-beacon" style="--x:92%;--y:42%;--c:var(--brand);--d:-4s"></div>'
+    +'<div class="obs-spark obs-spark-tl"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>'
+    +'<div class="obs-spark obs-spark-br"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>'
+    +'<div class="obs-spark obs-spark-mr"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>'
+    +'<div class="obs-spark obs-spark-bl"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>'
+    +'<div class="obs-wave obs-wave-top"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="'+wave+'" fill="rgba(59,130,246,.35)"/></svg></div>'
+    +'<div class="obs-wave obs-wave-btm"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="'+wave+'" fill="rgba(220,38,38,.28)"/></svg></div>'
+    +'<div class="obs-ticker"><div class="obs-ticker-track">'+ticker+'</div></div>';
+  document.body.prepend(el);
+}
+initObsBg();
 </script>
 </body>
 </html>

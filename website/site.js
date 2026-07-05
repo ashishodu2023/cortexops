@@ -72,6 +72,61 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') window.closeModal();
 });
 
+function initObsBg() {
+  if (document.querySelector('.obs-bg') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const tickerItems = [
+    'trace.ingest OK · 142ms',
+    'eval.gate PASS · 98.2%',
+    'node.tool_lookup · 890ms',
+    'span.PaymentAgent active',
+    'webhook.alert queued',
+    'p95 latency · 1.2s',
+    'quota.used · 12%',
+    'ci.gate blocking deploy',
+    'replay.trace matched',
+    'metric.error_rate · 0.4%',
+  ];
+  const tickerHtml = [...tickerItems, ...tickerItems].map((t) => `<span>${t}</span>`).join('');
+
+  const wavePath = 'M0,20 Q25,5 50,18 T100,12 T150,20 T200,8 L200,40 L0,40 Z';
+
+  const el = document.createElement('div');
+  el.className = 'obs-bg';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `
+    <div class="obs-glow"></div>
+    <div class="obs-grid"></div>
+    <div class="obs-scan-v"></div>
+    <div class="obs-scan-h"></div>
+    <svg class="obs-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 100 100">
+      <path class="obs-trace obs-trace-1" d="M0,22 C18,8 32,38 52,18 S82,32 100,14"/>
+      <path class="obs-trace obs-trace-2" d="M0,68 C22,82 44,54 66,72 S88,58 100,76"/>
+      <path class="obs-trace obs-trace-3" d="M0,44 L28,36 L52,50 L76,38 L100,46"/>
+      <path class="obs-trace obs-trace-4" d="M0,58 C30,48 55,62 78,52 S95,60 100,55"/>
+    </svg>
+    <div class="obs-node" style="--x:11%;--y:20%;--c:var(--blue);--d:0s"></div>
+    <div class="obs-node" style="--x:78%;--y:28%;--c:var(--green);--d:-1.2s"></div>
+    <div class="obs-node" style="--x:62%;--y:68%;--c:var(--brand);--d:-2.4s"></div>
+    <div class="obs-node" style="--x:24%;--y:72%;--c:var(--purple);--d:-.8s"></div>
+    <div class="obs-node" style="--x:88%;--y:58%;--c:var(--cyan);--d:-1.8s"></div>
+    <div class="obs-node" style="--x:42%;--y:14%;--c:var(--amber);--d:-3s"></div>
+    <div class="obs-ring" style="--x:30%;--y:38%;--d:0s"></div>
+    <div class="obs-ring obs-ring-2" style="--x:70%;--y:62%;--d:-3.5s"></div>
+    <div class="obs-beacon" style="--x:18%;--y:48%;--c:var(--green);--d:0s"></div>
+    <div class="obs-beacon" style="--x:55%;--y:32%;--c:var(--blue);--d:-2s"></div>
+    <div class="obs-beacon" style="--x:92%;--y:42%;--c:var(--brand);--d:-4s"></div>
+    <div class="obs-spark obs-spark-tl"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="obs-spark obs-spark-br"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="obs-spark obs-spark-mr"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="obs-spark obs-spark-bl"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="obs-wave obs-wave-top"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="${wavePath}" fill="rgba(59,130,246,.35)"/></svg></div>
+    <div class="obs-wave obs-wave-btm"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="${wavePath}" fill="rgba(220,38,38,.28)"/></svg></div>
+    <div class="obs-ticker"><div class="obs-ticker-track">${tickerHtml}</div></div>
+  `;
+  document.body.prepend(el);
+}
+
 document.querySelectorAll('a[href^="#"]').forEach((a) => {
   a.addEventListener('click', (e) => {
     const id = a.getAttribute('href');
@@ -118,6 +173,12 @@ function startHeroLiveDemo() {
     }
     if (alertEl) alertEl.textContent = alerts[i % alerts.length];
   }, 1600);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initObsBg);
+} else {
+  initObsBg();
 }
 
 window.addEventListener('load', async () => {

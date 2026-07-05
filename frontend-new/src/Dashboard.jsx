@@ -28,8 +28,8 @@ const M = {
   white:"#0D0D0D",ink:"#FFFFFF",
   shadow1:"0 1px 2px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.25)",
   shadow2:"0 20px 70px rgba(0,0,0,.45)",
-  mono:"'Roboto Mono','Courier New',monospace",
-  sans:"'Google Sans','Segoe UI',Roboto,sans-serif",
+  mono:"'JetBrains Mono','SF Mono','Menlo','Consolas',monospace",
+  sans:"'JetBrains Mono','SF Mono','Menlo','Consolas',monospace",
 };
 
 const TRACE_NODE_COLORS=[M.blue,M.green,M.purple,M.cyan,M.amber,M.pink,M.brand];
@@ -44,10 +44,10 @@ function loadRefreshSec(){
 }
 
 const G=`
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 html{color-scheme:dark}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:${M.gray50};color:${M.gray900};font-family:${M.sans};-webkit-font-smoothing:antialiased;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{background:${M.gray50};color:${M.gray900};font-family:${M.mono};font-size:14px;line-height:1.6;font-variant-ligatures:none;-webkit-font-smoothing:antialiased;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 a,button,input{outline-offset:3px}
 a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.brandSoft}}
 ::-webkit-scrollbar{width:4px;height:4px}
@@ -61,6 +61,56 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${M.b
 @keyframes grow{from{transform:scaleX(.35)}to{transform:scaleX(1)}}
 @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
 @keyframes shimmer{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+.obs-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.obs-glow{position:absolute;inset:0;background:radial-gradient(ellipse 55% 45% at 15% 20%,rgba(220,38,38,.08),transparent 70%),radial-gradient(ellipse 50% 40% at 85% 75%,rgba(59,130,246,.07),transparent 70%),radial-gradient(ellipse 42% 32% at 50% 55%,rgba(34,197,94,.04),transparent 65%)}
+.obs-grid{position:absolute;inset:-1px;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 92% 85% at 50% 35%,#000 15%,transparent 78%);animation:obsGridDrift 80s linear infinite}
+.obs-scan-v{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(220,38,38,.4),rgba(59,130,246,.28),transparent);box-shadow:0 0 14px rgba(220,38,38,.12);animation:obsScanV 14s linear infinite}
+.obs-scan-h{position:absolute;top:0;bottom:0;width:1px;background:linear-gradient(180deg,transparent,rgba(59,130,246,.22),rgba(34,197,94,.18),transparent);animation:obsScanH 20s linear infinite;animation-delay:-7s}
+.obs-svg{position:absolute;inset:0;width:100%;height:100%;opacity:.38}
+.obs-trace{fill:none;stroke-width:1.4;stroke-linecap:round;stroke-dasharray:7 13;animation:obsTraceFlow 5s linear infinite}
+.obs-trace-1{stroke:rgba(59,130,246,.55)}
+.obs-trace-2{stroke:rgba(34,197,94,.5);animation-duration:7s;animation-delay:-2s}
+.obs-trace-3{stroke:rgba(220,38,38,.45);animation-duration:6s;animation-delay:-1s}
+.obs-trace-4{stroke:rgba(139,92,246,.42);animation-duration:9s;animation-delay:-4s}
+.obs-node{position:absolute;left:var(--x);top:var(--y);width:5px;height:5px;border-radius:50%;background:var(--c,${M.brand});box-shadow:0 0 10px var(--c,${M.brand});animation:obsNodePulse 3.2s ease-in-out infinite;animation-delay:var(--d,0s)}
+.obs-node::after{content:'';position:absolute;inset:-7px;border-radius:50%;border:1px solid var(--c,${M.brand});opacity:0;animation:obsNodeRing 3.2s ease-out infinite;animation-delay:var(--d,0s)}
+.obs-spark{position:absolute;display:flex;align-items:flex-end;gap:3px;opacity:.42}
+.obs-spark-tl{top:11%;left:3%;height:34px}
+.obs-spark-br{bottom:12%;right:4%;height:26px}
+.obs-spark-mr{top:40%;right:2.5%;height:22px;opacity:.28}
+.obs-spark-bl{bottom:22%;left:6%;height:20px;opacity:.32}
+.obs-spark span{display:block;width:4px;border-radius:2px;background:linear-gradient(180deg,var(--spark,${M.blue}),transparent);transform-origin:bottom;animation:obsSparkBar 2.6s ease-in-out infinite}
+.obs-spark span:nth-child(1){height:35%;animation-delay:0s}
+.obs-spark span:nth-child(2){height:62%;--spark:${M.green};animation-delay:.25s}
+.obs-spark span:nth-child(3){height:48%;--spark:${M.brand};animation-delay:.5s}
+.obs-spark span:nth-child(4){height:78%;--spark:${M.purple};animation-delay:.15s}
+.obs-spark span:nth-child(5){height:42%;--spark:${M.cyan};animation-delay:.65s}
+.obs-spark span:nth-child(6){height:58%;--spark:${M.amber};animation-delay:.35s}
+.obs-spark span:nth-child(7){height:70%;--spark:${M.blue};animation-delay:.8s}
+.obs-spark span:nth-child(8){height:38%;--spark:${M.green};animation-delay:.45s}
+.obs-ring{position:absolute;left:var(--x);top:var(--y);width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:1px solid rgba(220,38,38,.22);animation:obsRingExpand 7s ease-out infinite;animation-delay:var(--d,0s)}
+.obs-ring-2{border-color:rgba(59,130,246,.2);animation-duration:9s}
+.obs-beacon{position:absolute;left:var(--x);top:var(--y);width:2px;height:2px;border-radius:50%;background:var(--c,${M.brand});box-shadow:0 0 8px var(--c,${M.brand});animation:obsBeacon 5s ease-in-out infinite;animation-delay:var(--d,0s)}
+.obs-wave{position:absolute;left:0;right:0;height:40px;opacity:.18;overflow:hidden}
+.obs-wave-top{top:8%}
+.obs-wave-btm{bottom:6%;opacity:.12}
+.obs-wave svg{width:200%;height:100%;animation:obsWaveSlide 18s linear infinite}
+.obs-wave-btm svg{animation-duration:22s;animation-direction:reverse}
+.obs-ticker{position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));overflow:hidden;opacity:.55}
+.obs-ticker-track{display:flex;gap:48px;white-space:nowrap;font-size:10px;font-family:${M.mono};color:${M.gray500};padding-top:12px;animation:obsTicker 50s linear infinite}
+.obs-ticker-track span::before{content:'▸ ';color:${M.brandSoft};opacity:.7}
+.obs-shell{position:relative;z-index:1}
+@keyframes obsGridDrift{0%{background-position:0 0,0 0}100%{background-position:48px 48px,48px 48px}}
+@keyframes obsScanV{0%{top:-2px;opacity:0}6%{opacity:1}94%{opacity:1}100%{top:100%;opacity:0}}
+@keyframes obsScanH{0%{left:-2px;opacity:0}8%{opacity:.75}92%{opacity:.75}100%{left:100%;opacity:0}}
+@keyframes obsTraceFlow{to{stroke-dashoffset:-40}}
+@keyframes obsNodePulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+@keyframes obsNodeRing{0%{opacity:.55;transform:scale(.5)}100%{opacity:0;transform:scale(2.4)}}
+@keyframes obsSparkBar{0%,100%{transform:scaleY(.35);opacity:.45}50%{transform:scaleY(1);opacity:1}}
+@keyframes obsRingExpand{0%{transform:scale(.25);opacity:.5}100%{transform:scale(2.6);opacity:0}}
+@keyframes obsBeacon{0%,100%{opacity:0;transform:scale(1)}12%,28%{opacity:1;transform:scale(1.6)}}
+@keyframes obsWaveSlide{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes obsTicker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .card-hover{transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
 .card-hover:hover{background:rgba(255,255,255,.04)!important;border-color:rgba(255,255,255,.22)!important;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .row-hover{transition:background .12s}
@@ -501,6 +551,43 @@ function LogoMark({size=32}){
   );
 }
 
+function ObsBg(){
+  if(typeof window!=="undefined"&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)return null;
+  const items=["trace.ingest OK · 142ms","eval.gate PASS · 98.2%","node.tool_lookup · 890ms","span.PaymentAgent active","webhook.alert queued","p95 latency · 1.2s","quota.used · 12%","ci.gate blocking deploy","replay.trace matched","metric.error_rate · 0.4%"];
+  const wave="M0,20 Q25,5 50,18 T100,12 T150,20 T200,8 L200,40 L0,40 Z";
+  return(
+    <div className="obs-bg" aria-hidden="true">
+      <div className="obs-glow"/>
+      <div className="obs-grid"/>
+      <div className="obs-scan-v"/>
+      <div className="obs-scan-h"/>
+      <svg className="obs-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 100 100">
+        <path className="obs-trace obs-trace-1" d="M0,22 C18,8 32,38 52,18 S82,32 100,14"/>
+        <path className="obs-trace obs-trace-2" d="M0,68 C22,82 44,54 66,72 S88,58 100,76"/>
+        <path className="obs-trace obs-trace-3" d="M0,44 L28,36 L52,50 L76,38 L100,46"/>
+        <path className="obs-trace obs-trace-4" d="M0,58 C30,48 55,62 78,52 S95,60 100,55"/>
+      </svg>
+      <div className="obs-node" style={{"--x":"11%","--y":"20%","--c":M.blue,"--d":"0s"}}/>
+      <div className="obs-node" style={{"--x":"78%","--y":"28%","--c":M.green,"--d":"-1.2s"}}/>
+      <div className="obs-node" style={{"--x":"62%","--y":"68%","--c":M.brand,"--d":"-2.4s"}}/>
+      <div className="obs-node" style={{"--x":"24%","--y":"72%","--c":M.purple,"--d":"-0.8s"}}/>
+      <div className="obs-node" style={{"--x":"88%","--y":"58%","--c":M.cyan,"--d":"-1.8s"}}/>
+      <div className="obs-node" style={{"--x":"42%","--y":"14%","--c":M.amber,"--d":"-3s"}}/>
+      <div className="obs-ring" style={{"--x":"30%","--y":"38%","--d":"0s"}}/>
+      <div className="obs-ring obs-ring-2" style={{"--x":"70%","--y":"62%","--d":"-3.5s"}}/>
+      <div className="obs-beacon" style={{"--x":"18%","--y":"48%","--c":M.green,"--d":"0s"}}/>
+      <div className="obs-beacon" style={{"--x":"55%","--y":"32%","--c":M.blue,"--d":"-2s"}}/>
+      <div className="obs-beacon" style={{"--x":"92%","--y":"42%","--c":M.brand,"--d":"-4s"}}/>
+      {["obs-spark-tl","obs-spark-br","obs-spark-mr","obs-spark-bl"].map(cls=>(
+        <div key={cls} className={`obs-spark ${cls}`}>{Array.from({length:8},(_,i)=><span key={i}/>)}</div>
+      ))}
+      <div className="obs-wave obs-wave-top"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d={wave} fill="rgba(59,130,246,.35)"/></svg></div>
+      <div className="obs-wave obs-wave-btm"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d={wave} fill="rgba(220,38,38,.28)"/></svg></div>
+      <div className="obs-ticker"><div className="obs-ticker-track">{[...items,...items].map((t,i)=><span key={i}>{t}</span>)}</div></div>
+    </div>
+  );
+}
+
 function LoginScreen({onLogin}){
   const[key,setKey]=useState("");
   const[err,setErr]=useState("");const[loading,setLoading]=useState(false);
@@ -520,8 +607,9 @@ function LoginScreen({onLogin}){
   };
   const inputStyle={width:"100%",background:M.gray50,border:`1px solid ${M.gray300}`,borderRadius:6,color:M.gray900,fontSize:14,padding:"10px 12px",outline:"none"};
   return(
-    <div style={{minHeight:"100vh",background:M.gray50,color:M.gray900}}>
-      <nav style={{position:"sticky",top:0,zIndex:50,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",borderBottom:`1px solid ${M.gray200}`,background:"rgba(11,15,26,.86)",backdropFilter:"blur(14px)"}}>
+    <div className="obs-shell" style={{minHeight:"100vh",background:M.gray50,color:M.gray900}}>
+      <ObsBg/>
+      <nav style={{position:"sticky",top:0,zIndex:50,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",borderBottom:`1px solid ${M.gray200}`,background:"rgba(0,0,0,.88)",backdropFilter:"blur(14px)"}}>
         <a href={HOME_URL} style={{display:"flex",alignItems:"center",gap:12,color:M.gray900,textDecoration:"none"}}>
           <LogoMark/>
           <span style={{fontSize:17,fontWeight:700}}>CortexOps</span>
@@ -1181,7 +1269,7 @@ export default function App(){
     finally{setKeyAction("");}
   };
 
-  if(!authReady)return<><style>{G}</style><div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:M.gray600}}>Loading session…</div></>;
+  if(!authReady)return<><style>{G}</style><ObsBg/><div className="obs-shell" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:M.gray600}}>Loading session…</div></>;
   if(!session)return<><style>{G}</style><LoginScreen onLogin={login}/></>;
 
   const traces=Array.isArray(rawTraces)?rawTraces:[];
@@ -1255,7 +1343,8 @@ export default function App(){
   return(
     <>
       <style>{G}</style>
-      <div style={{display:"flex",height:"100vh",background:M.gray50}}>
+      <ObsBg/>
+      <div className="obs-shell" style={{display:"flex",height:"100vh",background:M.gray50}}>
         {/* Desktop sidebar */}
         <aside className="dash-sidebar dash-sidebar-desktop" style={{width:248,height:"100vh",minHeight:0,background:M.white,borderRight:`1px solid ${M.gray200}`,display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
           <SidebarNav tab={tab} setTab={goTab} project={project} tier={tier} live={live} setLive={setLive} refreshSec={refreshSec} setRefreshSec={setRefreshSec} logout={logout} failed={failed}/>

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 :root{
   --bg:#000000;
   --surface:#0D0D0D;
@@ -25,17 +26,19 @@
   --line:rgba(255,255,255,.11);
   --line-soft:rgba(255,255,255,.09);
   --shadow:0 24px 80px rgba(0,0,0,.55);
-  --sans:'Google Sans','Segoe UI',Roboto,sans-serif;
-  --mono:'Roboto Mono','Courier New',monospace;
+  --sans:'JetBrains Mono','SF Mono','Menlo','Consolas',monospace;
+  --mono:'JetBrains Mono','SF Mono','Menlo','Consolas',monospace;
 }
 html{color-scheme:dark;scroll-behavior:smooth;scroll-padding-top:80px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{
-  font-family:var(--sans);
+  font-family:var(--mono);
   background:var(--bg);
   color:var(--text);
   -webkit-font-smoothing:antialiased;
-  line-height:1.5;
+  font-size:14px;
+  line-height:1.6;
+  font-variant-ligatures:none;
   -webkit-print-color-adjust:exact;
   print-color-adjust:exact;
 }
@@ -356,6 +359,59 @@ a.framework-item:hover{border-color:rgba(220,38,38,.5);transform:translateY(-2px
 .page-hero{padding:72px 0 24px}
 .page-hero .hero-title{font-size:48px}
 .related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+
+/* Observability background — grid, traces, telemetry */
+.obs-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.obs-glow{position:absolute;inset:0;background:radial-gradient(ellipse 55% 45% at 15% 20%,rgba(220,38,38,.08),transparent 70%),radial-gradient(ellipse 50% 40% at 85% 75%,rgba(59,130,246,.07),transparent 70%),radial-gradient(ellipse 42% 32% at 50% 55%,rgba(34,197,94,.04),transparent 65%)}
+.obs-grid{position:absolute;inset:-1px;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 92% 85% at 50% 35%,#000 15%,transparent 78%);animation:obsGridDrift 80s linear infinite}
+.obs-scan-v{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(220,38,38,.4),rgba(59,130,246,.28),transparent);box-shadow:0 0 14px rgba(220,38,38,.12);animation:obsScanV 14s linear infinite}
+.obs-scan-h{position:absolute;top:0;bottom:0;width:1px;background:linear-gradient(180deg,transparent,rgba(59,130,246,.22),rgba(34,197,94,.18),transparent);animation:obsScanH 20s linear infinite;animation-delay:-7s}
+.obs-svg{position:absolute;inset:0;width:100%;height:100%;opacity:.38}
+.obs-trace{fill:none;stroke-width:1.4;stroke-linecap:round;stroke-dasharray:7 13;animation:obsTraceFlow 5s linear infinite}
+.obs-trace-1{stroke:rgba(59,130,246,.55)}
+.obs-trace-2{stroke:rgba(34,197,94,.5);animation-duration:7s;animation-delay:-2s}
+.obs-trace-3{stroke:rgba(220,38,38,.45);animation-duration:6s;animation-delay:-1s}
+.obs-trace-4{stroke:rgba(139,92,246,.42);animation-duration:9s;animation-delay:-4s}
+.obs-node{position:absolute;left:var(--x);top:var(--y);width:5px;height:5px;border-radius:50%;background:var(--c,var(--brand));box-shadow:0 0 10px var(--c,var(--brand));animation:obsNodePulse 3.2s ease-in-out infinite;animation-delay:var(--d,0s)}
+.obs-node::after{content:'';position:absolute;inset:-7px;border-radius:50%;border:1px solid var(--c,var(--brand));opacity:0;animation:obsNodeRing 3.2s ease-out infinite;animation-delay:var(--d,0s)}
+.obs-spark{position:absolute;display:flex;align-items:flex-end;gap:3px;opacity:.42}
+.obs-spark-tl{top:11%;left:3%;height:34px}
+.obs-spark-br{bottom:12%;right:4%;height:26px}
+.obs-spark-mr{top:40%;right:2.5%;height:22px;opacity:.28}
+.obs-spark-bl{bottom:22%;left:6%;height:20px;opacity:.32}
+.obs-spark span{display:block;width:4px;border-radius:2px;background:linear-gradient(180deg,var(--spark,var(--blue)),transparent);transform-origin:bottom;animation:obsSparkBar 2.6s ease-in-out infinite}
+.obs-spark span:nth-child(1){height:35%;animation-delay:0s}
+.obs-spark span:nth-child(2){height:62%;--spark:var(--green);animation-delay:.25s}
+.obs-spark span:nth-child(3){height:48%;--spark:var(--brand);animation-delay:.5s}
+.obs-spark span:nth-child(4){height:78%;--spark:var(--purple);animation-delay:.15s}
+.obs-spark span:nth-child(5){height:42%;--spark:var(--cyan);animation-delay:.65s}
+.obs-spark span:nth-child(6){height:58%;--spark:var(--amber);animation-delay:.35s}
+.obs-spark span:nth-child(7){height:70%;--spark:var(--blue);animation-delay:.8s}
+.obs-spark span:nth-child(8){height:38%;--spark:var(--green);animation-delay:.45s}
+.obs-ring{position:absolute;left:var(--x);top:var(--y);width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:1px solid rgba(220,38,38,.22);animation:obsRingExpand 7s ease-out infinite;animation-delay:var(--d,0s)}
+.obs-ring-2{border-color:rgba(59,130,246,.2);animation-duration:9s}
+.obs-beacon{position:absolute;left:var(--x);top:var(--y);width:2px;height:2px;border-radius:50%;background:var(--c,var(--brand));box-shadow:0 0 8px var(--c,var(--brand));animation:obsBeacon 5s ease-in-out infinite;animation-delay:var(--d,0s)}
+.obs-wave{position:absolute;left:0;right:0;height:40px;opacity:.18;overflow:hidden}
+.obs-wave-top{top:8%}
+.obs-wave-btm{bottom:6%;opacity:.12}
+.obs-wave svg{width:200%;height:100%;animation:obsWaveSlide 18s linear infinite}
+.obs-wave-btm svg{animation-duration:22s;animation-direction:reverse}
+.obs-ticker{position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));overflow:hidden;opacity:.55}
+.obs-ticker-track{display:flex;gap:48px;white-space:nowrap;font-size:10px;font-family:var(--mono);color:var(--faint);padding-top:12px;animation:obsTicker 50s linear infinite}
+.obs-ticker-track span::before{content:'▸ ';color:var(--brand-soft);opacity:.7}
+main,footer,.success-banner,.legal-page{position:relative;z-index:1}
+
+@keyframes obsGridDrift{0%{background-position:0 0,0 0}100%{background-position:48px 48px,48px 48px}}
+@keyframes obsScanV{0%{top:-2px;opacity:0}6%{opacity:1}94%{opacity:1}100%{top:100%;opacity:0}}
+@keyframes obsScanH{0%{left:-2px;opacity:0}8%{opacity:.75}92%{opacity:.75}100%{left:100%;opacity:0}}
+@keyframes obsTraceFlow{to{stroke-dashoffset:-40}}
+@keyframes obsNodePulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+@keyframes obsNodeRing{0%{opacity:.55;transform:scale(.5)}100%{opacity:0;transform:scale(2.4)}}
+@keyframes obsSparkBar{0%,100%{transform:scaleY(.35);opacity:.45}50%{transform:scaleY(1);opacity:1}}
+@keyframes obsRingExpand{0%{transform:scale(.25);opacity:.5}100%{transform:scale(2.6);opacity:0}}
+@keyframes obsBeacon{0%,100%{opacity:0;transform:scale(1)}12%,28%{opacity:1;transform:scale(1.6)}}
+@keyframes obsWaveSlide{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes obsTicker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes pulseSoft{0%,100%{opacity:1}50%{opacity:.55}}
