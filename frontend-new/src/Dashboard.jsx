@@ -160,12 +160,12 @@ function Sparkline({values=[],color,h=28}){
   return(<svg width="100" height={h} style={{display:"block"}}><polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx={last[0]} cy={last[1]} r="2.5" fill={color}/></svg>);
 }
 
-function Tile({label,value,unit,hint,delta,deltaUp,spark,color,loading,onClick}){
+function Tile({label,value,unit,hint,delta,deltaUp,spark,color,loading,onClick,active}){
   const clickable=!!onClick;
   return(
     <div className={clickable?"card-hover":""} onClick={onClick} role={clickable?"button":undefined} tabIndex={clickable?0:undefined}
       onKeyDown={clickable?e=>e.key==="Enter"&&onClick():undefined}
-      style={{background:M.white,border:`1px solid ${M.gray200}`,borderRadius:10,padding:"14px 16px",borderTop:`3px solid ${color}`,boxShadow:M.shadow1,cursor:clickable?"pointer":undefined}}>
+      style={{background:M.white,border:`1px solid ${active?color:M.gray200}`,borderRadius:10,padding:"14px 16px",borderTop:`3px solid ${color}`,boxShadow:active?`0 0 0 1px ${color}33,${M.shadow1}`:M.shadow1,cursor:clickable?"pointer":undefined}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
         <div style={{fontSize:11,color:M.gray600,fontWeight:500,textTransform:"uppercase",letterSpacing:".05em"}}>{label}</div>
         {clickable&&<span style={{fontSize:10,color:M.gray400}}>→</span>}
@@ -780,6 +780,154 @@ function EmptyState({title,body,hint}){
   );
 }
 
+function latencyPercentile(traces,pct){
+  if(!traces.length)return 0;
+  const asc=[...traces].sort((a,b)=>(a.total_latency_ms||0)-(b.total_latency_ms||0));
+  const idx=Math.min(asc.length-1,Math.max(0,Math.ceil(asc.length*(pct/100))-1));
+  return Math.round(asc[idx]?.total_latency_ms||0);
+}
+
+function latencyColor(ms){
+  if(ms>2000)return M.red;
+  if(ms>1000)return M.amber;
+  return M.blue;
+}
+
+const METRIC_LABELS={
+  task_completion:"Task completion",
+  eval_gate:"Eval gate",
+  error_rate:"Error rate",
+  health_score:"Health score",
+  avg_latency:"Avg latency",
+  p95_latency:"P95 latency",
+  p99_latency:"P99 latency",
+  total_traces:"Total traces",
+  regressions:"Regressions",
+};
+
+function MetricDrilldown({focus,traces,evals,latest,prev,failed,errRate,successRate,healthPct,completed,evalPassing,avgLat,p50,p95,p99,minLat,maxLat,quota,onOpenTrace,onGoTab,onClear}){
+  const sorted=[...traces].sort((a,b)=>(b.total_latency_ms||0)-(a.total_latency_ms||0));
+  const aboveP95=sorted.filter(t=>(t.total_latency_ms||0)>=p95);
+  const aboveP99=sorted.filter(t=>(t.total_latency_ms||0)>=p99);
+  const failedTraces=traces.filter(t=>t.status==="failed");
+  const latBuckets=traces.slice(0,32).reverse().map(t=>t.total_latency_ms||0);
+  const percentileRows=[["Min",`${minLat}ms`],["P50",`${p50}ms`],["Avg",`${avgLat}ms`],["P95",`${p95}ms`],["P99",`${p99}ms`],["Max",`${maxLat}ms`]];
+
+  return(
+    <Section
+      title={METRIC_LABELS[focus]||"Metric drilldown"}
+      subtitle="Detailed breakdown for this signal"
+      action={<button onClick={onClear} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>← Close drilldown</button>}
+    >
+      {(focus==="task_completion"||focus==="eval_gate")&&(
+        <div style={{display:"grid",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10}}>
+            <DetailRow label="Gate status" value={latest?(evalPassing?"Passing":"Failing"):"—"} mono/>
+            <DetailRow label="Latest run" value={latest?`${((latest.task_completion_rate||0)*100).toFixed(1)}%`:"—"} mono/>
+            <DetailRow label="Cases passed" value={latest?`${latest.passed}/${latest.total_cases}`:"—"} mono/>
+            <DetailRow label="Threshold" value="90%" mono/>
+            <DetailRow label="vs previous" value={prev&&latest?`${((latest.task_completion_rate-prev.task_completion_rate)*100).toFixed(1)} pts`:"—"} mono/>
+            <DetailRow label="Regressions" value={latest?String(latest.regressions??0):"—"} mono/>
+          </div>
+          {latest?.case_results?.length>0&&(
+            <div style={{display:"grid",gap:6}}>
+              {latest.case_results.map(cr=>(
+                <div key={cr.case_id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:M.gray50,borderRadius:8,border:`1px solid ${M.gray200}`}}>
+                  <Badge color={cr.passed?M.green:M.red} bg={cr.passed?M.greenLight:M.redLight}>{cr.passed?"PASS":"FAIL"}</Badge>
+                  <span style={{flex:1,fontFamily:M.mono,fontSize:12}}>{cr.case_id}</span>
+                  <LatencyChip ms={cr.latency_ms||0}/>
+                </div>
+              ))}
+            </div>
+          )}
+          <QuickLink label="Open evaluations" onClick={()=>onGoTab("evaluations")} color={M.green}/>
+        </div>
+      )}
+
+      {focus==="error_rate"&&(
+        <div style={{display:"grid",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10}}>
+            <DetailRow label="Error rate" value={`${errRate}%`} mono/>
+            <DetailRow label="Failed traces" value={String(failed)} mono/>
+            <DetailRow label="Success rate" value={traces.length?`${(((traces.length-failed)/traces.length)*100).toFixed(1)}%`:"—"} mono/>
+          </div>
+          <MiniBars values={traces.slice(0,24).reverse().map(t=>t.status==="failed"?100:0)} color={M.red} h={40}/>
+          {failedTraces.length>0?failedTraces.slice(0,8).map(t=>(
+            <TraceRow key={t.trace_id} trace={t} onClick={()=>onOpenTrace(t)}/>
+          )):<EmptyState title="No failures" body="All loaded traces succeeded."/>}
+          {failed>0&&<QuickLink label="Review all alerts" onClick={()=>onGoTab("alerts")} color={M.red}/>}
+        </div>
+      )}
+
+      {(focus==="avg_latency"||focus==="p95_latency"||focus==="p99_latency")&&(
+        <div style={{display:"grid",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10}}>
+            {percentileRows.map(([l,v])=><DetailRow key={l} label={l} value={v} mono/>)}
+          </div>
+          <MiniBars values={latBuckets} color={latencyColor(focus==="p99_latency"?p99:focus==="p95_latency"?p95:avgLat)} h={56}/>
+          {focus==="avg_latency"&&<div style={{fontSize:12,color:M.gray600}}>Mean latency across {traces.length} loaded traces.</div>}
+          {focus==="p95_latency"&&<div style={{fontSize:12,color:M.gray600}}>{aboveP95.length} trace{aboveP95.length!==1?"s":""} at or above P95 ({p95}ms) — slowest 5% of loaded sample.</div>}
+          {focus==="p99_latency"&&<div style={{fontSize:12,color:M.gray600}}>{aboveP99.length} trace{aboveP99.length!==1?"s":""} at or above P99 ({p99}ms) — slowest 1% of loaded sample.</div>}
+          {(focus==="p95_latency"?aboveP95:focus==="p99_latency"?aboveP99:sorted.slice(0,10)).map(t=>(
+            <TraceRow key={t.trace_id} trace={t} onClick={()=>onOpenTrace(t)}/>
+          ))}
+          <QuickLink label="Open traces" onClick={()=>onGoTab("traces")}/>
+        </div>
+      )}
+
+      {focus==="health_score"&&(
+        <div style={{display:"grid",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10}}>
+            <DetailRow label="Health score" value={successRate!=="—"?`${successRate}%`:"—"} mono/>
+            <DetailRow label="Succeeded" value={`${completed}/${traces.length}`} mono/>
+            <DetailRow label="Failed" value={String(failed)} mono/>
+          </div>
+          <MiniBars values={traces.slice(0,24).reverse().map(t=>t.status==="failed"?0:100)} color={M.green} h={40}/>
+          {traces.filter(t=>t.status!=="failed").slice(0,6).map(t=>(
+            <TraceRow key={t.trace_id} trace={t} onClick={()=>onOpenTrace(t)}/>
+          ))}
+          {failed>0&&<QuickLink label="Review failures" onClick={()=>onGoTab("alerts")} color={M.red}/>}
+        </div>
+      )}
+
+      {focus==="regressions"&&(
+        <div style={{display:"grid",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10}}>
+            <DetailRow label="Regressions" value={latest?String(latest.regressions??0):"—"} mono/>
+            <DetailRow label="Latest completion" value={latest?`${((latest.task_completion_rate||0)*100).toFixed(1)}%`:"—"} mono/>
+            <DetailRow label="Previous completion" value={prev?`${((prev.task_completion_rate||0)*100).toFixed(1)}%`:"—"} mono/>
+          </div>
+          {latest?.case_results?.filter(cr=>!cr.passed).length>0?(
+            latest.case_results.filter(cr=>!cr.passed).map(cr=>(
+              <div key={cr.case_id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:M.redLight,borderRadius:8,border:`1px solid rgba(239,68,68,.25)`}}>
+                <Badge color={M.red} bg={M.redLight}>FAIL</Badge>
+                <span style={{flex:1,fontFamily:M.mono,fontSize:12}}>{cr.case_id}</span>
+                {cr.failure_kind&&<span style={{fontSize:10,color:M.red,fontFamily:M.mono}}>{cr.failure_kind.replace("FailureKind.","")}</span>}
+              </div>
+            ))
+          ):<EmptyState title="No regressions" body="Latest eval run is stable versus the previous run."/>}
+          <QuickLink label="Open evaluations" onClick={()=>onGoTab("evaluations")} color={M.amber}/>
+        </div>
+      )}
+
+      {focus==="total_traces"&&(
+        <div style={{display:"grid",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10}}>
+            <DetailRow label="Loaded traces" value={String(traces.length)} mono/>
+            <DetailRow label="Completed" value={String(traces.length-failed)} mono/>
+            <DetailRow label="Failed" value={String(failed)} mono/>
+            <DetailRow label="This month" value={quota?.monthly_traces?.used?.toLocaleString()??"—"} mono/>
+            <DetailRow label="Plan limit" value={quota?.monthly_traces?.unlimited?"Unlimited":(quota?.monthly_traces?.limit?.toLocaleString()??"5,000")} mono/>
+            <DetailRow label="Retention" value={`${quota?.retention_days??7} days`} mono/>
+          </div>
+          <MiniBars values={traces.slice(0,24).map(()=>1)} color={M.blue} h={36}/>
+          <QuickLink label="Browse all traces" onClick={()=>onGoTab("traces")}/>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 function HamburgerIcon(){
   return(
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -1002,6 +1150,7 @@ export default function App(){
   const[datasetDetail,setDatasetDetail]=useState(null);
   const[datasetDetailLoading,setDatasetDetailLoading]=useState(false);
   const[navOpen,setNavOpen]=useState(false);
+  const[metricFocus,setMetricFocus]=useState(null);
   const[compareMode,setCompareMode]=useState(false);
   const[diffRunA,setDiffRunA]=useState("");
   const[diffRunB,setDiffRunB]=useState("");
@@ -1208,14 +1357,26 @@ export default function App(){
     else history.pushState(state,"",hash);
   },[]);
 
-  const goTab=useCallback((id)=>{
+  const goTab=useCallback((id,focus=null)=>{
     pushRoute(id,null);
     setTab(id);
     setSelected(null);
     setTraceDetail(null);
     setNavOpen(false);
+    setMetricFocus((id==="overview"||id==="metrics")?focus:null);
     if(id!=="traces"){setFilter("all");}
   },[pushRoute]);
+
+  const openMetricDrill=useCallback((focus)=>{
+    setMetricFocus(prev=>prev===focus?null:focus);
+    if(tab!=="overview"&&tab!=="metrics"){
+      pushRoute("metrics",null);
+      setTab("metrics");
+      setSelected(null);
+      setTraceDetail(null);
+      setNavOpen(false);
+    }
+  },[tab,pushRoute]);
 
   const openTrace=useCallback((t)=>{
     if(!t?.trace_id)return;
@@ -1278,9 +1439,12 @@ export default function App(){
   const failed=traces.filter(t=>t.status==="failed").length;
   const errRate=traces.length>0?((failed/traces.length)*100).toFixed(1):"0.0";
   const avgLat=traces.length>0?Math.round(traces.reduce((s,t)=>s+(t.total_latency_ms||0),0)/traces.length):0;
-  const sorted=[...traces].sort((a,b)=>b.total_latency_ms-a.total_latency_ms);
-  const p95=sorted.length>0?Math.round(sorted[Math.floor(sorted.length*0.05)]?.total_latency_ms||0):0;
-  const tcColor=avgLat>1000?M.red:avgLat>500?M.amber:M.green;
+  const p50=latencyPercentile(traces,50);
+  const p95=latencyPercentile(traces,95);
+  const p99=latencyPercentile(traces,99);
+  const tcColor=latencyColor(avgLat);
+  const p95Color=latencyColor(p95);
+  const p99Color=latencyColor(p99);
   const successRate=traces.length>0?(((traces.length-failed)/traces.length)*100).toFixed(1):"—";
   const keys=Array.isArray(rawKeys)?rawKeys:[];
   const prompts=Array.isArray(rawPrompts)?rawPrompts:[];
@@ -1313,30 +1477,66 @@ export default function App(){
   const failureKindTotal=failureKindStats.reduce((s,[,n])=>s+n,0);
   const quotaPct=quota?.monthly_traces?.percent_used??null;
 
+  const metricDrillPanel=metricFocus?(
+    <MetricDrilldown
+      focus={metricFocus}
+      traces={traces}
+      evals={evals}
+      latest={latest}
+      prev={prev}
+      failed={failed}
+      errRate={errRate}
+      successRate={successRate}
+      healthPct={healthPct}
+      completed={completed}
+      evalPassing={evalPassing}
+      avgLat={avgLat}
+      p50={p50}
+      p95={p95}
+      p99={p99}
+      minLat={minLat}
+      maxLat={maxLat}
+      quota={quota}
+      onOpenTrace={openTrace}
+      onGoTab={goTab}
+      onClear={()=>setMetricFocus(null)}
+    />
+  ):null;
+
   const metricTiles=(
-    <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12}}>
+    <div className="metric-grid" style={{display:"grid",gridTemplateColumns:"repeat(6,minmax(0,1fr))",gap:12}}>
       <Tile label="Task completion" value={latest?`${(latest.task_completion_rate*100).toFixed(1)}`:"—"} unit="%" color={M.green}
         hint={latest?`${latest.passed}/${latest.total_cases} eval cases passed`:"Run evals to populate"}
         spark={evals.slice(0,10).reverse().map(e=>(e.task_completion_rate||0)*100)} loading={eLoad}
         delta={prev?`${Math.abs((latest.task_completion_rate-prev.task_completion_rate)*100).toFixed(1)}%`:undefined}
         deltaUp={prev&&latest.task_completion_rate>=prev.task_completion_rate}
-        onClick={()=>goTab("evaluations")}/>
+        active={metricFocus==="task_completion"}
+        onClick={()=>openMetricDrill("task_completion")}/>
       <Tile label="Error rate" value={errRate} unit="%" color={parseFloat(errRate)>5?M.red:M.green}
         hint={`${failed} failed of ${traces.length} traces`}
         spark={traces.slice(0,20).reverse().map(t=>t.status==="failed"?100:0)} loading={tLoad}
-        onClick={()=>goTab("alerts")}/>
+        active={metricFocus==="error_rate"}
+        onClick={()=>openMetricDrill("error_rate")}/>
       <Tile label="Avg latency" value={avgLat} unit="ms" color={tcColor}
         hint="Mean across recent traces"
         spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}
-        onClick={()=>goTab("metrics")}/>
-      <Tile label="P95 latency" value={p95} unit="ms" color={p95>2000?M.red:p95>1000?M.amber:M.blue}
+        active={metricFocus==="avg_latency"}
+        onClick={()=>openMetricDrill("avg_latency")}/>
+      <Tile label="P95 latency" value={p95} unit="ms" color={p95Color}
         hint="Slowest 5% of traces"
         spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}
-        onClick={()=>goTab("metrics")}/>
+        active={metricFocus==="p95_latency"}
+        onClick={()=>openMetricDrill("p95_latency")}/>
+      <Tile label="P99 latency" value={p99} unit="ms" color={p99Color}
+        hint="Slowest 1% of traces"
+        spark={traces.slice(0,20).reverse().map(t=>t.total_latency_ms||0)} loading={tLoad}
+        active={metricFocus==="p99_latency"}
+        onClick={()=>openMetricDrill("p99_latency")}/>
       <Tile label="Total traces" value={traces.length} color={M.blue}
         hint={quota?.monthly_traces?`${quota.monthly_traces.used?.toLocaleString()??"—"} this month`:"In current view"}
         spark={traces.slice(0,20).map(()=>1)} loading={tLoad}
-        onClick={()=>goTab("traces")}/>
+        active={metricFocus==="total_traces"}
+        onClick={()=>openMetricDrill("total_traces")}/>
     </div>
   );
 
@@ -1411,6 +1611,7 @@ export default function App(){
                 </div>
 
                 {metricTiles}
+                {metricDrillPanel}
 
                 <div className="overview-layout" style={{display:"grid",gridTemplateColumns:"minmax(0,1.6fr) minmax(280px,1fr)",gap:16,alignItems:"start"}}>
                   <div style={{display:"grid",gap:16}}>
@@ -1419,16 +1620,16 @@ export default function App(){
                         sub={healthPct!=null?`${completed}/${traces.length} traces succeeded`:"Instrument agents to measure health"}
                         color={healthPct==null?M.gray500:healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
                         bar={healthPct} barColor={healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
-                        onClick={()=>goTab("metrics")} loading={tLoad}/>
+                        onClick={()=>openMetricDrill("health_score")} loading={tLoad}/>
                       <InsightCard label="Eval gate" value={latest?(evalPassing?"Passing":"Failing"):"No data"}
                         sub={latest?`${((latest.task_completion_rate||0)*100).toFixed(0)}% · ${latest.passed}/${latest.total_cases} cases · 90% threshold`:"Run golden dataset evals"}
                         color={latest?(evalPassing?M.green:M.red):M.gray500}
                         bar={latest?(latest.task_completion_rate||0)*100:null} barColor={evalPassing?M.green:M.red}
-                        onClick={()=>goTab("evaluations")} loading={eLoad}/>
+                        onClick={()=>openMetricDrill("eval_gate")} loading={eLoad}/>
                       <InsightCard label="Regressions" value={latest?(latest.regressions??0):"—"}
                         sub={latest?(latest.regressions>0?"Review failing cases in latest run":"Stable vs previous run"):"Tracked across eval history"}
                         color={latest?(latest.regressions>0?M.amber:M.green):M.gray500}
-                        onClick={()=>goTab("evaluations")} loading={eLoad}/>
+                        onClick={()=>openMetricDrill("regressions")} loading={eLoad}/>
                     </div>
 
                     <FailureKindPanel
@@ -1483,7 +1684,8 @@ export default function App(){
                       </>}
                     </Section>
 
-                    <Section title="Latency distribution" subtitle={`Min ${minLat}ms · Avg ${avgLat}ms · P95 ${p95}ms · Max ${maxLat}ms`}>
+                    <Section title="Latency distribution" subtitle={`Min ${minLat}ms · P50 ${p50}ms · Avg ${avgLat}ms · P95 ${p95}ms · P99 ${p99}ms · Max ${maxLat}ms`}
+                      action={<button onClick={()=>openMetricDrill("avg_latency")} style={{background:"none",border:"none",color:M.blue,fontSize:12,fontWeight:600,cursor:"pointer"}}>Drill down →</button>}>
                       <MiniBars values={latBuckets} color={tcColor}/>
                     </Section>
 
@@ -1802,19 +2004,24 @@ export default function App(){
             {tab==="metrics"&&(
               <div style={{display:"grid",gap:16}}>
                 {metricTiles}
-                <div className="insight-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>
-                  <InsightCard label="Health score" value={successRate!=="—"?`${successRate}%`:"—"}
-                    sub={`${traces.length-failed} of ${traces.length} traces succeeded`}
-                    color={healthPct==null?M.gray500:healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
-                    bar={healthPct} barColor={healthPct>=95?M.green:healthPct>=80?M.amber:M.red}/>
-                  <InsightCard label="Latency watch" value={`${avgLat}ms`}
-                    sub={`P95 at ${p95}ms · ${avgLat>500?"above target":"within target"}`}
-                    color={tcColor}/>
-                  <InsightCard label="Drift monitor" value={latest?.regressions>0?`${latest.regressions} found`:"Stable"}
-                    sub={latest?.regressions>0?"Review failing eval cases":"No regressions in latest run"}
-                    color={latest?.regressions?M.amber:M.green}
-                    onClick={()=>goTab("evaluations")}/>
-                </div>
+                {metricDrillPanel}
+                {!metricFocus&&(
+                  <div className="insight-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>
+                    <InsightCard label="Health score" value={successRate!=="—"?`${successRate}%`:"—"}
+                      sub={`${traces.length-failed} of ${traces.length} traces succeeded`}
+                      color={healthPct==null?M.gray500:healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
+                      bar={healthPct} barColor={healthPct>=95?M.green:healthPct>=80?M.amber:M.red}
+                      onClick={()=>openMetricDrill("health_score")}/>
+                    <InsightCard label="Latency watch" value={`${avgLat}ms`}
+                      sub={`P95 ${p95}ms · P99 ${p99}ms · ${avgLat>500?"above target":"within target"}`}
+                      color={tcColor}
+                      onClick={()=>openMetricDrill("avg_latency")}/>
+                    <InsightCard label="Drift monitor" value={latest?.regressions>0?`${latest.regressions} found`:"Stable"}
+                      sub={latest?.regressions>0?"Review failing eval cases":"No regressions in latest run"}
+                      color={latest?.regressions?M.amber:M.green}
+                      onClick={()=>openMetricDrill("regressions")}/>
+                  </div>
+                )}
               </div>
             )}
 
