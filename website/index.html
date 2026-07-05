@@ -57,7 +57,7 @@
     <a href="/#dashboard">Dashboard</a>
     <a href="/#pricing">Pricing</a>
     <a href="https://docs.getcortexops.com" target="_blank" rel="noopener">Docs</a>
-    <a href="/#demo" class="btn sm">View Live Demo</a>
+    <a href="https://app.getcortexops.com" class="btn sm" target="_blank" rel="noopener">View Live Demo</a>
   </div>
 </nav>
 <main>
@@ -67,7 +67,7 @@
       <h1 class="hero-title" id="hero-title">Ship Reliable AI Agents.<br>Every Time.</h1>
       <p class="hero-copy">Trace every node, evaluate every change, monitor production health, and catch regressions before users do.</p>
       <div class="hero-actions">
-        <a href="#demo" class="btn">View Live Demo</a>
+        <a href="https://app.getcortexops.com" class="btn" target="_blank" rel="noopener">View Live Demo</a>
         <span class="install-chip">$ pip install cortexops</span>
       </div>
       <div class="proof-row">
@@ -166,102 +166,83 @@ agent = tracer.wrap(graph)</div>
 
   <section class="wrap section" id="dashboard">
     <div class="section-head">
-      <div class="eyebrow">Dashboard Screenshots</div>
+      <div class="eyebrow">Live Dashboard</div>
       <h2 class="section-title">Everything in the CortexOps console.</h2>
-      <p class="section-copy">From overview to API keys — the product surface teams use day to day at app.getcortexops.com.</p>
+      <p class="section-copy">Open the live app with your API key — trace explorer, eval gates, prompts, and usage at <strong>app.getcortexops.com</strong>.</p>
     </div>
+
+    <a href="https://app.getcortexops.com" class="dash-live-banner" target="_blank" rel="noopener" id="demo">
+      <div class="dash-live-copy">
+        <span class="dash-live-eyebrow">● Live demo</span>
+        <h3>Open the dashboard</h3>
+        <p>Sign in with your <code>cxo-</code> API key. Free tier includes 5,000 traces/month.</p>
+        <span class="btn sm">Launch app.getcortexops.com →</span>
+      </div>
+      <div class="dash-live-preview" aria-hidden="true">
+        <div class="dlp-row"><span class="dlp-kpi ok">Health 94%</span><span class="dlp-kpi ok">Eval gate Passing</span><span class="dlp-kpi">P95 141ms</span></div>
+        <div class="dlp-trace"><span>classify_intent</span><div class="dlp-bar" style="width:72%"></div></div>
+        <div class="dlp-trace"><span>tool: lookup_refund</span><div class="dlp-bar green" style="width:48%"></div></div>
+        <div class="dlp-trace"><span>route_escalation</span><div class="dlp-bar blue" style="width:61%"></div></div>
+      </div>
+    </a>
+
     <div class="dash-grid">
-      <div class="dash-shot" id="dash-overview">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Overview</span></div>
+      <a href="https://app.getcortexops.com" class="dash-shot dash-shot-link" target="_blank" rel="noopener">
+        <div class="dash-shot-bar"><span>Overview</span><span class="dash-open">Open →</span></div>
         <div class="dash-shot-body">
-          <h3>Overview</h3>
-          <p>Project health, live status, and the signals that matter first.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
+          <h3>Project health at a glance</h3>
+          <p>Status banner, metric tiles, recent traces, and eval case results.</p>
+          <div class="dash-preview dash-preview-stats" aria-hidden="true">
+            <span class="dps ok">100% tasks</span><span class="dps">6.1% errors</span><span class="dps">99 traces</span>
+          </div>
         </div>
-      </div>
-      <div class="dash-shot" id="dash-projects">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Projects</span></div>
+      </a>
+      <a href="https://app.getcortexops.com" class="dash-shot dash-shot-link" target="_blank" rel="noopener">
+        <div class="dash-shot-bar"><span>Traces</span><span class="dash-open">Open →</span></div>
         <div class="dash-shot-body">
-          <h3>Projects</h3>
-          <p>Organize agents by project with isolated keys and retention.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
+          <h3>Trace explorer</h3>
+          <p>Filter by status, date range, or search. Click for node waterfall.</p>
+          <div class="dash-preview dash-preview-waterfall" aria-hidden="true">
+            <div><i style="width:70%"></i></div><div><i style="width:45%"></i></div><div><i style="width:88%"></i></div>
+          </div>
         </div>
-      </div>
-      <div class="dash-shot" id="dash-traces">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Traces</span></div>
+      </a>
+      <a href="https://app.getcortexops.com" class="dash-shot dash-shot-link" target="_blank" rel="noopener">
+        <div class="dash-shot-bar"><span>Evaluations</span><span class="dash-open">Open →</span></div>
         <div class="dash-shot-body">
-          <h3>Traces</h3>
-          <p>Node waterfall, tool calls, latency, and failure context.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
+          <h3>Golden dataset results</h3>
+          <p>Pass rates, regressions, and per-case drill-down.</p>
+          <div class="dash-preview dash-preview-eval" aria-hidden="true"><div class="dpe-bar"><i style="width:100%"></i></div><span>9/9 pass</span></div>
         </div>
-      </div>
-      <div class="dash-shot" id="dash-evaluations">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Evaluations</span></div>
+      </a>
+      <a href="https://app.getcortexops.com" class="dash-shot dash-shot-link" target="_blank" rel="noopener">
+        <div class="dash-shot-bar"><span>Metrics</span><span class="dash-open">Open →</span></div>
         <div class="dash-shot-body">
-          <h3>Evaluations</h3>
-          <p>Golden datasets, pass rates, regressions, and judge scores.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
+          <h3>Latency &amp; drift</h3>
+          <p>Health score, latency watch, and regression monitor.</p>
+          <div class="dash-preview dash-preview-spark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
         </div>
-      </div>
-      <div class="dash-shot" id="dash-prompt-versions">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Prompt Versions</span></div>
+      </a>
+      <a href="https://app.getcortexops.com" class="dash-shot dash-shot-link" target="_blank" rel="noopener">
+        <div class="dash-shot-bar"><span>Alerts</span><span class="dash-open">Open →</span></div>
         <div class="dash-shot-body">
-          <h3>Prompt Versions</h3>
-          <p>Track prompt changes against evals and roll back safely.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
+          <h3>Failed traces</h3>
+          <p>Failure kind, detail, and one-click trace inspection.</p>
+          <div class="dash-preview dash-preview-alert" aria-hidden="true">PaymentGatewayTimeout · trace 514dfa4c</div>
         </div>
-      </div>
-      <div class="dash-shot" id="dash-datasets">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Datasets</span></div>
+      </a>
+      <a href="https://app.getcortexops.com" class="dash-shot dash-shot-link" target="_blank" rel="noopener">
+        <div class="dash-shot-bar"><span>API Keys &amp; Usage</span><span class="dash-open">Open →</span></div>
         <div class="dash-shot-body">
-          <h3>Datasets</h3>
-          <p>Versioned golden cases for CI and local eval runs.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
+          <h3>Keys, quota, prompts, datasets</h3>
+          <p>Rotate keys, track monthly traces, version prompts and golden cases.</p>
+          <div class="dash-preview dash-preview-quota" aria-hidden="true"><div class="dpq-bar"><i style="width:12%"></i></div><span>99 / 5,000 traces</span></div>
         </div>
-      </div>
-      <div class="dash-shot" id="dash-metrics">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Metrics</span></div>
-        <div class="dash-shot-body">
-          <h3>Metrics</h3>
-          <p>Task completion, latency, error rate, and drift over time.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
-        </div>
-      </div>
-      <div class="dash-shot" id="dash-alerts">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Alerts</span></div>
-        <div class="dash-shot-body">
-          <h3>Alerts</h3>
-          <p>Route quality drops, timeouts, and anomalies to your channels.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
-        </div>
-      </div>
-      <div class="dash-shot" id="dash-api-keys">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · API Keys</span></div>
-        <div class="dash-shot-body">
-          <h3>API Keys</h3>
-          <p>Create, rotate, and revoke keys with least privilege.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
-        </div>
-      </div>
-      <div class="dash-shot" id="dash-usage">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Usage</span></div>
-        <div class="dash-shot-body">
-          <h3>Usage</h3>
-          <p>Understand volume and plan limits without surprise bills.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
-        </div>
-      </div>
-      <div class="dash-shot" id="dash-settings">
-        <div class="dash-shot-bar"><span>app.getcortexops.com · Settings</span></div>
-        <div class="dash-shot-body">
-          <h3>Settings</h3>
-          <p>Projects, retention, integrations, and team preferences.</p>
-          <div class="dash-mini" aria-hidden="true"><div></div><div></div><div></div></div>
-        </div>
-      </div>
+      </a>
     </div>
     <div style="text-align:center;margin-top:28px">
-      <a href="https://app.getcortexops.com" class="btn" target="_blank" rel="noopener">Open dashboard</a>
+      <a href="https://app.getcortexops.com" class="btn" target="_blank" rel="noopener">Open live dashboard</a>
+      <a href="https://docs.getcortexops.com" class="btn ghost" target="_blank" rel="noopener" style="margin-left:10px">Get an API key</a>
     </div>
   </section>
 
@@ -372,8 +353,8 @@ agent = tracer.wrap(graph)</div>
       <h2 class="section-title">Ship agents you can trust.</h2>
       <p class="section-copy">Developers love demos. Start with the live preview, then connect your first project when you are ready.</p>
       <div class="cta-actions">
-        <a href="#demo" class="btn">View Live Demo</a>
-        <a href="https://app.getcortexops.com" class="btn ghost">Open dashboard</a>
+        <a href="https://app.getcortexops.com" class="btn" target="_blank" rel="noopener">View Live Demo</a>
+        <a href="https://app.getcortexops.com" class="btn ghost" target="_blank" rel="noopener">Open dashboard</a>
         <a href="https://github.com/ashishodu2023/cortexops" class="btn ghost" target="_blank" rel="noopener">View on GitHub</a>
       </div>
     </div>

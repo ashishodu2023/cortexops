@@ -12,7 +12,6 @@ from __future__ import annotations
 import uuid
 import json
 import os
-from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
