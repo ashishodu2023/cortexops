@@ -135,10 +135,8 @@ async def ingest_eval_summary(
     tier_info: TierInfo = Depends(get_current_key_info),
 ):
     """Store a completed local eval run (from SDK EvalSuite) for dashboard display."""
-    if tier_info.project != body.project and tier_info.project != "__dev__":
-        raise HTTPException(403, "You can only ingest evals for your own project.")
-
-    project = tier_info.project if tier_info.project != "__dev__" else body.project
+    require_project_access(tier_info, body.project)
+    project = body.project
     await _ensure_project(db, project)
     run_id = body.run_id or str(uuid.uuid4())
     now = datetime.utcnow()

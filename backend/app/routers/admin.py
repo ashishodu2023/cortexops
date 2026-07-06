@@ -5,7 +5,6 @@ Never expose these to end users.
 """
 from __future__ import annotations
 
-import os
 import secrets
 from datetime import datetime
 
@@ -14,18 +13,19 @@ from pydantic import BaseModel
 from sqlalchemy import select,func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import get_settings
 from ..db import get_db
 from ..models.records import ApiKey, Project
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
-
-_INTERNAL_KEY = os.getenv("INTERNAL_API_KEY", "")
+settings = get_settings()
 
 
 # ── Internal auth ─────────────────────────────────────────────────────────
 def require_admin(x_internal_key: str | None = Header(None, alias="X-Internal-Key")) -> None:
     """Require INTERNAL_API_KEY header — blocks all non-admin access."""
-    if not _INTERNAL_KEY or not x_internal_key or not secrets.compare_digest(x_internal_key, _INTERNAL_KEY):
+    expected = settings.internal_api_key
+    if not expected or not x_internal_key or not secrets.compare_digest(x_internal_key, expected):
         raise HTTPException(
             status_code=401,
             detail="X-Internal-Key header required. This endpoint is for admin use only.",

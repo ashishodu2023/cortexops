@@ -22,16 +22,17 @@ import os
 import time
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..config import get_settings
 from ..auth import hash_key
+from ..config import get_settings
 from ..db import get_db
 from ..models.records import ApiKey
+from ..security import auth_limiter, client_ip
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
@@ -160,6 +161,7 @@ async def issue_token(
     500: {"description": "Internal server error"},
 })
 async def issue_jwt(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     api_key_header: str | None = Security(
         __import__('fastapi.security', fromlist=['APIKeyHeader']).APIKeyHeader(
@@ -187,6 +189,10 @@ async def issue_jwt(
     Then use the JWT:
         Authorization: Bearer eyJ...
     """
+    ip = client_ip(request)
+    if not auth_limiter.is_allowed(ip):
+        raise HTTPException(status_code=429, detail="Too many token requests. Try again later.")
+
     if not api_key_header:
         raise HTTPException(status_code=401, detail="X-API-Key header required")
 
@@ -238,6 +244,7 @@ async def _issue_token_for_key(key_record: ApiKey) -> TokenResponse:
     500: {"description": "Internal server error"},
 })
 async def refresh_jwt(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     credentials: HTTPAuthorizationCredentials | None = Security(_bearer),
 ):
@@ -245,6 +252,10 @@ async def refresh_jwt(
     Refresh a short-lived JWT without resubmitting the API key.
     Accepts tokens expired up to 5 minutes ago.
     """
+    ip = client_ip(request)
+    if not auth_limiter.is_allowed(ip):
+        raise HTTPException(status_code=429, detail="Too many token requests. Try again later.")
+
     if not credentials:
         raise HTTPException(status_code=401, detail="Authorization: Bearer <token> required")
 

@@ -125,9 +125,10 @@ async def get_current_key_info(
             detail="Missing credentials. Pass Authorization: Bearer <jwt> or X-API-Key header.",
         )
 
-    # Dev shortcut — constant-time compare even for local internal key
+    # Dev shortcut — never honored in production
     if (
-        settings.environment == "development"
+        not settings.is_production
+        and settings.environment == "development"
         and raw_key
         and secrets.compare_digest(raw_key, settings.internal_api_key)
     ):

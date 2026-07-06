@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 
+from .config import get_settings
 
 # ── Tier constants ─────────────────────────────────────────────────────────
 FREE_MONTHLY_TRACE_LIMIT = 5_000
@@ -118,7 +119,14 @@ def _month_reset_iso() -> str:
 
 def require_project_access(tier_info: TierInfo, project: str) -> None:
     """Raise HTTP 403 if the key does not belong to the requested project."""
-    if tier_info.project != project and tier_info.project != "__dev__":
+    settings = get_settings()
+    if settings.is_production and tier_info.project == "__dev__":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    dev_override = (
+        not settings.is_production
+        and tier_info.project == "__dev__"
+    )
+    if tier_info.project != project and not dev_override:
         raise HTTPException(
             status_code=403,
             detail="You can only access resources for your own project.",

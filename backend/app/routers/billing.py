@@ -103,6 +103,8 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         except stripe.error.SignatureVerificationError:
             raise HTTPException(status_code=400, detail="Invalid webhook signature")
     else:
+        if get_settings().is_production:
+            raise HTTPException(status_code=503, detail="Stripe webhooks not configured.")
         event = json.loads(body)
 
     etype = event["type"]
@@ -533,12 +535,18 @@ async def paypal_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         db.add(api_key)
         await db.commit()
 
-        logger.info(
-            "PayPal Pro key provisioned: project=%s subscription=%s key=%s",
-            project, subscription_id, raw_key[:16] + "..."
+        subscriber_email = (
+            resource.get("subscriber", {}).get("email_address")
+            or resource.get("custom", "")
         )
-        # NOTE: email the raw_key to the user via Resend/SendGrid
-        # TODO: call send_pro_welcome_email(project=project, raw_key=raw_key)
+        if subscriber_email and "@" in subscriber_email:
+            await _send_key_email(subscriber_email, project, raw_key)
+        else:
+            logger.info(
+                "PayPal Pro key provisioned: project=%s subscription=%s (email key delivery pending)",
+                project,
+                subscription_id,
+            )
 
     elif event_type in ("BILLING.SUBSCRIPTION.CANCELLED", "BILLING.SUBSCRIPTION.SUSPENDED"):
         # Downgrade Pro keys to free for this project

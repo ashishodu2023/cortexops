@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 import secrets
 from datetime import datetime, timedelta
@@ -14,13 +13,17 @@ from ..auth import generate_api_key, get_current_key_info, get_optional_key_info
 from ..config import get_settings
 from ..db import get_db
 from ..models.records import ApiKey, Project
-from ..security import bootstrap_limiter, client_ip as resolve_client_ip
-from ..tiers import TierInfo, require_scope
+from ..security import auth_limiter, bootstrap_limiter, client_ip as resolve_client_ip, email_bootstrap_limiter
+from ..tiers import TierInfo, require_project_access, require_scope
 
 router = APIRouter(prefix="/v1/keys", tags=["api keys"])
 settings = get_settings()
 
 _PROJECT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{1,62}[a-z0-9]$")
+_RESERVED_PROJECTS = frozenset({
+    "admin", "api", "cortexops", "default", "demo", "dev", "internal",
+    "payments-agent", "production", "prod", "root", "staging", "system", "test",
+})
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────
@@ -30,6 +33,7 @@ class ApiKeyCreate(BaseModel):
     name: str = "default"
     scope: str = "read_write"           # "read_write" | "read_only"
     expires_in_days: int | None = None  # None = never expires
+    email: str | None = None            # Required for bootstrap in production
 
     @field_validator("project")
     @classmethod
@@ -37,6 +41,18 @@ class ApiKeyCreate(BaseModel):
         v = v.strip().lower()
         if not _PROJECT_RE.match(v):
             raise ValueError("project must be 3-64 chars: lowercase letters, numbers, hyphens, underscores")
+        if v in _RESERVED_PROJECTS:
+            raise ValueError("project name is reserved")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if "@" not in v or len(v) > 254:
+            raise ValueError("Invalid email address")
         return v
 
 
@@ -68,7 +84,11 @@ class RotateResponse(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 VALID_SCOPES = {"read_write", "read_only"}
-_INTERNAL_KEY = os.getenv("INTERNAL_API_KEY", "")
+
+
+def _has_internal_access(x_internal_key: str | None) -> bool:
+    expected = settings.internal_api_key
+    return bool(expected and x_internal_key and secrets.compare_digest(x_internal_key, expected))
 
 
 async def _ensure_project(db: AsyncSession, name: str) -> None:
@@ -130,10 +150,6 @@ async def _issue_key(
     )
 
 
-def _has_internal_access(x_internal_key: str | None) -> bool:
-    return bool(_INTERNAL_KEY and x_internal_key and secrets.compare_digest(x_internal_key, _INTERNAL_KEY))
-
-
 # ── Endpoints ─────────────────────────────────────────────────────────────
 
 @router.post("/bootstrap", response_model=ApiKeyCreateResponse, status_code=201, responses={
@@ -154,6 +170,12 @@ async def bootstrap_api_key(
     client_ip = resolve_client_ip(request)
     if not bootstrap_limiter.is_allowed(client_ip):
         raise HTTPException(429, "Bootstrap rate limit exceeded. Try again later.")
+
+    if settings.is_production:
+        if not body.email:
+            raise HTTPException(400, "email is required for bootstrap in production")
+        if not email_bootstrap_limiter.is_allowed(body.email):
+            raise HTTPException(429, "Bootstrap rate limit exceeded for this email. Try again later.")
 
     if await _project_has_active_keys(db, body.project):
         raise HTTPException(
@@ -183,20 +205,17 @@ async def create_api_key(
     Production: requires an authenticated read_write key for the same project,
     or X-Internal-Key (admin/billing). For first-time setup use POST /v1/keys/bootstrap.
     """
-    if settings.environment == "production" and not _has_internal_access(x_internal_key):
-        if not tier_info:
-            raise HTTPException(
-                401,
-                "Authentication required. Use POST /v1/keys/bootstrap for your first key.",
-            )
-        require_scope(tier_info, "read_write")
-        if tier_info.project != body.project and tier_info.project != "__dev__":
-            raise HTTPException(403, "You can only create keys for your own project.")
-    elif tier_info:
-        require_scope(tier_info, "read_write")
-        if tier_info.project != body.project and tier_info.project != "__dev__":
-            raise HTTPException(403, "You can only create keys for your own project.")
+    if _has_internal_access(x_internal_key):
+        return await _issue_key(db, body)
 
+    if not tier_info:
+        raise HTTPException(
+            401,
+            "Authentication required. Use POST /v1/keys/bootstrap for your first key.",
+        )
+
+    require_scope(tier_info, "read_write")
+    require_project_access(tier_info, body.project)
     return await _issue_key(db, body)
 
 
@@ -214,8 +233,7 @@ async def list_api_keys(
     tier_info: TierInfo = Depends(get_current_key_info),
 ):
     """List all API keys for a project. Only shows keys for your own project."""
-    if tier_info.project != project and tier_info.project != "__dev__":
-        raise HTTPException(403, "You can only list keys for your own project.")
+    require_project_access(tier_info, project)
 
     q = select(ApiKey).where(ApiKey.project == project)
     if not include_inactive:
@@ -263,8 +281,7 @@ async def rotate_api_key(
     if not old_key:
         raise HTTPException(404, f"Key {key_id} not found.")
 
-    if old_key.project != tier_info.project and tier_info.project != "__dev__":
-        raise HTTPException(403, "You can only rotate keys in your own project.")
+    require_project_access(tier_info, old_key.project)
 
     if not old_key.is_active:
         raise HTTPException(400, "Key is already revoked. Create a new key instead.")
@@ -313,8 +330,7 @@ async def revoke_api_key(
     if not key:
         raise HTTPException(404, f"Key {key_id} not found.")
 
-    if key.project != tier_info.project and tier_info.project != "__dev__":
-        raise HTTPException(403, "You can only revoke keys in your own project.")
+    require_project_access(tier_info, key.project)
 
     key.is_active = False
     await db.flush()
@@ -339,8 +355,7 @@ async def get_key_info(
     if not key:
         raise HTTPException(404, f"Key {key_id} not found.")
 
-    if key.project != tier_info.project and tier_info.project != "__dev__":
-        raise HTTPException(403, "You can only view keys in your own project.")
+    require_project_access(tier_info, key.project)
 
     return ApiKeyResponse(
         id=key.id,

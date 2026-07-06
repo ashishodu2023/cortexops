@@ -104,6 +104,12 @@ bootstrap_limiter = RateLimiter(rate=5, per_seconds=3600)
 # Billing checkout — 10 per hour per IP
 billing_limiter = RateLimiter(rate=10, per_seconds=3600)
 
+# JWT / API key exchange — 30 per hour per IP (slow brute-force attempts)
+auth_limiter = RateLimiter(rate=30, per_seconds=3600)
+
+# Bootstrap by email — 3 per hour per address in production
+email_bootstrap_limiter = RateLimiter(rate=3, per_seconds=3600)
+
 
 def client_ip(request: Request) -> str:
     """Resolve client IP behind reverse proxies (Railway, Vercel, etc.)."""

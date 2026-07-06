@@ -28,7 +28,9 @@
   <ul>
     <li>Keys use <code>cxo-</code> prefix with 256-bit entropy; only SHA-256 hashes are stored.</li>
     <li>Rotate or revoke keys instantly from the dashboard.</li>
-    <li>Production key creation requires authentication or admin internal key; first keys use rate-limited bootstrap.</li>
+    <li>Production bootstrap requires email, blocks reserved project names, and is rate-limited per IP and email.</li>
+    <li>Unsigned Stripe/PayPal webhooks are rejected in production; Pro keys are emailed, never logged.</li>
+    <li>JWT token exchange is rate-limited; dev internal-key bypass is disabled in production.</li>
   </ul>
 
   <h2>Transport &amp; secrets</h2>
