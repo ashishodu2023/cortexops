@@ -14,7 +14,7 @@ from ..auth import generate_api_key, get_current_key_info, get_optional_key_info
 from ..config import get_settings
 from ..db import get_db
 from ..models.records import ApiKey, Project
-from ..security import auth_limiter, bootstrap_limiter, client_ip as resolve_client_ip, email_bootstrap_limiter
+from ..security import bootstrap_limiter, client_ip as resolve_client_ip, email_bootstrap_limiter
 from ..tiers import TierInfo, require_project_access, require_scope
 
 router = APIRouter(prefix="/v1/keys", tags=["api keys"])
