@@ -1280,7 +1280,7 @@ export default function App(){
   useEffect(()=>{
     if(!session)return;
     const h=window.location.hash;
-    if(!h||h==="#login"){
+    if(!h||/^#login$/.test(h)){
       history.replaceState({tab:"overview",traceId:null},"","#/overview");
       setTab("overview");
       return;
