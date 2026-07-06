@@ -133,3 +133,19 @@ class EvalDataset(Base):
     cases: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     case_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+
+
+class AuthAuditLog(Base):
+    """Immutable audit trail for logins and key lifecycle events."""
+
+    __tablename__ = "auth_audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    event: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    outcome: Mapped[str] = mapped_column(String(16), nullable=False, index=True)  # success | failure
+    project: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    key_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    detail: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)

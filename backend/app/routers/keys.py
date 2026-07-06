@@ -9,6 +9,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..audit import record_auth_event
 from ..auth import generate_api_key, get_current_key_info, get_optional_key_info
 from ..config import get_settings
 from ..db import get_db
@@ -184,7 +185,19 @@ async def bootstrap_api_key(
             "or use an authenticated POST /v1/keys request.",
         )
 
-    return await _issue_key(db, body)
+    ip, ua = resolve_client_ip(request), request.headers.get("user-agent", "")[:512]
+    issued = await _issue_key(db, body)
+    await record_auth_event(
+        db,
+        event="key_bootstrap",
+        outcome="success",
+        project=issued.project,
+        key_id=issued.id,
+        ip_address=ip,
+        user_agent=ua,
+        detail=body.email,
+    )
+    return issued
 
 
 @router.post("", response_model=ApiKeyCreateResponse, status_code=201, responses={
@@ -195,6 +208,7 @@ async def bootstrap_api_key(
 })
 async def create_api_key(
     body: ApiKeyCreate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     tier_info: TierInfo | None = Depends(get_optional_key_info),
     x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
@@ -205,8 +219,15 @@ async def create_api_key(
     Production: requires an authenticated read_write key for the same project,
     or X-Internal-Key (admin/billing). For first-time setup use POST /v1/keys/bootstrap.
     """
+    ip, ua = resolve_client_ip(request), request.headers.get("user-agent", "")[:512]
+
     if _has_internal_access(x_internal_key):
-        return await _issue_key(db, body)
+        issued = await _issue_key(db, body)
+        await record_auth_event(
+            db, event="key_create", outcome="success", project=issued.project,
+            key_id=issued.id, ip_address=ip, user_agent=ua, detail="internal",
+        )
+        return issued
 
     if not tier_info:
         raise HTTPException(
@@ -216,7 +237,12 @@ async def create_api_key(
 
     require_scope(tier_info, "read_write")
     require_project_access(tier_info, body.project)
-    return await _issue_key(db, body)
+    issued = await _issue_key(db, body)
+    await record_auth_event(
+        db, event="key_create", outcome="success", project=issued.project,
+        key_id=issued.id, ip_address=ip, user_agent=ua,
+    )
+    return issued
 
 
 @router.get("/{project}", response_model=list[ApiKeyResponse], responses={
@@ -267,6 +293,7 @@ async def list_api_keys(
 })
 async def rotate_api_key(
     key_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     tier_info: TierInfo = Depends(get_current_key_info),
 ):
@@ -303,6 +330,12 @@ async def rotate_api_key(
     await db.refresh(new_key)
     await db.commit()
 
+    ip, ua = resolve_client_ip(request), request.headers.get("user-agent", "")[:512]
+    await record_auth_event(
+        db, event="key_rotate", outcome="success", project=new_key.project,
+        key_id=new_key.id, ip_address=ip, user_agent=ua, detail=f"rotated_from={key_id}",
+    )
+
     return RotateResponse(
         new_key=raw_key,
         old_key_id=key_id,
@@ -319,6 +352,7 @@ async def rotate_api_key(
 })
 async def revoke_api_key(
     key_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     tier_info: TierInfo = Depends(get_current_key_info),
 ):
@@ -335,6 +369,12 @@ async def revoke_api_key(
     key.is_active = False
     await db.flush()
     await db.commit()
+
+    ip, ua = resolve_client_ip(request), request.headers.get("user-agent", "")[:512]
+    await record_auth_event(
+        db, event="key_revoke", outcome="success", project=key.project,
+        key_id=key.id, ip_address=ip, user_agent=ua,
+    )
 
 
 @router.get("/{key_id}/info", response_model=ApiKeyResponse, responses={

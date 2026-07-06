@@ -1218,6 +1218,7 @@ export default function App(){
   const ePath=token?`/v1/evals?project=${encodeURIComponent(project)}&limit=20`:null;
   const qPath=token?"/v1/traces/quota":null;
   const kPath=token?`/v1/keys/${encodeURIComponent(project)}`:null;
+  const aPath=token&&tab==="api-keys"?"/v1/auth/audit?limit=25":null;
   const pPath=token?`/v1/prompts/catalog?project=${encodeURIComponent(project)}`:null;
   const dPath=token?"/v1/eval/datasets":null;
 
@@ -1225,6 +1226,7 @@ export default function App(){
   const{data:rawEvals,loading:eLoad,refetch:rE}=useFetch(token,ePath);
   const{data:quota,loading:qLoad,refetch:rQ}=useFetch(token,qPath);
   const{data:rawKeys,loading:kLoad,error:kError,refetch:rK}=useFetch(token,kPath);
+  const{data:rawAudit,loading:aLoad,refetch:rA}=useFetch(token,aPath);
   const{data:rawPrompts,loading:pLoad,error:pError,refetch:rP}=useFetch(token,pPath);
   const{data:rawDatasets,loading:dLoad,error:dError,refetch:rD}=useFetch(token,dPath);
 
@@ -1405,7 +1407,7 @@ export default function App(){
         }
       }
       setActionOk(res.message||"Key rotated successfully.");
-      rK();
+      rK();rA();
     }catch(e){setActionError(e.message);}
     finally{setKeyAction("");}
   };
@@ -1425,7 +1427,7 @@ export default function App(){
         return;
       }
       setActionOk("API key revoked.");
-      rK();
+      rK();rA();
     }catch(e){setActionError(e.message);}
     finally{setKeyAction("");}
   };
@@ -1447,6 +1449,7 @@ export default function App(){
   const p99Color=latencyColor(p99);
   const successRate=traces.length>0?(((traces.length-failed)/traces.length)*100).toFixed(1):"—";
   const keys=Array.isArray(rawKeys)?rawKeys:[];
+  const auditLog=Array.isArray(rawAudit)?rawAudit:[];
   const prompts=Array.isArray(rawPrompts)?rawPrompts:[];
   const datasets=Array.isArray(rawDatasets)?rawDatasets:[];
   const activeLabel=NAV.flatMap(g=>g.items).find(([id])=>id===tab)?.[1]||"Overview";
@@ -2086,6 +2089,21 @@ export default function App(){
                           {keyAction===k.id?"…":"Revoke"}
                         </button>
                       </>}
+                    </div>
+                  ))}
+                </PanelCard>
+                <PanelCard title="Login audit log">
+                  {aLoad&&<div style={{fontSize:13,color:M.gray500}}>Loading audit log…</div>}
+                  {!aLoad&&auditLog.length===0&&<div style={{fontSize:13,color:M.gray500}}>No login events yet.</div>}
+                  {auditLog.map(row=>(
+                    <div key={row.id} style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8,padding:"8px 0",borderBottom:`1px solid ${M.gray200}`,fontSize:12}}>
+                      <div>
+                        <span style={{fontWeight:600,color:M.gray800}}>{row.event}</span>
+                        <span style={{marginLeft:8,color:row.outcome==="success"?M.green:M.red}}>{row.outcome}</span>
+                        {row.detail&&<span style={{marginLeft:8,color:M.gray500}}>{row.detail}</span>}
+                        {row.ip_address&&<div style={{color:M.gray500,marginTop:4,fontFamily:M.mono}}>{row.ip_address}</div>}
+                      </div>
+                      <div style={{color:M.gray500,whiteSpace:"nowrap"}}>{row.created_at?formatWhen(row.created_at):"—"}</div>
                     </div>
                   ))}
                 </PanelCard>

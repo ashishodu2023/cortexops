@@ -31,6 +31,7 @@
     <li>Production bootstrap requires email, blocks reserved project names, and is rate-limited per IP and email.</li>
     <li>Unsigned Stripe/PayPal webhooks are rejected in production; Pro keys are emailed, never logged.</li>
     <li>JWT token exchange is rate-limited; dev internal-key bypass is disabled in production.</li>
+    <li>Login and key lifecycle events are stored in an immutable auth audit log (IP, outcome, timestamp — never secrets).</li>
   </ul>
 
   <h2>Transport &amp; secrets</h2>

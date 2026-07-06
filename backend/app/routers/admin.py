@@ -8,28 +8,44 @@ from __future__ import annotations
 import secrets
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
-from sqlalchemy import select,func
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..audit import record_auth_event
 from ..config import get_settings
 from ..db import get_db
-from ..models.records import ApiKey, Project
+from ..models.records import ApiKey, AuthAuditLog, Project
+from ..security import client_ip
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"])
 settings = get_settings()
 
 
 # ── Internal auth ─────────────────────────────────────────────────────────
-def require_admin(x_internal_key: str | None = Header(None, alias="X-Internal-Key")) -> None:
+async def require_admin(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    x_internal_key: str | None = Header(None, alias="X-Internal-Key"),
+) -> None:
     """Require INTERNAL_API_KEY header — blocks all non-admin access."""
     expected = settings.internal_api_key
-    if not expected or not x_internal_key or not secrets.compare_digest(x_internal_key, expected):
-        raise HTTPException(
-            status_code=401,
-            detail="X-Internal-Key header required. This endpoint is for admin use only.",
+    ip = client_ip(request)
+    ua = request.headers.get("user-agent", "")[:512]
+    if expected and x_internal_key and secrets.compare_digest(x_internal_key, expected):
+        await record_auth_event(
+            db, event="admin_access", outcome="success", ip_address=ip, user_agent=ua,
         )
+        return
+    await record_auth_event(
+        db, event="admin_access", outcome="failure", ip_address=ip, user_agent=ua,
+        detail="invalid_internal_key",
+    )
+    raise HTTPException(
+        status_code=401,
+        detail="X-Internal-Key header required. This endpoint is for admin use only.",
+    )
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────
@@ -54,6 +70,20 @@ class UpgradeTierRequest(BaseModel):
 
 class RevokeRequest(BaseModel):
     reason: str = "admin_revoke"
+
+
+class AuthAuditEntry(BaseModel):
+    id: str
+    event: str
+    outcome: str
+    project: str | None
+    key_id: str | None
+    ip_address: str | None
+    user_agent: str | None
+    detail: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────
@@ -256,3 +286,26 @@ async def admin_set_scope(
     await db.commit()
 
     return {"key_id": key_id, "project": key.project, "scope": scope}
+
+
+@router.get("/auth-audit", response_model=list[AuthAuditEntry], responses={
+    401: {"description": "Missing or invalid X-Internal-Key header"},
+})
+async def admin_list_auth_audit(
+    project: str | None = Query(None),
+    event: str | None = Query(None),
+    outcome: str | None = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_admin),
+):
+    """Full auth audit log across all projects. Admin only."""
+    q = select(AuthAuditLog).order_by(AuthAuditLog.created_at.desc()).limit(limit)
+    if project:
+        q = q.where(AuthAuditLog.project == project)
+    if event:
+        q = q.where(AuthAuditLog.event == event)
+    if outcome:
+        q = q.where(AuthAuditLog.outcome == outcome)
+    result = await db.execute(q)
+    return list(result.scalars().all())

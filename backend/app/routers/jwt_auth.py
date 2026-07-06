@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import time
+from datetime import datetime
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Security
@@ -28,11 +29,13 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import hash_key
+from ..audit import record_auth_event
+from ..auth import get_current_key_info, hash_key
 from ..config import get_settings
 from ..db import get_db
-from ..models.records import ApiKey
+from ..models.records import ApiKey, AuthAuditLog
 from ..security import auth_limiter, client_ip
+from ..tiers import TierInfo
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
@@ -127,6 +130,24 @@ class TokenPayload(BaseModel):
     key_id: str
 
 
+class AuthAuditEntry(BaseModel):
+    id: str
+    event: str
+    outcome: str
+    project: str | None
+    key_id: str | None
+    ip_address: str | None
+    user_agent: str | None
+    detail: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+def _request_meta(request: Request) -> tuple[str, str]:
+    return client_ip(request), request.headers.get("user-agent", "")[:512]
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────
 
 @router.post("/token", response_model=TokenResponse, responses={
@@ -189,11 +210,19 @@ async def issue_jwt(
     Then use the JWT:
         Authorization: Bearer eyJ...
     """
-    ip = client_ip(request)
+    ip, ua = _request_meta(request)
     if not auth_limiter.is_allowed(ip):
+        await record_auth_event(
+            db, event="login", outcome="failure", ip_address=ip, user_agent=ua,
+            detail="rate_limited",
+        )
         raise HTTPException(status_code=429, detail="Too many token requests. Try again later.")
 
     if not api_key_header:
+        await record_auth_event(
+            db, event="login", outcome="failure", ip_address=ip, user_agent=ua,
+            detail="missing_api_key",
+        )
         raise HTTPException(status_code=401, detail="X-API-Key header required")
 
     hashed = hash_key(api_key_header)
@@ -203,16 +232,37 @@ async def issue_jwt(
     key_record = result.scalar_one_or_none()
 
     if not key_record:
+        await record_auth_event(
+            db, event="login", outcome="failure", ip_address=ip, user_agent=ua,
+            detail="invalid_or_revoked_key",
+        )
         raise HTTPException(status_code=401, detail="Invalid or revoked API key")
 
-    # Check expiry
-    from datetime import datetime
     if key_record.expires_at and datetime.utcnow() > key_record.expires_at:
+        await record_auth_event(
+            db,
+            event="login",
+            outcome="failure",
+            project=key_record.project,
+            key_id=key_record.id,
+            ip_address=ip,
+            user_agent=ua,
+            detail="key_expired",
+        )
         raise HTTPException(
             status_code=401,
-            detail={"error": "key_expired", "expired_at": key_record.expires_at.isoformat()}
+            detail={"error": "key_expired", "expired_at": key_record.expires_at.isoformat()},
         )
 
+    await record_auth_event(
+        db,
+        event="login",
+        outcome="success",
+        project=key_record.project,
+        key_id=key_record.id,
+        ip_address=ip,
+        user_agent=ua,
+    )
     return await _issue_token_for_key(key_record)
 
 
@@ -252,20 +302,37 @@ async def refresh_jwt(
     Refresh a short-lived JWT without resubmitting the API key.
     Accepts tokens expired up to 5 minutes ago.
     """
-    ip = client_ip(request)
+    ip, ua = _request_meta(request)
     if not auth_limiter.is_allowed(ip):
+        await record_auth_event(
+            db, event="login_refresh", outcome="failure", ip_address=ip, user_agent=ua,
+            detail="rate_limited",
+        )
         raise HTTPException(status_code=429, detail="Too many token requests. Try again later.")
 
     if not credentials:
+        await record_auth_event(
+            db, event="login_refresh", outcome="failure", ip_address=ip, user_agent=ua,
+            detail="missing_bearer_token",
+        )
         raise HTTPException(status_code=401, detail="Authorization: Bearer <token> required")
 
     try:
         payload = _verify(credentials.credentials, _JWT_SECRET, allow_expired_grace=300)
     except ValueError:
+        await record_auth_event(
+            db, event="login_refresh", outcome="failure", ip_address=ip, user_agent=ua,
+            detail="invalid_or_expired_token",
+        )
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     key_id = payload.get("key_id")
+    project = payload.get("project")
     if not key_id:
+        await record_auth_event(
+            db, event="login_refresh", outcome="failure", project=project, ip_address=ip,
+            user_agent=ua, detail="token_missing_key_id",
+        )
         raise HTTPException(status_code=401, detail="Token missing key_id")
 
     result = await db.execute(
@@ -273,16 +340,58 @@ async def refresh_jwt(
     )
     key_record = result.scalar_one_or_none()
     if not key_record:
+        await record_auth_event(
+            db, event="login_refresh", outcome="failure", project=project, key_id=key_id,
+            ip_address=ip, user_agent=ua, detail="key_revoked",
+        )
         raise HTTPException(status_code=401, detail="Invalid or revoked API key")
 
-    from datetime import datetime
     if key_record.expires_at and datetime.utcnow() > key_record.expires_at:
+        await record_auth_event(
+            db,
+            event="login_refresh",
+            outcome="failure",
+            project=key_record.project,
+            key_id=key_record.id,
+            ip_address=ip,
+            user_agent=ua,
+            detail="key_expired",
+        )
         raise HTTPException(
             status_code=401,
             detail={"error": "key_expired", "expired_at": key_record.expires_at.isoformat()},
         )
 
+    await record_auth_event(
+        db,
+        event="login_refresh",
+        outcome="success",
+        project=key_record.project,
+        key_id=key_record.id,
+        ip_address=ip,
+        user_agent=ua,
+    )
     return await _issue_token_for_key(key_record)
+
+
+@router.get("/audit", response_model=list[AuthAuditEntry], responses={
+    401: {"description": "Invalid or missing credentials"},
+    403: {"description": "Forbidden"},
+})
+async def list_auth_audit(
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
+    """Login and key lifecycle audit log for the authenticated project."""
+    limit = min(max(limit, 1), 200)
+    result = await db.execute(
+        select(AuthAuditLog)
+        .where(AuthAuditLog.project == tier_info.project)
+        .order_by(AuthAuditLog.created_at.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())
 
 
 @router.get("/token/verify", responses={
