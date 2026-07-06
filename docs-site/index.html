@@ -205,6 +205,20 @@ strong{color:var(--text)}
 .metric-table td{padding:11px 14px;border-bottom:1px solid var(--line-soft);color:var(--muted);vertical-align:top}
 .metric-table tr:last-child td{border-bottom:none}
 .metric-table tr:hover td{background:rgba(255,255,255,.03)}
+.api-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:20px 0}
+.api-cat-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;text-align:left;color:inherit;font-family:inherit;width:100%;transition:border-color .15s,transform .15s,box-shadow .15s}
+.api-cat-card:hover{border-color:rgba(220,38,38,.35);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.api-cat-card h3{font-size:14px;font-weight:600;color:var(--text);margin:0 0 6px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.api-cat-card p{font-size:12px;color:var(--muted);line-height:1.45;margin:0 0 10px}
+.api-cat-count{font-size:11px;font-family:var(--mono);color:var(--faint)}
+.api-cat-tier{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
+.api-cat-tier.all{background:rgba(255,255,255,.06);color:var(--muted)}
+.api-cat-tier.pro{background:var(--brand-light);color:var(--brand-soft)}
+.api-endpoint{font-family:var(--mono);font-size:12px;color:var(--text)}
+.api-method{font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;display:inline-block;min-width:44px;text-align:center}
+.api-method.get{background:var(--blue-light);color:var(--blue-soft)}
+.api-method.post{background:var(--green-light);color:var(--green)}
+.api-method.delete{background:rgba(127,29,29,.35);color:var(--red-soft)}
 .t-yes{color:var(--green)!important}.t-no{color:var(--red)!important}
 
 /* PREV/NEXT NAV */
@@ -291,11 +305,15 @@ strong{color:var(--text)}
       <a class="nav-item" onclick="show('judge')">LLM judge <span class="badge">Pro</span></a>
 
       <div class="nav-section">API reference</div>
-      <a class="nav-item" onclick="show('api-traces')">Traces API</a>
-      <a class="nav-item" onclick="show('api-evals')">Evals API</a>
-      <a class="nav-item" onclick="show('api-keys')">Keys API</a>
+      <a class="nav-item" onclick="show('api-overview')">API overview</a>
+      <a class="nav-item" onclick="show('api-traces')">Traces</a>
+      <a class="nav-item" onclick="show('api-evals')">Evals</a>
+      <a class="nav-item" onclick="show('api-datasets')">Datasets</a>
+      <a class="nav-item" onclick="show('api-keys')">Keys</a>
       <a class="nav-item" onclick="show('api-auth')">Auth &amp; JWT</a>
-      <a class="nav-item" onclick="show('api-admin')">Admin API</a>
+      <a class="nav-item" onclick="show('api-prompts')">Prompts</a>
+      <a class="nav-item" onclick="show('api-billing')">Billing</a>
+      <a class="nav-item" onclick="show('api-admin')">Admin</a>
 
       <div class="nav-section">Other</div>
       <a class="nav-item" onclick="show('changelog')">Changelog</a>
@@ -1141,7 +1159,127 @@ export OPENAI_API_KEY=sk-...</pre></div>
 
 <div class="callout callout-green"><div class="callout-title">Fallback</div>If OPENAI_API_KEY is not set, CortexOps falls back to heuristic scoring. Your evals always run — they never fail due to a missing OpenAI key.</div>
     `,
-    prev:{id:'prompts',label:'Prompt versioning'},next:{id:'api-traces',label:'Traces API'}
+    prev:{id:'prompts',label:'Prompt versioning'},next:{id:'api-overview',label:'API overview'}
+  },
+
+  'api-overview':{
+    breadcrumb:'Docs / API reference',
+    title:'API overview',
+    lead:'Category-wise REST API collection for CortexOps. Base URL: https://api.getcortexops.com — auth via X-API-Key or Bearer JWT.',
+    html:`
+<div class="callout callout-blue"><div class="callout-title">Quick links</div>
+<a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">Interactive Swagger UI</a> &nbsp;·&nbsp;
+<a href="https://api.getcortexops.com/openapi.json" target="_blank" rel="noopener">OpenAPI JSON</a> &nbsp;·&nbsp;
+<a href="https://www.getcortexops.com/status/" target="_blank" rel="noopener">System status</a>
+</div>
+
+<h2>Collections by category</h2>
+<div class="api-cat-grid">
+  <button type="button" class="api-cat-card" onclick="show('api-traces');return false">
+    <h3>Traces <span class="api-cat-tier all">All tiers</span></h3>
+    <p>Ingest agent runs, list traces, inspect node waterfalls, check monthly quota.</p>
+    <div class="api-cat-count">5 endpoints · POST /v1/traces, GET /v1/traces/quota …</div>
+  </button>
+  <button type="button" class="api-cat-card" onclick="show('api-evals');return false">
+    <h3>Evaluations <span class="api-cat-tier all">All tiers</span></h3>
+    <p>Run async eval suites, ingest results, list runs, diff regressions.</p>
+    <div class="api-cat-count">5 endpoints · POST /v1/evals, GET /v1/evals/diff …</div>
+  </button>
+  <button type="button" class="api-cat-card" onclick="show('api-datasets');return false">
+    <h3>Golden datasets <span class="api-cat-tier pro">Pro</span></h3>
+    <p>Create datasets, list cases, promote production traces into golden cases.</p>
+    <div class="api-cat-count">5 endpoints · POST /v1/eval/datasets, promote-from-trace …</div>
+  </button>
+  <button type="button" class="api-cat-card" onclick="show('judge');return false">
+    <h3>LLM judge <span class="api-cat-tier pro">Pro</span></h3>
+    <p>Semantic scoring with rubrics — task completion, quality, safety.</p>
+    <div class="api-cat-count">1 endpoint · POST /v1/eval/judge</div>
+  </button>
+  <button type="button" class="api-cat-card" onclick="show('api-keys');return false">
+    <h3>API keys <span class="api-cat-tier all">All tiers</span></h3>
+    <p>Bootstrap first key, create, rotate, revoke, list project keys.</p>
+    <div class="api-cat-count">6 endpoints · POST /v1/keys/bootstrap …</div>
+  </button>
+  <button type="button" class="api-cat-card" onclick="show('api-auth');return false">
+    <h3>Auth &amp; JWT <span class="api-cat-tier all">All tiers</span></h3>
+    <p>Exchange cxo- keys for short-lived Bearer tokens for the dashboard.</p>
+    <div class="api-cat-count">3 endpoints · POST /v1/auth/token/issue …</div>
+  </button>
+  <button type="button" class="api-cat-card" onclick="show('api-prompts');return false">
+    <h3>Prompts <span class="api-cat-tier pro">Pro</span></h3>
+    <p>Version prompts, diff versions, browse catalog per project.</p>
+    <div class="api-cat-count">5 endpoints · POST /v1/prompts, GET /v1/prompts/diff …</div>
+  </button>
+  <button type="button" class="api-cat-card" onclick="show('api-billing');return false">
+    <h3>Billing <span class="api-cat-tier all">All tiers</span></h3>
+    <p>Stripe checkout, PayPal subscription, customer portal, webhooks.</p>
+    <div class="api-cat-count">6 endpoints · checkout, portal, webhooks …</div>
+  </button>
+  <button type="button" class="api-cat-card" onclick="show('api-admin');return false">
+    <h3>Admin <span class="api-cat-tier all">Internal</span></h3>
+    <p>Cross-project key management — requires X-Internal-Key header.</p>
+    <div class="api-cat-count">5 endpoints · upgrade, revoke, list projects …</div>
+  </button>
+</div>
+
+<h2>Full endpoint index</h2>
+<table class="metric-table">
+<thead><tr><th>Category</th><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td rowspan="1">System</td><td><span class="api-method get">GET</span></td><td class="api-endpoint">/health</td><td>None</td><td>API health + circuit breakers</td></tr>
+
+<tr><td rowspan="4">Traces</td><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/traces</td><td>API key</td><td>Ingest trace (PII redacted)</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/traces</td><td>API key / JWT</td><td>List traces for project</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/traces/{id}</td><td>API key / JWT</td><td>Trace detail + node waterfall</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/traces/quota</td><td>API key / JWT</td><td>Monthly usage, tier, features</td></tr>
+
+<tr><td rowspan="5">Evaluations</td><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/evals</td><td>API key</td><td>Start async eval run (202)</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/evals/ingest</td><td>API key</td><td>Ingest completed eval summary</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/evals</td><td>API key / JWT</td><td>List eval runs</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/evals/{run_id}</td><td>API key / JWT</td><td>Run results + case breakdown</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/evals/diff</td><td>API key / JWT</td><td>Regression diff between two runs</td></tr>
+
+<tr><td rowspan="5">Datasets</td><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/eval/datasets</td><td>API key</td><td>Create golden dataset</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/eval/datasets</td><td>API key / JWT</td><td>List datasets for project</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/eval/datasets/{id}</td><td>API key / JWT</td><td>Dataset with all cases</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/eval/datasets/{id}/cases/from-trace</td><td>API key</td><td>Promote trace → golden case</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/eval/judge</td><td>API key (Pro)</td><td>LLM-as-judge single case</td></tr>
+
+<tr><td rowspan="6">Keys</td><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/keys/bootstrap</td><td>None (rate-limited)</td><td>First key for new project</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/keys</td><td>API key / internal</td><td>Create additional key</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/keys/{project}</td><td>API key / JWT</td><td>List keys for project</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/keys/{id}/info</td><td>API key</td><td>Key metadata</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/keys/{id}/rotate</td><td>API key</td><td>Rotate key atomically</td></tr>
+<tr><td><span class="api-method delete">DEL</span></td><td class="api-endpoint">/v1/keys/{id}</td><td>API key</td><td>Revoke key</td></tr>
+
+<tr><td rowspan="3">Auth</td><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/auth/token/issue</td><td>API key</td><td>Issue 1-hour JWT</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/auth/token</td><td>API key</td><td>Alias for token issue</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/auth/token/verify</td><td>Bearer JWT</td><td>Verify token claims</td></tr>
+
+<tr><td rowspan="5">Prompts</td><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/prompts</td><td>API key (Pro)</td><td>Commit prompt version</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/prompts</td><td>API key / JWT</td><td>List prompt versions</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/prompts/catalog</td><td>API key / JWT</td><td>Prompt names per project</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/prompts/diff</td><td>API key / JWT</td><td>Unified diff between versions</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/prompts/{version_id}</td><td>API key / JWT</td><td>Single version content</td></tr>
+
+<tr><td rowspan="4">Billing</td><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/billing/checkout</td><td>None</td><td>Stripe checkout session</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/billing/paypal/checkout</td><td>None</td><td>PayPal subscription</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/billing/portal</td><td>API key</td><td>Stripe customer portal</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/billing/session/{id}</td><td>None</td><td>Checkout session status</td></tr>
+
+<tr><td rowspan="5">Admin</td><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/admin/keys</td><td>Internal key</td><td>List all keys</td></tr>
+<tr><td><span class="api-method get">GET</span></td><td class="api-endpoint">/v1/admin/projects</td><td>Internal key</td><td>List all projects</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/admin/keys/{id}/upgrade</td><td>Internal key</td><td>Set tier / scope</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/admin/keys/{id}/revoke</td><td>Internal key</td><td>Revoke any key</td></tr>
+<tr><td><span class="api-method post">POST</span></td><td class="api-endpoint">/v1/admin/keys/{id}/scope</td><td>Internal key</td><td>Update scope only</td></tr>
+</tbody>
+</table>
+
+<div class="callout callout-green"><div class="callout-title">Authentication</div>
+SDK &amp; CI: <code>X-API-Key: cxo-…</code> &nbsp;·&nbsp; Dashboard: <code>Authorization: Bearer &lt;jwt&gt;</code> &nbsp;·&nbsp; Admin: <code>X-Internal-Key</code>
+</div>
+    `,
+    prev:{id:'judge',label:'LLM judge'},next:{id:'api-traces',label:'Traces API'}
   },
 
   'api-traces':{
@@ -1259,7 +1397,7 @@ export OPENAI_API_KEY=sk-...</pre></div>
   <span class="cn">"upgrade_url"</span>: <span class="ck">null</span>
 }</pre></div>
     `,
-    prev:{id:'judge',label:'LLM judge'},next:{id:'api-evals',label:'Evals API'}
+    prev:{id:'api-overview',label:'API overview'},next:{id:'api-evals',label:'Evals API'}
   },
 
   'api-evals':{
@@ -1271,14 +1409,16 @@ export OPENAI_API_KEY=sk-...</pre></div>
 <table class="metric-table">
 <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td>POST</td><td>/v1/evals/run</td><td>Start an async eval suite run</td></tr>
+<tr><td>POST</td><td>/v1/evals</td><td>Start an async eval suite run (returns 202)</td></tr>
+<tr><td>POST</td><td>/v1/evals/ingest</td><td>Ingest a completed EvalSuite summary from the SDK</td></tr>
+<tr><td>GET</td><td>/v1/evals</td><td>List eval runs for your project</td></tr>
 <tr><td>GET</td><td>/v1/evals/{run_id}</td><td>Get eval results and per-case breakdown</td></tr>
 <tr><td>GET</td><td>/v1/evals/diff</td><td>Regression diff between two runs</td></tr>
 </tbody>
 </table>
 
-<h2>POST /v1/evals/run</h2>
-<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/evals/run \
+<h2>POST /v1/evals</h2>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/evals \
   -H <span class="cs">"X-API-Key: cxo-..."</span> \
   -H <span class="cs">"Content-Type: application/json"</span> \
   -d '{
@@ -1335,7 +1475,63 @@ export OPENAI_API_KEY=sk-...</pre></div>
   <span class="cn">"improvements"</span>:         [<span class="cs">"refund_happy_path"</span>]
 }</pre></div>
     `,
-    prev:{id:'api-traces',label:'Traces API'},next:{id:'api-keys',label:'Keys API'}
+    prev:{id:'api-traces',label:'Traces API'},next:{id:'api-datasets',label:'Datasets API'}
+  },
+
+  'api-datasets':{
+    breadcrumb:'Docs / API reference',
+    title:'Datasets API',
+    lead:'Create golden evaluation datasets, list cases, and promote production traces into CI-blocking golden cases.',
+    html:`
+<div class="callout callout-amber"><div class="callout-title">Pro feature</div>Hosted datasets and promote-from-trace require a Pro API key. SDK local YAML datasets work on all tiers without these endpoints.</div>
+
+<h2>Endpoints</h2>
+<table class="metric-table">
+<thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>POST</td><td>/v1/eval/datasets</td><td>Create a named dataset with cases</td></tr>
+<tr><td>GET</td><td>/v1/eval/datasets</td><td>List datasets for your project</td></tr>
+<tr><td>GET</td><td>/v1/eval/datasets/{id}</td><td>Get dataset with full case list</td></tr>
+<tr><td>POST</td><td>/v1/eval/datasets/{id}/cases/from-trace</td><td>Promote a production trace into a golden case</td></tr>
+</tbody>
+</table>
+
+<h2>POST /v1/eval/datasets</h2>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/eval/datasets \
+  -H <span class="cs">"X-API-Key: cxo-..."</span> \
+  -H <span class="cs">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="cn">"name"</span>:        <span class="cs">"golden_v1"</span>,
+    <span class="cn">"description"</span>: <span class="cs">"Payment agent regressions"</span>,
+    <span class="cn">"cases"</span>: [
+      {
+        <span class="cn">"case_id"</span>:  <span class="cs">"refund_happy_path"</span>,
+        <span class="cn">"input"</span>:    {<span class="cn">"query"</span>: <span class="cs">"Refund order #4821"</span>},
+        <span class="cn">"expected"</span>: {<span class="cn">"action"</span>: <span class="cs">"refund_approved"</span>}
+      }
+    ]
+  }'</pre></div>
+
+<h2>POST /v1/eval/datasets/{id}/cases/from-trace</h2>
+<p>Promote a failed or interesting production trace into your golden dataset — the same flow as the dashboard <strong>Add golden case</strong> button.</p>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/eval/datasets/DS_ID/cases/from-trace \
+  -H <span class="cs">"X-API-Key: cxo-..."</span> \
+  -H <span class="cs">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="cn">"trace_id"</span>: <span class="cs">"63542bfc-8480-41e5-9413-87fc604625bd"</span>,
+    <span class="cn">"case_id"</span>:  <span class="cs">"prod-refund-timeout"</span>
+  }'</pre></div>
+<div class="code-block"><pre><span class="cm">// Response 201</span>
+{
+  <span class="cn">"case_id"</span>:     <span class="cs">"prod-refund-timeout"</span>,
+  <span class="cn">"dataset_id"</span>:  <span class="cs">"DS_ID"</span>,
+  <span class="cn">"trace_id"</span>:    <span class="cs">"63542bfc-..."</span>,
+  <span class="cn">"message"</span>:     <span class="cs">"Case added from trace"</span>
+}</pre></div>
+
+<p>See also: <a href="#promote-trace" onclick="show('promote-trace');return false">Promote from trace guide</a> · SDK <code>CortexClient.add_case_from_trace()</code></p>
+    `,
+    prev:{id:'api-evals',label:'Evals API'},next:{id:'api-keys',label:'Keys API'}
   },
 
   'api-keys':{
@@ -1409,7 +1605,7 @@ export OPENAI_API_KEY=sk-...</pre></div>
 
 <div class="callout callout-amber"><div class="callout-title">Security</div>Raw keys are returned exactly once at creation. CortexOps stores only the SHA-256 hash. If a key is lost, rotate or revoke it and create a new one.</div>
     `,
-    prev:{id:'api-evals',label:'Evals API'},next:{id:'api-auth',label:'Auth & JWT'}
+    prev:{id:'api-datasets',label:'Datasets API'},next:{id:'api-auth',label:'Auth & JWT'}
   },
 
   'api-auth':{
@@ -1477,7 +1673,84 @@ curl https://api.getcortexops.com/v1/traces/quota \
 </tbody>
 </table>
     `,
-    prev:{id:'api-keys',label:'Keys API'},next:{id:'api-admin',label:'Admin API'}
+    prev:{id:'api-keys',label:'Keys API'},next:{id:'api-prompts',label:'Prompts API'}
+  },
+
+  'api-prompts':{
+    breadcrumb:'Docs / API reference',
+    title:'Prompts API',
+    lead:'Version-control agent prompts per project. Commit, list, diff, and browse the prompt catalog.',
+    html:`
+<div class="callout callout-amber"><div class="callout-title">Pro feature</div>Prompt versioning requires a Pro API key.</div>
+
+<h2>Endpoints</h2>
+<table class="metric-table">
+<thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>POST</td><td>/v1/prompts</td><td>Commit a new prompt version</td></tr>
+<tr><td>GET</td><td>/v1/prompts</td><td>List versions (filter by prompt name)</td></tr>
+<tr><td>GET</td><td>/v1/prompts/catalog</td><td>List prompt names for a project</td></tr>
+<tr><td>GET</td><td>/v1/prompts/diff</td><td>Unified diff between two versions</td></tr>
+<tr><td>GET</td><td>/v1/prompts/{version_id}</td><td>Get a single version</td></tr>
+</tbody>
+</table>
+
+<h2>POST /v1/prompts</h2>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/prompts \
+  -H <span class="cs">"X-API-Key: cxo-..."</span> \
+  -H <span class="cs">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="cn">"project"</span>:         <span class="cs">"payments-agent"</span>,
+    <span class="cn">"prompt_name"</span>:     <span class="cs">"refund_classifier"</span>,
+    <span class="cn">"content"</span>:         <span class="cs">"You are a payment agent..."</span>,
+    <span class="cn">"model"</span>:           <span class="cs">"gpt-4o"</span>,
+    <span class="cn">"temperature"</span>:     0.2,
+    <span class="cn">"commit_message"</span>:  <span class="cs">"Tighten refund policy wording"</span>,
+    <span class="cn">"author"</span>:          <span class="cs">"ashish"</span>
+  }'</pre></div>
+
+<h2>GET /v1/prompts/diff</h2>
+<div class="code-block"><pre>curl "https://api.getcortexops.com/v1/prompts/diff?version_a=VER_A&version_b=VER_B" \
+  -H <span class="cs">"X-API-Key: cxo-..."</span></pre></div>
+    `,
+    prev:{id:'api-auth',label:'Auth & JWT'},next:{id:'api-billing',label:'Billing API'}
+  },
+
+  'api-billing':{
+    breadcrumb:'Docs / API reference',
+    title:'Billing API',
+    lead:'Stripe and PayPal checkout flows for Pro subscriptions. Webhooks are called by payment providers — not by your app.',
+    html:`
+<h2>Endpoints</h2>
+<table class="metric-table">
+<thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>POST</td><td>/v1/billing/checkout</td><td>None</td><td>Create Stripe checkout session</td></tr>
+<tr><td>POST</td><td>/v1/billing/paypal/checkout</td><td>None</td><td>Create PayPal subscription approval URL</td></tr>
+<tr><td>GET</td><td>/v1/billing/session/{session_id}</td><td>None</td><td>Stripe session status after redirect</td></tr>
+<tr><td>POST</td><td>/v1/billing/portal</td><td>API key</td><td>Stripe customer portal link</td></tr>
+<tr><td>POST</td><td>/v1/billing/webhook/stripe</td><td>Stripe signature</td><td>Stripe webhook receiver</td></tr>
+<tr><td>POST</td><td>/v1/billing/webhook/paypal</td><td>PayPal signature</td><td>PayPal webhook receiver</td></tr>
+</tbody>
+</table>
+
+<h2>POST /v1/billing/paypal/checkout</h2>
+<p>Used by the marketing site Pro modal. Returns an approval URL to redirect the user to PayPal.</p>
+<div class="code-block"><pre>curl -X POST https://api.getcortexops.com/v1/billing/paypal/checkout \
+  -H <span class="cs">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="cn">"email"</span>:   <span class="cs">"you@company.com"</span>,
+    <span class="cn">"project"</span>: <span class="cs">"payments-agent"</span>
+  }'</pre></div>
+<div class="code-block"><pre><span class="cm">// Response 200</span>
+{
+  <span class="cn">"approval_url"</span>: <span class="cs">"https://www.paypal.com/..."</span>,
+  <span class="cn">"subscription_id"</span>: <span class="cs">"I-..."</span>
+}</pre></div>
+
+<div class="callout callout-blue"><div class="callout-title">After payment</div>Your Pro API key is emailed automatically. Upgrade also runs via Stripe/PayPal webhooks on the server.</div>
+    `,
+    prev:{id:'api-prompts',label:'Prompts API'},next:{id:'api-admin',label:'Admin API'}
   },
 
   'api-admin':{
@@ -1543,7 +1816,7 @@ curl https://api.getcortexops.com/v1/traces/quota \
   <span class="cn">"total"</span>: 1
 }</pre></div>
     `,
-    prev:{id:'api-auth',label:'Auth & JWT'},next:{id:'changelog',label:'Changelog'}
+    prev:{id:'api-billing',label:'Billing API'},next:{id:'changelog',label:'Changelog'}
   },
 
   changelog:{
@@ -1695,7 +1968,7 @@ results.cost_per_case  <span class="cm"># per-case breakdown</span></pre></div>
 
 };
 
-const sectionOrder=['intro','features','install','quickstart','tracer','datasets','promote-trace','metrics','ci','langgraph','crewai','generic','hosted','alerts','prompts','judge','api-traces','api-evals','api-keys','api-auth','api-admin','changelog','faq','roadmap'];
+const sectionOrder=['intro','features','install','quickstart','tracer','datasets','promote-trace','metrics','ci','langgraph','crewai','generic','hosted','alerts','prompts','judge','api-overview','api-traces','api-evals','api-datasets','api-keys','api-auth','api-prompts','api-billing','api-admin','changelog','faq','roadmap'];
 
 function show(id){
   const s=sections[id];

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference — CortexOps</title>
+  <meta name="description" content="Category-wise REST API collection for CortexOps — traces, evals, datasets, keys, auth, prompts, billing.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site.css">
+  <style>
+    .api-page{max-width:960px;margin:0 auto;padding:96px 28px 64px}
+    .api-page h1{font-size:36px;margin-bottom:8px}
+    .api-lead{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:28px;max-width:640px}
+    .api-base{font-family:var(--mono);font-size:13px;color:var(--brand-soft);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:28px;display:inline-block}
+    .api-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:32px}
+    .api-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;text-decoration:none;color:inherit;display:block;transition:border-color .15s,transform .15s,box-shadow .15s}
+    .api-card:hover{border-color:rgba(220,38,38,.35);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.35);text-decoration:none}
+    .api-card h2{font-size:16px;font-weight:600;margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .api-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 12px}
+    .api-card ul{margin:0;padding:0;list-style:none;font-family:var(--mono);font-size:11px;color:var(--faint);line-height:1.7}
+    .api-tier{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
+    .api-tier.all{background:rgba(255,255,255,.06);color:var(--muted)}
+    .api-tier.pro{background:var(--brand-light);color:var(--brand-soft)}
+    .api-links{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-top:8px}
+    .api-links a{color:var(--brand-soft)}
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <div class="nav-mark"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M10 2.5 Q14 10 10 17.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M6 2.5 Q10.5 10 6 17.5" stroke="white" stroke-width="1.8" stroke-linecap="round" opacity=".45"/>
+      <circle cx="10" cy="2.5" r="1.8" fill="white"/><circle cx="10" cy="17.5" r="1.8" fill="white"/>
+    </svg></div>
+    <span>CortexOps</span>
+  </a>
+  <div class="nav-links">
+    <a href="https://docs.getcortexops.com">Docs</a>
+    <a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">Swagger</a>
+    <a href="/status/">Status</a>
+  </div>
+</nav>
+<main class="api-page">
+  <h1>API reference</h1>
+  <p class="api-lead">REST API collections by category. Authenticate with <code>X-API-Key: cxo-…</code> or a Bearer JWT from <code>POST /v1/auth/token/issue</code>.</p>
+  <div class="api-base">https://api.getcortexops.com</div>
+
+  <div class="api-grid">
+    <a class="api-card" href="https://docs.getcortexops.com#api-overview">
+      <h2>Overview <span class="api-tier all">Index</span></h2>
+      <p>Full endpoint index across all categories — 39 endpoints.</p>
+      <ul><li>→ Complete API map</li></ul>
+    </a>
+    <a class="api-card" href="/api/">
+      <h2>Traces <span class="api-tier all">All tiers</span></h2>
+      <p>Ingest runs, list traces, inspect waterfalls, check quota.</p>
+      <ul>
+        <li>POST /v1/traces</li>
+        <li>GET /v1/traces</li>
+        <li>GET /v1/traces/{id}</li>
+        <li>GET /v1/traces/quota</li>
+      </ul>
+    </a>
+    <a class="api-card" href="https://docs.getcortexops.com#api-evals">
+      <h2>Evaluations <span class="api-tier all">All tiers</span></h2>
+      <p>Async eval runs, ingest results, diff regressions.</p>
+      <ul>
+        <li>POST /v1/evals</li>
+        <li>POST /v1/evals/ingest</li>
+        <li>GET /v1/evals/diff</li>
+      </ul>
+    </a>
+    <a class="api-card" href="https://docs.getcortexops.com#api-datasets">
+      <h2>Golden datasets <span class="api-tier pro">Pro</span></h2>
+      <p>Create datasets, promote traces to golden cases.</p>
+      <ul>
+        <li>POST /v1/eval/datasets</li>
+        <li>POST …/cases/from-trace</li>
+      </ul>
+    </a>
+    <a class="api-card" href="https://docs.getcortexops.com#api-keys">
+      <h2>API keys <span class="api-tier all">All tiers</span></h2>
+      <p>Bootstrap, create, rotate, revoke project keys.</p>
+      <ul>
+        <li>POST /v1/keys/bootstrap</li>
+        <li>POST /v1/keys/{id}/rotate</li>
+      </ul>
+    </a>
+    <a class="api-card" href="https://docs.getcortexops.com#api-auth">
+      <h2>Auth &amp; JWT <span class="api-tier all">All tiers</span></h2>
+      <p>Exchange API keys for dashboard Bearer tokens.</p>
+      <ul>
+        <li>POST /v1/auth/token/issue</li>
+        <li>GET /v1/auth/token/verify</li>
+      </ul>
+    </a>
+    <a class="api-card" href="https://docs.getcortexops.com#api-prompts">
+      <h2>Prompts <span class="api-tier pro">Pro</span></h2>
+      <p>Version prompts, diff changes, browse catalog.</p>
+      <ul>
+        <li>POST /v1/prompts</li>
+        <li>GET /v1/prompts/diff</li>
+      </ul>
+    </a>
+    <a class="api-card" href="https://docs.getcortexops.com#api-billing">
+      <h2>Billing <span class="api-tier all">All tiers</span></h2>
+      <p>Stripe &amp; PayPal checkout, customer portal.</p>
+      <ul>
+        <li>POST /v1/billing/checkout</li>
+        <li>POST /v1/billing/paypal/checkout</li>
+      </ul>
+    </a>
+    <a class="api-card" href="https://docs.getcortexops.com#api-admin">
+      <h2>Admin <span class="api-tier all">Internal</span></h2>
+      <p>Cross-project key management (X-Internal-Key).</p>
+      <ul>
+        <li>GET /v1/admin/projects</li>
+        <li>POST /v1/admin/keys/{id}/upgrade</li>
+      </ul>
+    </a>
+  </div>
+
+  <div class="api-links">
+    <a href="https://api.getcortexops.com/docs" target="_blank" rel="noopener">Interactive Swagger UI →</a>
+    <a href="https://api.getcortexops.com/openapi.json" target="_blank" rel="noopener">OpenAPI JSON →</a>
+    <a href="https://docs.getcortexops.com">Full documentation →</a>
+  </div>
+</main>
+<script src="/site.js"></script>
+</body>
+</html>
