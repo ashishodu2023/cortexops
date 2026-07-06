@@ -12,6 +12,7 @@ import {
   saveSession,
   sessionExpired,
 } from "./api.js";
+import { clearUiActivity, loadUiActivity, logUiActivity } from "./activity.js";
 
 const M = {
   brand:"#DC2626",brandDark:"#991B1B",brandLight:"rgba(220,38,38,.2)",brandSoft:"#F87171",
@@ -298,6 +299,7 @@ function NavIcon({id}){
   const paths={
     overview:"M3 3h4v4H3zm7 0h4v4h-4zm-7 7h4v4H3zm7 0h4v4h-4z",
     traces:"M4 6h12M4 10h8M4 14h10",
+    activity:"M12 8v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z",
     alerts:"M12 3 4 18h16L12 3zm0 5v4m0 3h.01",
     metrics:"M4 16V8m4 8V5m4 11v-6m4 6V4",
     evaluations:"M5 12l4 4 9-10",
@@ -725,6 +727,7 @@ const NAV=[
   {section:"Monitor",items:[
     ["overview","Overview"],
     ["traces","Traces"],
+    ["activity","Activity"],
     ["alerts","Alerts"],
     ["metrics","Metrics"],
   ]},
@@ -744,6 +747,7 @@ const NAV=[
 const TAB_HINTS={
   overview:"Production health at a glance — traces, evals, and alerts.",
   traces:"Browse and inspect agent runs — filter by status, date range, or search.",
+  activity:"Everything you do in this dashboard during the current browser session.",
   evaluations:"Golden dataset results and pass rates over time.",
   prompts:"Track prompt versions linked to eval runs.",
   datasets:"Golden cases for CI and local eval gates.",
@@ -756,6 +760,17 @@ const TAB_HINTS={
 };
 
 const VALID_TABS=new Set(NAV.flatMap(g=>g.items.map(([id])=>id)));
+const TAB_LABELS=Object.fromEntries(NAV.flatMap(g=>g.items));
+
+const ACTIVITY_STYLE={
+  auth:{color:M.green,bg:M.greenLight},
+  nav:{color:M.blue,bg:M.blueLight},
+  trace:{color:M.purple,bg:M.purpleLight},
+  key:{color:M.amber,bg:M.amberLight},
+  eval:{color:M.cyan,bg:M.cyanLight},
+  filter:{color:M.gray800,bg:M.gray100},
+  settings:{color:M.gray700,bg:M.gray100},
+};
 
 function parseRoute(hash){
   const raw=(hash||"#/overview").replace(/^#/,"");
@@ -1157,7 +1172,14 @@ export default function App(){
   const[evalDiff,setEvalDiff]=useState(null);
   const[diffLoading,setDiffLoading]=useState(false);
   const[diffError,setDiffError]=useState("");
+  const[uiActivity,setUiActivity]=useState(()=>loadUiActivity());
   const ref=useRef(null);
+  const sessionBoot=useRef(false);
+
+  const track=useCallback((type,label,meta={})=>{
+    logUiActivity(type,label,meta);
+    setUiActivity(loadUiActivity());
+  },[]);
 
   const token=session?.access_token;
   const sessionKeyId=session?.key_id||keyIdFromToken(token);
@@ -1211,6 +1233,31 @@ export default function App(){
     return()=>clearInterval(id);
   },[token]);
 
+  useEffect(()=>{
+    if(!session||!authReady||sessionBoot.current)return;
+    sessionBoot.current=true;
+    track("auth","Session resumed",{project:session.project,tier:session.tier});
+  },[session,authReady,track]);
+
+  const filterInit=useRef(false);
+  useEffect(()=>{
+    if(!session||tab!=="traces")return;
+    if(!filterInit.current){filterInit.current=true;return;}
+    track("filter",`Trace filter: ${filter}`,{filter});
+  },[filter,session,tab,track]);
+
+  const liveInit=useRef(false);
+  useEffect(()=>{
+    if(!session)return;
+    if(!liveInit.current){liveInit.current=true;return;}
+    track("settings",live?"Live refresh on":"Live refresh off",{live,seconds:refreshSec});
+  },[live,session,refreshSec,track]);
+
+  useEffect(()=>{
+    if(!evalDiff||!session)return;
+    track("eval","Compared eval runs",{run_a:diffRunA,run_b:diffRunB});
+  },[evalDiff,session,diffRunA,diffRunB,track]);
+
   const traceDateQuery=tab==="traces"?buildTraceDateQuery(traceDatePreset,traceDateFrom,traceDateTo):"";
   const traceLimit=tab==="traces"&&traceDatePreset!=="all"?500:100;
   const statusQuery=tab==="traces"&&filter!=="all"?`&status=${encodeURIComponent(filter)}`:"";
@@ -1218,7 +1265,6 @@ export default function App(){
   const ePath=token?`/v1/evals?project=${encodeURIComponent(project)}&limit=20`:null;
   const qPath=token?"/v1/traces/quota":null;
   const kPath=token?`/v1/keys/${encodeURIComponent(project)}`:null;
-  const aPath=token&&tab==="api-keys"?"/v1/auth/audit?limit=25":null;
   const pPath=token?`/v1/prompts/catalog?project=${encodeURIComponent(project)}`:null;
   const dPath=token?"/v1/eval/datasets":null;
 
@@ -1226,7 +1272,6 @@ export default function App(){
   const{data:rawEvals,loading:eLoad,refetch:rE}=useFetch(token,ePath);
   const{data:quota,loading:qLoad,refetch:rQ}=useFetch(token,qPath);
   const{data:rawKeys,loading:kLoad,error:kError,refetch:rK}=useFetch(token,kPath);
-  const{data:rawAudit,loading:aLoad,refetch:rA}=useFetch(token,aPath);
   const{data:rawPrompts,loading:pLoad,error:pError,refetch:rP}=useFetch(token,pPath);
   const{data:rawDatasets,loading:dLoad,error:dError,refetch:rD}=useFetch(token,dPath);
 
@@ -1344,10 +1389,16 @@ export default function App(){
 
   const login=(sess)=>{
     saveSession(sess);setSession(sess);
+    sessionBoot.current=true;
+    track("auth","Signed in",{project:sess.project,tier:sess.tier});
     history.replaceState({tab:"overview",traceId:null},"","#/overview");
     setTab("overview");setSelected(null);setTraceDetail(null);
   };
   const logout=()=>{
+    track("auth","Signed out");
+    clearUiActivity();
+    setUiActivity([]);
+    sessionBoot.current=false;
     clearSession();setSession(null);setSelected(null);setTraceDetail(null);setNavOpen(false);
     history.replaceState(null,"","#login");
   };
@@ -1367,7 +1418,8 @@ export default function App(){
     setNavOpen(false);
     setMetricFocus((id==="overview"||id==="metrics")?focus:null);
     if(id!=="traces"){setFilter("all");}
-  },[pushRoute]);
+    track("nav",`Opened ${TAB_LABELS[id]||id}`,{tab:id});
+  },[pushRoute,track]);
 
   const openMetricDrill=useCallback((focus)=>{
     setMetricFocus(prev=>prev===focus?null:focus);
@@ -1377,20 +1429,24 @@ export default function App(){
       setSelected(null);
       setTraceDetail(null);
       setNavOpen(false);
+      track("nav","Opened Metrics",{tab:"metrics",focus});
     }
-  },[tab,pushRoute]);
+    track("settings",`Metric drilldown: ${focus}`,{metric:focus});
+  },[tab,pushRoute,track]);
 
   const openTrace=useCallback((t)=>{
     if(!t?.trace_id)return;
     pushRoute(tab,t.trace_id);
     setSelected(t);
-  },[tab,pushRoute]);
+    track("trace",`Viewed trace ${t.trace_id.slice(0,8)}`,{trace_id:t.trace_id,status:t.status});
+  },[tab,pushRoute,track]);
 
   const closeTrace=useCallback(()=>{
     pushRoute(tab,null);
     setSelected(null);
     setTraceDetail(null);
-  },[tab,pushRoute]);
+    track("trace","Closed trace detail");
+  },[tab,pushRoute,track]);
 
   const rotateKey=async(keyId)=>{
     setActionError("");setActionOk("");setKeyAction(keyId);
@@ -1407,7 +1463,8 @@ export default function App(){
         }
       }
       setActionOk(res.message||"Key rotated successfully.");
-      rK();rA();
+      track("key","Rotated API key",{key_id:keyId});
+      rK();
     }catch(e){setActionError(e.message);}
     finally{setKeyAction("");}
   };
@@ -1427,7 +1484,8 @@ export default function App(){
         return;
       }
       setActionOk("API key revoked.");
-      rK();rA();
+      track("key","Revoked API key",{key_id:keyId});
+      rK();
     }catch(e){setActionError(e.message);}
     finally{setKeyAction("");}
   };
@@ -1449,7 +1507,6 @@ export default function App(){
   const p99Color=latencyColor(p99);
   const successRate=traces.length>0?(((traces.length-failed)/traces.length)*100).toFixed(1):"—";
   const keys=Array.isArray(rawKeys)?rawKeys:[];
-  const auditLog=Array.isArray(rawAudit)?rawAudit:[];
   const prompts=Array.isArray(rawPrompts)?rawPrompts:[];
   const datasets=Array.isArray(rawDatasets)?rawDatasets:[];
   const activeLabel=NAV.flatMap(g=>g.items).find(([id])=>id===tab)?.[1]||"Overview";
@@ -1808,8 +1865,9 @@ export default function App(){
                   <div style={{fontSize:13,color:M.gray600}}>{evals.length} run{evals.length!==1?"s":""} · compare baseline vs current</div>
                   <button
                     onClick={()=>{
-                      if(compareMode){setCompareMode(false);setEvalDiff(null);setDiffError("");return;}
+                      if(compareMode){setCompareMode(false);setEvalDiff(null);setDiffError("");track("eval","Closed eval comparison");return;}
                       setCompareMode(true);
+                      track("eval","Started eval comparison");
                       if(evals.length>=2){setDiffRunA(evals[1].run_id);setDiffRunB(evals[0].run_id);}
                       else if(evals.length===1){setDiffRunA("");setDiffRunB(evals[0].run_id);}
                     }}
@@ -2092,23 +2150,40 @@ export default function App(){
                     </div>
                   ))}
                 </PanelCard>
-                <PanelCard title="Login audit log">
-                  {aLoad&&<div style={{fontSize:13,color:M.gray500}}>Loading audit log…</div>}
-                  {!aLoad&&auditLog.length===0&&<div style={{fontSize:13,color:M.gray500}}>No login events yet.</div>}
-                  {auditLog.map(row=>(
-                    <div key={row.id} style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8,padding:"8px 0",borderBottom:`1px solid ${M.gray200}`,fontSize:12}}>
-                      <div>
-                        <span style={{fontWeight:600,color:M.gray800}}>{row.event}</span>
-                        <span style={{marginLeft:8,color:row.outcome==="success"?M.green:M.red}}>{row.outcome}</span>
-                        {row.detail&&<span style={{marginLeft:8,color:M.gray500}}>{row.detail}</span>}
-                        {row.ip_address&&<div style={{color:M.gray500,marginTop:4,fontFamily:M.mono}}>{row.ip_address}</div>}
-                      </div>
-                      <div style={{color:M.gray500,whiteSpace:"nowrap"}}>{row.created_at?formatWhen(row.created_at):"—"}</div>
-                    </div>
-                  ))}
-                </PanelCard>
                 <PanelCard title="Session">
                   <div style={{fontSize:13,color:M.gray600}}>Your session is saved in this browser and auto-refreshes hourly. Use <strong>Sign out</strong> in the sidebar to clear it.</div>
+                </PanelCard>
+              </div>
+            )}
+
+            {tab==="activity"&&(
+              <div style={{maxWidth:760,display:"grid",gap:14}}>
+                <PanelCard title="Session activity">
+                  <div style={{fontSize:13,color:M.gray600,marginBottom:14}}>
+                    Actions you take in this dashboard during the current browser tab. Cleared when you sign out or close the tab.
+                  </div>
+                  <div style={{display:"flex",gap:8,marginBottom:14}}>
+                    <button type="button" onClick={()=>{clearUiActivity();setUiActivity([]);}} style={{background:M.gray100,border:`1px solid ${M.gray300}`,borderRadius:4,padding:"6px 12px",fontSize:12,cursor:"pointer"}}>Clear activity</button>
+                    <span style={{fontSize:12,color:M.gray500,alignSelf:"center"}}>{uiActivity.length} event{uiActivity.length===1?"":"s"}</span>
+                  </div>
+                  {uiActivity.length===0&&<div style={{fontSize:13,color:M.gray500}}>No activity yet — navigate, inspect traces, or manage keys to build your timeline.</div>}
+                  {uiActivity.map(row=>{
+                    const style=ACTIVITY_STYLE[row.type]||ACTIVITY_STYLE.settings;
+                    return(
+                      <div key={row.id} style={{display:"grid",gridTemplateColumns:"auto 1fr auto",gap:12,padding:"10px 0",borderBottom:`1px solid ${M.gray200}`}}>
+                        <span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:style.color,background:style.bg,borderRadius:4,padding:"4px 8px",alignSelf:"start"}}>{row.type}</span>
+                        <div>
+                          <div style={{fontSize:14,color:M.gray900}}>{row.label}</div>
+                          {row.meta&&Object.keys(row.meta).length>0&&(
+                            <div style={{fontFamily:M.mono,fontSize:11,color:M.gray500,marginTop:4}}>
+                              {Object.entries(row.meta).map(([k,v])=>`${k}: ${v}`).join(" · ")}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{fontSize:11,color:M.gray500,whiteSpace:"nowrap"}} title={new Date(row.at).toLocaleString()}>{timeAgo(row.at)}</div>
+                      </div>
+                    );
+                  })}
                 </PanelCard>
               </div>
             )}
