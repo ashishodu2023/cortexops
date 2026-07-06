@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,6 +17,7 @@ from .security import RequestIDMiddleware, RateLimitMiddleware
 from .routers import admin, billing, eval_api, evals, keys, jwt_auth, prompts, traces
 
 settings = get_settings()
+_log = logging.getLogger(__name__)
 
 # Configure structured logging at startup
 configure_logging(settings.environment)
@@ -39,8 +42,9 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.version,
     description="Reliability infrastructure for AI agents — evaluation, observability, regression testing.",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None if settings.is_production else "/redoc",
+    openapi_url=None if settings.is_production else "/openapi.json",
     lifespan=lifespan,
 )
 
@@ -57,7 +61,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Internal-Key", "Idempotency-Key", "X-Request-ID"],
     expose_headers=["X-Request-ID"],
     max_age=600,
 )
@@ -88,25 +92,34 @@ async def add_security_headers(request: Request, call_next):
 @app.on_event("startup")
 async def validate_secrets():
     """Fail fast on startup if critical secrets are missing or default."""
-    import logging
     import os
-    log = logging.getLogger(__name__)
-    errors = []
-    jwt_secret = os.getenv("JWT_SECRET", "")
-    internal_key = os.getenv("INTERNAL_API_KEY", "")
-    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-    if not jwt_secret or "dev" in jwt_secret:
-        errors.append("JWT_SECRET not set or uses default")
-    if not internal_key or internal_key == "dev_internal_key":
-        errors.append("INTERNAL_API_KEY not set or uses default")
-    if not webhook_secret:
-        errors.append("STRIPE_WEBHOOK_SECRET not set")
+
+    if not settings.is_production:
+        for warning in _collect_secret_issues(os.environ):
+            _log.warning("DEV SECURITY WARNING: %s", warning)
+        settings.validate_production()
+        return
+
+    errors = _collect_secret_issues(os.environ)
     for err in errors:
-        log.critical("STARTUP SECURITY ERROR: %s", err)
+        _log.critical("STARTUP SECURITY ERROR: %s", err)
     if errors:
         raise RuntimeError(f"Missing/insecure secrets: {'; '.join(errors)}")
-    # Validate production database — prevent silent SQLite usage
     settings.validate_production()
+
+
+def _collect_secret_issues(env: dict) -> list[str]:
+    issues: list[str] = []
+    jwt_secret = env.get("JWT_SECRET", "")
+    internal_key = env.get("INTERNAL_API_KEY", "")
+    paypal_webhook_id = env.get("PAYPAL_WEBHOOK_ID", "")
+    if not jwt_secret or "dev" in jwt_secret.lower():
+        issues.append("JWT_SECRET not set or uses default")
+    if not internal_key or internal_key == "dev_internal_key":
+        issues.append("INTERNAL_API_KEY not set or uses default")
+    if not paypal_webhook_id:
+        issues.append("PAYPAL_WEBHOOK_ID not set")
+    return issues
 
 
 # ── Routers ───────────────────────────────────────────────────────────────
@@ -136,6 +149,12 @@ async def health():
 # ── Global exception handler ──────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
+    _log.exception("Unhandled error on %s %s", request.method, request.url.path)
+    if settings.is_production:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+        )
     return JSONResponse(
         status_code=500,
         content={"detail": str(exc), "type": type(exc).__name__},

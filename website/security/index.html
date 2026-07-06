@@ -35,7 +35,7 @@
   <ul>
     <li>All endpoints served over HTTPS (TLS 1.2+).</li>
     <li>JWT secrets and internal keys must be set in production — the API refuses to start with defaults.</li>
-    <li>Dashboard sessions use short-lived JWTs (1 hour); browser stores API key in localStorage for refresh.</li>
+    <li>Dashboard sessions use short-lived JWTs (1 hour); refresh re-issues tokens server-side without persisting API keys in the browser.</li>
   </ul>
 
   <h2>Data protection</h2>

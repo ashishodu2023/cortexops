@@ -6,6 +6,7 @@ Never expose these to end users.
 from __future__ import annotations
 
 import os
+import secrets
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -24,7 +25,7 @@ _INTERNAL_KEY = os.getenv("INTERNAL_API_KEY", "")
 # ── Internal auth ─────────────────────────────────────────────────────────
 def require_admin(x_internal_key: str | None = Header(None, alias="X-Internal-Key")) -> None:
     """Require INTERNAL_API_KEY header — blocks all non-admin access."""
-    if not x_internal_key or x_internal_key != _INTERNAL_KEY:
+    if not _INTERNAL_KEY or not x_internal_key or not secrets.compare_digest(x_internal_key, _INTERNAL_KEY):
         raise HTTPException(
             status_code=401,
             detail="X-Internal-Key header required. This endpoint is for admin use only.",

@@ -13,9 +13,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import generate_api_key, get_current_key_info
-from ..tiers import TierInfo
+from ..config import get_settings
 from ..db import get_db
 from ..models.records import ApiKey, Project
+from ..security import billing_limiter, client_ip
+from ..tiers import TierInfo
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/billing", tags=["billing"])
@@ -64,7 +66,10 @@ class CheckoutResponse(BaseModel):
     429: {"description": "Rate limit exceeded"},
     500: {"description": "Internal server error"},
 })
-async def create_checkout(body: CheckoutRequest):
+async def create_checkout(body: CheckoutRequest, request: Request):
+    ip = client_ip(request)
+    if not billing_limiter.is_allowed(ip):
+        raise HTTPException(429, "Checkout rate limit exceeded. Try again later.")
     s = get_stripe()
     if not STRIPE_PRICE_ID:
         raise HTTPException(status_code=503, detail="STRIPE_PRICE_ID not configured.")
@@ -213,8 +218,8 @@ ashish@getcortexops.com
         except Exception as e:
             logger.warning(f"SendGrid error: {e}")
 
-    # Fallback — log the key so it can be manually retrieved from Railway logs
-    logger.info(f"EMAIL_FALLBACK to={email} project={project} key={raw_key[:12]}...")
+    # Fallback — log delivery attempt without exposing key material
+    logger.info("EMAIL_FALLBACK to=%s project=%s (key provisioned — retrieve via admin)", email, project)
 
 async def _provision(db, project_name, email, ref):
     # Idempotency — check if a pro key already exists for this project from this Stripe ref
@@ -370,7 +375,10 @@ class PayPalWebhookVerification(BaseModel):
     },
     summary="Create PayPal subscription checkout",
 )
-async def create_paypal_checkout(body: PayPalCheckoutRequest):
+async def create_paypal_checkout(body: PayPalCheckoutRequest, request: Request):
+    ip = client_ip(request)
+    if not billing_limiter.is_allowed(ip):
+        raise HTTPException(429, "Checkout rate limit exceeded. Try again later.")
     """
     Create a PayPal subscription. Returns approval_url to redirect user to PayPal.
     On approval, PayPal redirects to FRONTEND_URL/?paypal=success&sub={subscription_id}.
@@ -471,6 +479,9 @@ async def paypal_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             logger.warning("PayPal webhook signature verification failed")
             raise HTTPException(status_code=400, detail="Invalid PayPal webhook signature.")
     else:
+        if get_settings().is_production:
+            logger.error("PAYPAL_WEBHOOK_ID not set in production — rejecting webhook")
+            raise HTTPException(status_code=503, detail="PayPal webhooks not configured.")
         logger.warning("PAYPAL_WEBHOOK_ID not set — skipping signature verification (dev mode)")
 
     try:

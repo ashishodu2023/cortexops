@@ -125,8 +125,12 @@ async def get_current_key_info(
             detail="Missing credentials. Pass Authorization: Bearer <jwt> or X-API-Key header.",
         )
 
-    # Dev shortcut
-    if settings.environment == "development" and raw_key == settings.internal_api_key:
+    # Dev shortcut — constant-time compare even for local internal key
+    if (
+        settings.environment == "development"
+        and raw_key
+        and secrets.compare_digest(raw_key, settings.internal_api_key)
+    ):
         return TierInfo(project="__dev__", tier="pro", key_id="dev")
 
     ApiKey = _get_model()

@@ -127,7 +127,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Scan for secrets
-        run: semgrep --config=p/secrets . --error --json > semgrep-secrets.json || true
+        run: semgrep --config=p/secrets . --error --json > semgrep-secrets.json
 
       - name: Scan Python security patterns
         run: semgrep --config=p/python . --error
@@ -208,7 +208,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Scan frontend React
-        run: bearer scan frontend-new/ --exit-code 0 --format json > bearer-frontend.json || true
+        run: bearer scan frontend-new/ --exit-code 1 --format json > bearer-frontend.json
 
       - name: Scan website HTML/JS
         run: bearer scan website/ --exit-code 0 --format json > bearer-website.json || true

@@ -1,6 +1,16 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_CORS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://getcortexops.com",
+    "https://www.getcortexops.com",
+    "https://app.getcortexops.com",
+    "https://docs.getcortexops.com",
+]
 
 
 class Settings(BaseSettings):
@@ -40,15 +50,20 @@ class Settings(BaseSettings):
     max_eval_cases_per_run: int = 500
     eval_timeout_seconds: int = 300
 
-    # CORS
-    cors_origins: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://getcortexops.com",
-        "https://www.getcortexops.com",
-        "https://app.getcortexops.com",
-        "https://docs.getcortexops.com",
-    ]
+    # CORS — override with comma-separated CORS_ORIGINS env var
+    cors_origins: list[str] = _DEFAULT_CORS
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value):
+        if isinstance(value, str):
+            parsed = [origin.strip() for origin in value.split(",") if origin.strip()]
+            return parsed or _DEFAULT_CORS
+        return value
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
 
 
 @lru_cache

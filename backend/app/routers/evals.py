@@ -22,7 +22,7 @@ from ..models.schemas import (
     CaseResultResponse,
     PromptIngestSnapshot,
 )
-from ..tiers import TierInfo
+from ..tiers import TierInfo, require_project_access
 from ..worker.tasks import run_eval_task
 
 router = APIRouter(prefix="/v1/evals", tags=["evaluations"])
@@ -96,8 +96,10 @@ async def _upsert_prompt(
 async def trigger_eval_run(
     body: EvalRunRequest,
     db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
 ):
     """Trigger an async eval run via Celery. Returns run_id immediately."""
+    require_project_access(tier_info, body.project)
     await _ensure_project(db, body.project)
 
     run = EvalRun(
@@ -201,7 +203,9 @@ async def list_eval_runs(
     project: str = Query(...),
     limit: int = Query(20, le=100),
     db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
 ):
+    require_project_access(tier_info, project)
     result = await db.execute(
         select(EvalRun)
         .options(selectinload(EvalRun.case_results))
@@ -218,9 +222,13 @@ async def diff_runs(
     a: str = Query(...),
     b: str = Query(...),
     db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
 ):
     run_a = await _get_run_or_404(db, a)
     run_b = await _get_run_or_404(db, b)
+    require_project_access(tier_info, run_a.project)
+    if run_b.project != run_a.project:
+        raise HTTPException(403, "Both eval runs must belong to the same project.")
 
     cases_a = await db.execute(select(CaseResultRecord).where(CaseResultRecord.run_id == a))
     cases_b = await db.execute(select(CaseResultRecord).where(CaseResultRecord.run_id == b))
@@ -243,8 +251,13 @@ async def diff_runs(
 
 
 @router.get("/{run_id}", response_model=EvalSummaryResponse)
-async def get_eval_run(run_id: str, db: AsyncSession = Depends(get_db)):
+async def get_eval_run(
+    run_id: str,
+    db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
     run = await _get_run_or_404(db, run_id)
+    require_project_access(tier_info, run.project)
     return _run_to_response(run)
 
 

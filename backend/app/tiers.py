@@ -116,6 +116,15 @@ def _month_reset_iso() -> str:
         nxt = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
     return nxt.isoformat()
 
+def require_project_access(tier_info: TierInfo, project: str) -> None:
+    """Raise HTTP 403 if the key does not belong to the requested project."""
+    if tier_info.project != project and tier_info.project != "__dev__":
+        raise HTTPException(
+            status_code=403,
+            detail="You can only access resources for your own project.",
+        )
+
+
 def require_scope(tier_info: "TierInfo", required: str = "read_write") -> None:
     """
     Raise HTTP 403 if the key is read_only and a write operation is attempted.

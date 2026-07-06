@@ -5,16 +5,18 @@ services:
   api:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: sqlite+aiosqlite:///./cortexops.db
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       ENVIRONMENT: development
-      DEBUG: "true"
+      DEBUG: "false"
+      JWT_SECRET: dev-only-docker-compose-secret
+      INTERNAL_API_KEY: dev_internal_key
     volumes:
       - ./backend:/app
       - ./sdk:/sdk
@@ -31,7 +33,7 @@ services:
   worker:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     command: celery -A app.worker.celery_app.celery worker --loglevel=info --concurrency=4
     environment:
       DATABASE_URL: sqlite+aiosqlite:///./cortexops.db
@@ -61,8 +63,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped

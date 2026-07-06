@@ -1199,7 +1199,7 @@ export default function App(){
     if(!token)return;
     const tick=async()=>{
       const current=loadSession();
-      if(!current?.api_key||!sessionExpired(current))return;
+      if(!current?.access_token||!sessionExpired(current))return;
       try{
         const next=await refreshSession(current);
         setSession(next);

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import secrets
 from datetime import datetime, timedelta
 
 from fastapi import Header, Query, APIRouter, Depends, HTTPException, Request
@@ -13,7 +14,7 @@ from ..auth import generate_api_key, get_current_key_info, get_optional_key_info
 from ..config import get_settings
 from ..db import get_db
 from ..models.records import ApiKey, Project
-from ..security import bootstrap_limiter
+from ..security import bootstrap_limiter, client_ip as resolve_client_ip
 from ..tiers import TierInfo, require_scope
 
 router = APIRouter(prefix="/v1/keys", tags=["api keys"])
@@ -130,7 +131,7 @@ async def _issue_key(
 
 
 def _has_internal_access(x_internal_key: str | None) -> bool:
-    return bool(_INTERNAL_KEY and x_internal_key and x_internal_key == _INTERNAL_KEY)
+    return bool(_INTERNAL_KEY and x_internal_key and secrets.compare_digest(x_internal_key, _INTERNAL_KEY))
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────
@@ -150,7 +151,7 @@ async def bootstrap_api_key(
     Rate-limited (5/hour per IP). Only works when the project has no active keys.
     Use POST /v1/keys with authentication to create additional keys in production.
     """
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = resolve_client_ip(request)
     if not bootstrap_limiter.is_allowed(client_ip):
         raise HTTPException(429, "Bootstrap rate limit exceeded. Try again later.")
 

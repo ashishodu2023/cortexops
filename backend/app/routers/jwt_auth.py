@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
 import time
 from base64 import urlsafe_b64decode, urlsafe_b64encode
@@ -27,6 +28,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import get_settings
 from ..auth import hash_key
 from ..db import get_db
 from ..models.records import ApiKey
@@ -34,15 +36,22 @@ from ..models.records import ApiKey
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
 # ── JWT secret ────────────────────────────────────────────────────────────
+_settings = get_settings()
 _JWT_SECRET = os.getenv("JWT_SECRET", "")
 
 if not _JWT_SECRET:
-    import logging
-    logging.getLogger(__name__).critical(
-        "SECURITY ERROR: JWT_SECRET env var is not set. "
-        "Set it in Railway Variables before deploying."
-    )
-    raise RuntimeError("JWT_SECRET must be set in production")
+    if _settings.environment == "development":
+        _JWT_SECRET = "dev-only-insecure-jwt-secret-do-not-use-in-prod"
+        logging.getLogger(__name__).warning(
+            "JWT_SECRET not set — using development-only default. "
+            "Set JWT_SECRET before deploying to production."
+        )
+    else:
+        logging.getLogger(__name__).critical(
+            "SECURITY ERROR: JWT_SECRET env var is not set. "
+            "Set it in Railway Variables before deploying."
+        )
+        raise RuntimeError("JWT_SECRET must be set in production")
 
 _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRY_SECONDS = 3600  # 1 hour
@@ -70,7 +79,7 @@ def _sign(payload: dict, secret: str) -> str:
     return f"{header}.{body}.{sig}"
 
 
-def _verify(token: str, secret: str) -> dict:
+def _verify(token: str, secret: str, *, allow_expired_grace: int = 0) -> dict:
     """Verify a HS256 JWT. Raises ValueError on failure."""
     try:
         header, body, sig = token.split(".")
@@ -92,7 +101,8 @@ def _verify(token: str, secret: str) -> dict:
         raise ValueError("Invalid JWT signature")
 
     payload = json.loads(_b64_decode(body))
-    if payload.get("exp", 0) < time.time():
+    exp = payload.get("exp", 0)
+    if exp < time.time() - allow_expired_grace:
         raise ValueError("JWT expired")
 
     return payload
@@ -197,21 +207,22 @@ async def issue_jwt(
             detail={"error": "key_expired", "expired_at": key_record.expires_at.isoformat()}
         )
 
+    return await _issue_token_for_key(key_record)
+
+
+async def _issue_token_for_key(key_record: ApiKey) -> TokenResponse:
     scope = getattr(key_record, "scope", "read_write") or "read_write"
-    now   = int(time.time())
-
+    now = int(time.time())
     payload = {
-        "sub":     key_record.project,
+        "sub": key_record.project,
         "project": key_record.project,
-        "tier":    key_record.tier,
-        "scope":   scope,
-        "key_id":  key_record.id,
-        "iat":     now,
-        "exp":     now + _JWT_EXPIRY_SECONDS,
+        "tier": key_record.tier,
+        "scope": scope,
+        "key_id": key_record.id,
+        "iat": now,
+        "exp": now + _JWT_EXPIRY_SECONDS,
     }
-
     token = _sign(payload, _JWT_SECRET)
-
     return TokenResponse(
         access_token=token,
         project=key_record.project,
@@ -219,6 +230,48 @@ async def issue_jwt(
         scope=scope,
         key_id=key_record.id,
     )
+
+
+@router.post("/token/refresh", response_model=TokenResponse, responses={
+    401: {"description": "Invalid or expired token"},
+    429: {"description": "Rate limit exceeded"},
+    500: {"description": "Internal server error"},
+})
+async def refresh_jwt(
+    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Security(_bearer),
+):
+    """
+    Refresh a short-lived JWT without resubmitting the API key.
+    Accepts tokens expired up to 5 minutes ago.
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authorization: Bearer <token> required")
+
+    try:
+        payload = _verify(credentials.credentials, _JWT_SECRET, allow_expired_grace=300)
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    key_id = payload.get("key_id")
+    if not key_id:
+        raise HTTPException(status_code=401, detail="Token missing key_id")
+
+    result = await db.execute(
+        select(ApiKey).where(ApiKey.id == key_id, ApiKey.is_active)
+    )
+    key_record = result.scalar_one_or_none()
+    if not key_record:
+        raise HTTPException(status_code=401, detail="Invalid or revoked API key")
+
+    from datetime import datetime
+    if key_record.expires_at and datetime.utcnow() > key_record.expires_at:
+        raise HTTPException(
+            status_code=401,
+            detail={"error": "key_expired", "expired_at": key_record.expires_at.isoformat()},
+        )
+
+    return await _issue_token_for_key(key_record)
 
 
 @router.get("/token/verify", responses={

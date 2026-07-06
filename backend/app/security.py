@@ -101,16 +101,32 @@ _rate_limiter = RateLimiter(rate=200, per_seconds=60)
 # Stricter limiter for unauthenticated key bootstrap — 5 per hour per IP
 bootstrap_limiter = RateLimiter(rate=5, per_seconds=3600)
 
+# Billing checkout — 10 per hour per IP
+billing_limiter = RateLimiter(rate=10, per_seconds=3600)
+
+
+def client_ip(request: Request) -> str:
+    """Resolve client IP behind reverse proxies (Railway, Vercel, etc.)."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Apply rate limiting per client IP. Health check is exempt."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        if request.url.path in ("/health", "/docs", "/redoc", "/openapi.json"):
+        path = request.url.path
+        if path == "/health":
+            return await call_next(request)
+        if path in ("/docs", "/redoc", "/openapi.json"):
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
-        if not _rate_limiter.is_allowed(client_ip):
+        ip = client_ip(request)
+        if not _rate_limiter.is_allowed(ip):
             return Response(
                 content='{"detail":"Rate limit exceeded. Max 200 requests/minute."}',
                 status_code=429,

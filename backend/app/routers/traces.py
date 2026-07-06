@@ -15,7 +15,7 @@ from ..db import get_db
 from ..models.records import TraceRecord, Project
 from ..models.schemas import TraceDetailResponse, TraceIngest, TraceResponse
 from ..security import redact_pii, idempotency_store
-from ..tiers import TierInfo, check_trace_quota, require_scope
+from ..tiers import TierInfo, check_trace_quota, require_project_access, require_scope
 
 import logging
 logger = logging.getLogger(__name__)
@@ -47,6 +47,7 @@ async def ingest_trace(
 
     # ── Scope enforcement — read_only keys cannot ingest traces ───────────
     require_scope(tier_info, "read_write")
+    require_project_access(tier_info, body.project)
 
     # ── Idempotency check ─────────────────────────────────────────────────
     if idempotency_key:
@@ -141,6 +142,8 @@ async def list_traces(
     Free tier: only sees last 7 days. Pro: 90 days.
     Optional from/to (ISO 8601) narrow results within retention window.
     """
+    require_project_access(tier_info, project)
+
     from datetime import datetime, timedelta
 
     retention_days = tier_info.retention_days
@@ -231,6 +234,8 @@ async def get_trace(
     trace = result.scalar_one_or_none()
     if not trace:
         raise HTTPException(status_code=404, detail=f"Trace {trace_id} not found")
+
+    require_project_access(tier_info, trace.project)
 
     return TraceDetailResponse(
         trace_id=trace.id,
