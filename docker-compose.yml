@@ -6,8 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      SERVICE_ROLE: web
     ports:
       - "127.0.0.1:8000:8000"
     environment:
@@ -36,10 +34,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python start.py
-    environment:
-      SERVICE_ROLE: worker
-      CELERY_CONCURRENCY: "4"
+    command: celery -A app.worker.celery_app.celery worker --loglevel=info --concurrency=4
     environment:
       DATABASE_URL: sqlite+aiosqlite:///./cortexops.db
       REDIS_URL: redis://redis:6379/0

@@ -20,7 +20,7 @@ def run_eval_task(
 
     Updates the EvalRun record in the database with results.
     """
-    return asyncio.run(
+    return asyncio.get_event_loop().run_until_complete(
         _run_eval_async(self, run_id, project, dataset, baseline_run_id, fail_on)
     )
 
