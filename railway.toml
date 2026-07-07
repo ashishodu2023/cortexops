@@ -1,3 +1,6 @@
+# API (web) service. Async evals also need:
+#   1. Redis plugin (or Upstash) — set REDIS_URL, CELERY_BROKER_URL, CELERY_RESULT_BACKEND
+#   2. A second Railway service using railway.worker.toml (SERVICE_ROLE=worker)
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
@@ -10,3 +13,4 @@ healthcheckTimeout = 120
 sleepApplication = false
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+startCommand = "SERVICE_ROLE=web python start.py"

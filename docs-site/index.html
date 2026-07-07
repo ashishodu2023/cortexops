@@ -1072,7 +1072,7 @@ wrapped = tracer.wrap(agent)  <span class="cm"># wraps __call__</span></pre></di
     lead:'Get notified when eval runs regress — automatically after each completed run (Pro projects).',
     html:`
 <h2>Configure on Railway</h2>
-<p>Set these environment variables on your CortexOps API service:</p>
+<p>Set these environment variables on your CortexOps <strong>API and worker</strong> services (worker runs async eval jobs):</p>
 <div class="code-block"><pre>CORTEXOPS_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 CORTEXOPS_ALERT_THRESHOLD=0.90        <span class="cm"># optional, default 0.90</span>
 CORTEXOPS_ALERT_CHANNEL=#cortexops-alerts  <span class="cm"># optional</span>
@@ -1863,7 +1863,13 @@ curl https://api.getcortexops.com/v1/traces/quota \
 <p>No. Trace flushing to the hosted API is asynchronous — it never blocks your agent's return. Local tracing (in-memory only) adds under 1ms.</p>
 
 <h2>Can I self-host the API?</h2>
-<p>Yes. The full backend source is at <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener">github.com/ashishodu2023/cortexops</a>. Docker + Railway config included. Enterprise customers can deploy to their own VPC.</p>
+<p>Yes. The full backend source is at <a href="https://github.com/ashishodu2023/cortexops" target="_blank" rel="noopener">github.com/ashishodu2023/cortexops</a>. Docker Compose runs API + Celery worker + Redis locally. For Railway, use three services:</p>
+<ol>
+<li><strong>API</strong> — <code>railway.toml</code> (<code>SERVICE_ROLE=web</code>)</li>
+<li><strong>Worker</strong> — duplicate the repo service, set config file to <code>railway.worker.toml</code> (<code>SERVICE_ROLE=worker</code>)</li>
+<li><strong>Redis</strong> — Railway Redis plugin; set <code>REDIS_URL</code>, <code>CELERY_BROKER_URL</code>, and <code>CELERY_RESULT_BACKEND</code> on both API and worker</li>
+</ol>
+<p>Both API and worker need the same <code>DATABASE_URL</code> (PostgreSQL). Without the worker, <code>POST /v1/evals</code> jobs stay pending.</p>
 
 <h2>How do I get a Pro API key?</h2>
 <p>Start a 14-day free trial at <a href="https://getcortexops.com/?trial=1" target="_blank" rel="noopener" target="_blank" rel="noopener">getcortexops.com/#pricing</a>. Your cxo- key arrives by email immediately after checkout. No card is charged during the trial.</p>
