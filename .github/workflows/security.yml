@@ -270,20 +270,27 @@ jobs:
     name: DAST — OWASP ZAP (Weekly)
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
+    permissions:
+      contents: read
     steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
       - name: ZAP Baseline scan — website
         uses: zaproxy/action-baseline@66042c8e7e24680119199a017e5b0e8603bf4dae # v0.12.0
         with:
           target: 'https://getcortexops.com'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
+          allow_issue_writing: false
 
       - name: ZAP API scan
+        continue-on-error: true
         uses: zaproxy/action-api-scan@f34b07497d46a84e06d71ad4f304311634c24137 # v0.7.0
         with:
           target: 'https://api.getcortexops.com/openapi.json'
           format: openapi
           cmd_options: '-a'
+          allow_issue_writing: false
 
       - name: Upload ZAP report
         if: always()

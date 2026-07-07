@@ -1,0 +1,5 @@
+# ZAP baseline rules — tab-separated: rule_id, action, description
+# Static marketing site: ignore low-risk header / browser-policy noise
+90003	IGNORE	Sub Resource Integrity Attribute Missing
+90004	IGNORE	Cross-Origin-Embedder-Policy Header Missing or Invalid
+90005	IGNORE	Sec-Fetch-Dest Header is Missing
