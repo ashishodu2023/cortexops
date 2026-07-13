@@ -1,0 +1,8 @@
+# Default owner for all paths — required review on PRs to main.
+* @ashishodu2023
+
+# Critical surfaces — keep explicit so ownership is obvious.
+/sdk/ @ashishodu2023
+/backend/ @ashishodu2023
+/.github/ @ashishodu2023
+/examples/ @ashishodu2023
