@@ -307,7 +307,7 @@ The CI runs tests on Python 3.10, 3.11, and 3.12. If you are fixing a bug, add a
 
 ## Security
 
-If you find a security vulnerability, do not open a public issue. Email [contact@getcortexops.com](mailto:contact@getcortexops.com) directly. We will respond within 48 hours.
+If you find a security vulnerability, do not open a public issue. See [SECURITY.md](SECURITY.md) and email [contact@getcortexops.com](mailto:contact@getcortexops.com). We aim to respond within 48 hours.
 
 ---
 

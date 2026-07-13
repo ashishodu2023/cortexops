@@ -264,7 +264,9 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Issues labeled `good first issue` are a great place to start.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Issues labeled [`good first issue`](https://github.com/ashishodu2023/cortexops/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) are a great place to start.
+
+To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ---
 
