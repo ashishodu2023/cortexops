@@ -8,7 +8,7 @@ How reviewers leave comments and when a PR is approved for merge into `main`.
 2. **CI must be green** before merge: `Lint`, `Tests`, `SDK unit tests (3.11)`.
 3. **At least one approving review** is required (code owners for owned paths).
 4. **All review threads must be resolved** before merge.
-5. Prefer **squash merge**. Delete the branch after merge.
+5. **Squash merge by default.** Delete the branch after merge. Use a regular merge commit only when preserving a multi-commit history is intentional (e.g. staged migrations).
 
 Maintainer note: repository admins may bypass the approval count when merging their own PR, but they still **must** use a PR — direct pushes to `main` remain blocked.
 
@@ -60,5 +60,5 @@ Use **Comment** when you only have questions or non-blocking suggestions.
 - [ ] `Closes #N` / `Fixes #N` present when applicable
 - [ ] Required checks green
 - [ ] Review threads resolved
-- [ ] Squash merge (default) unless a multi-commit history is intentionally valuable
+- [ ] Squash merge (default); regular merge only when multi-commit history should be kept
 - [ ] Delete branch after merge

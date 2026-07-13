@@ -20,13 +20,17 @@ Closes #
 
 ## Checklist
 
-- [ ] I opened this from a feature branch (not `main`)
-- [ ] Tests pass locally (`cd sdk && pytest tests/ -v`)
+<!-- Same list as CONTRIBUTING.md “Author checklist”. -->
+
+- [ ] Opened from a feature branch (not `main`)
+- [ ] Tests pass locally (`cd sdk && pytest tests/ -v`; also backend tests if you touched `backend/`)
 - [ ] Lint passes (`ruff check sdk/cortexops backend/app --line-length 121`)
 - [ ] New SDK/backend behaviour has tests
 - [ ] Docs / README / examples updated if behaviour changed
+- [ ] Example contributions tested from a clean environment
 - [ ] No secrets, API keys, or credentials in the diff
 - [ ] PR title uses conventional prefix (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `security:`)
+- [ ] Linked issue with `Closes #N` / `Fixes #N` when applicable
 
 ## Test plan
 
