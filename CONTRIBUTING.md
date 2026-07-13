@@ -221,11 +221,8 @@ Run the example from scratch in a clean virtual environment. If it works from ze
 | At least 1 approving review (code owners) | Required for contributor PRs |
 | Resolve all review threads before merge | Required |
 | Required CI: `Lint`, `Tests`, `SDK unit tests (3.11)` | Required |
-| Default merge method: **squash**; delete branch after merge | Repo setting + habit |
 
 Full reviewer guidance (comment kinds, approval criteria): [`.github/PULL_REQUEST_REVIEW.md`](.github/PULL_REQUEST_REVIEW.md).
-
-**Merge method:** use **squash merge** by default so `main` stays linear and easy to bisect. Use a regular merge commit only when the PR is intentionally a series of reviewable commits (e.g. a multi-step migration) and the maintainer wants that history preserved. Rebase merges are disabled.
 
 ### Opening a PR
 
@@ -269,7 +266,6 @@ The checklist on the PR template is the source of truth (copied here for local p
 ### After merge
 
 - Confirm the merge commit landed on `main`
-- Confirm the feature branch was deleted
 - Confirm the linked issue closed
 
 ---
