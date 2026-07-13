@@ -2,10 +2,13 @@
 
 ## Supported versions
 
-| Version | Supported |
-|---------|-----------|
-| Latest `main` / published PyPI release | Yes |
-| Older releases | Best effort |
+| Component | Supported |
+|-----------|-----------|
+| **SDK** (`cortexops` on PyPI) — latest published release and current `main` | Yes |
+| **Backend API / dashboard** — code on current `main`, and the production deployment at `*.getcortexops.com` | Yes |
+| Older SDK releases or older backend revisions | Best effort |
+
+Security fixes are cut for the current line first. Backports to older SDK versions are considered case-by-case for high-severity issues.
 
 ## Reporting a vulnerability
 
@@ -18,10 +21,12 @@ Email **[contact@getcortexops.com](mailto:contact@getcortexops.com)** with:
 - Impact assessment (if known)
 - Your preferred contact for follow-up
 
-We aim to acknowledge reports within **48 hours** and will keep you updated on remediation.
+### Response
+
+We aim to **acknowledge** reports within **48 hours** and will keep you updated on remediation. That acknowledgement target is defined only in this file — other docs should link here rather than restating it.
 
 ## Scope
 
-In scope: CortexOps SDK, backend API, dashboard auth/API keys, CI secrets handling, and hosted services under `*.getcortexops.com`.
+**In scope:** CortexOps SDK, backend API, dashboard auth/API keys, CI secrets handling in this repository, and hosted services under `*.getcortexops.com`.
 
-Out of scope: third-party dependencies with no CortexOps-specific exploit path (please report those upstream), and social-engineering / physical attacks.
+**Out of scope:** third-party dependencies with no CortexOps-specific exploit path (please report those upstream), and social-engineering / physical attacks.
