@@ -9,9 +9,9 @@ Thank you for your interest in contributing. CortexOps is an open-source AI agen
 1. Find an issue: [github.com/ashishodu2023/cortexops/issues](https://github.com/ashishodu2023/cortexops/issues)
 2. Filter by **good first issue** if you are new to the codebase
 3. Comment "I'll take this one" so others know it is claimed
-4. Fork the repo, make your changes, open a PR
+4. Fork the repo (or create a branch), make your changes, open a PR against `main`
 
-That is it. No CLA, no approval process for small changes.
+**`main` is protected.** Direct commits and pushes to `main` are blocked. Every change — including maintainer work — must go through a pull request. See [Pull requests & review](#pull-requests--review) below.
 
 ---
 
@@ -210,15 +210,30 @@ Run the example from scratch in a clean virtual environment. If it works from ze
 
 ---
 
-## Pull request checklist
+## Pull requests & review
 
-Before opening a PR:
+### Branch policy
 
-- [ ] Tests pass locally: `pytest tests/ -v`
-- [ ] Lint passes: `ruff check . --line-length 121`
-- [ ] New code has test coverage (for SDK and backend changes)
-- [ ] README or docs updated if behaviour changed
-- [ ] Example is tested from a clean environment (for example contributions)
+| Rule | Enforcement |
+|------|-------------|
+| No direct commits / pushes to `main` | GitHub ruleset |
+| Changes land only via PR | Required |
+| At least 1 approving review (code owners) | Required for contributor PRs |
+| Resolve all review threads before merge | Required |
+| Required CI: `Lint`, `Tests`, `SDK unit tests (3.11)` | Required |
+| Default merge method: **squash**; delete branch after merge | Repo setting + habit |
+
+Full reviewer guidance (comment kinds, approval criteria): [`.github/PULL_REQUEST_REVIEW.md`](.github/PULL_REQUEST_REVIEW.md).
+
+**Merge method:** use **squash merge** by default so `main` stays linear and easy to bisect. Use a regular merge commit only when the PR is intentionally a series of reviewable commits (e.g. a multi-step migration) and the maintainer wants that history preserved. Rebase merges are disabled.
+
+### Opening a PR
+
+1. Branch from latest `main` (`git checkout -b fix/short-description`)
+2. Keep the PR focused — one issue / one concern when possible
+3. Fill in the [PR template](.github/pull_request_template.md) (summary, linked issue, checklist, test plan)
+4. Follow [Code style](#code-style) and [Tests](#tests) below
+5. Ensure required CI is green before asking for review: `Lint`, `Tests`, `SDK unit tests (3.11)`
 
 PR title format:
 
@@ -228,6 +243,34 @@ fix: improve error message on invalid API key
 docs: add quickstart tutorial
 chore: bump python-multipart to 0.0.27
 ```
+
+### Author checklist
+
+The checklist on the PR template is the source of truth (copied here for local prep):
+
+- [ ] Opened from a feature branch (not `main`)
+- [ ] Tests pass locally (`cd sdk && pytest tests/ -v`; also `cd backend && pytest tests/ -v` for backend changes)
+- [ ] Lint passes (`ruff check sdk/cortexops backend/app --line-length 121`)
+- [ ] New SDK/backend behaviour has tests
+- [ ] Docs / README / examples updated if behaviour changed
+- [ ] Example contributions tested from a clean environment
+- [ ] No secrets, API keys, or credentials in the diff
+- [ ] PR title uses conventional prefix (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `security:`)
+- [ ] Linked issue with `Closes #N` / `Fixes #N` when applicable
+
+### Review & approval
+
+- Reviewers use **Blocking** / **Request change** / **Suggestion** / **Nit** / **Question** prefixes — see the review guide
+- **Request changes** must be addressed (or explicitly declined with rationale) before merge
+- **Nits** do not block merge on their own
+- Maintainer / code-owner approval is required to merge contributor PRs
+- Maintainers still open PRs for their own changes; do not push to `main`
+
+### After merge
+
+- Confirm the merge commit landed on `main`
+- Confirm the feature branch was deleted
+- Confirm the linked issue closed
 
 ---
 
