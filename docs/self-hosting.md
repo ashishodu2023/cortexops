@@ -121,6 +121,7 @@ created; to rotate it later, change it in PostgreSQL (`ALTER USER`) and in `.env
 | `CORS_ORIGINS` | `http://localhost:3000` | Browser origins allowed to call the API, comma-separated or a JSON array. Must include the dashboard URL. |
 | `CORTEXOPS_API_URL` | `http://localhost:8000` | API URL as seen by the browser. Written into the dashboard at container start and added to its CSP `connect-src`. Must be `http(s)://host[:port][/path]`. |
 | `FRONTEND_URL` | `http://localhost:3000` | Public dashboard URL, used in billing redirect links. |
+| `TRUSTED_PROXIES` | private ranges | Peers whose `X-Forwarded-For` is trusted, as comma-separated IPs/CIDRs or `*` (see [TLS and reverse proxy](#tls-and-reverse-proxy)). |
 | `BILLING_ENABLED` | `false` | Hosted-service billing. When `true`, production startup requires `PAYPAL_WEBHOOK_ID`. |
 | `RUN_MIGRATIONS` | `1` | Run database migrations when the API starts (see [Upgrades](#upgrades)). Only the `api` service gets it. |
 | `APP_NAME` | `CortexOps API` | Name reported by the API (not passed by default; add it to `docker-compose.yml` to change it). |
@@ -219,9 +220,18 @@ server {
 }
 ```
 
-The API uses the first `X-Forwarded-For` address for rate limiting and audit logs. Always put it behind a proxy that
-overwrites that header (as above, `$remote_addr` rather than `$proxy_add_x_forwarded_for`), and do not expose port
-8000 directly to untrusted networks.
+The API rate limits and audit-logs requests by client IP. It honours `X-Forwarded-For` only when the connecting peer
+matches `TRUSTED_PROXIES`, and then uses the right-most address that is not itself a trusted proxy, so a client cannot
+pick its own IP by sending the header. Anything else is keyed by the peer address.
+
+The compose default trusts the loopback and private ranges, which covers a reverse proxy on the host (Docker forwards
+published ports from its bridge gateway, e.g. `172.17.0.1`) or in a container on a Docker network. Clients connecting
+from public addresses with `API_BIND=0.0.0.0` cannot spoof the header, but any host on a private network that can reach
+port 8000 can, so keep the port on `127.0.0.1` or narrow `TRUSTED_PROXIES` to your proxy's address. If the proxy is
+elsewhere, set `TRUSTED_PROXIES` to its address. If it is not trusted, every request is limited as if it came from the
+proxy (200 requests per minute in total). Use `*` only when nothing but a proxy that overwrites the header can reach the
+API. When `TRUSTED_PROXIES` is not set at all, the API trusts no proxy, except on Railway, where it trusts any peer
+because only Railway's edge, which overwrites `X-Forwarded-For`, reaches the service publicly.
 
 ## Upgrades
 

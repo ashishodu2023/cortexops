@@ -12,10 +12,13 @@ import re
 import time
 import uuid
 from collections import defaultdict
+from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
 from typing import Any
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from .config import get_settings
 
 # ── PII redaction patterns (checklist item 7) ─────────────────────────────
 _PII_PATTERNS: list[tuple[re.Pattern, str]] = [
@@ -110,14 +113,51 @@ auth_limiter = RateLimiter(rate=30, per_seconds=3600)
 email_bootstrap_limiter = RateLimiter(rate=3, per_seconds=3600)
 
 
+def parse_trusted_proxies(value: str) -> list[IPv4Network | IPv6Network]:
+    """Parse TRUSTED_PROXIES: comma-separated IPs/CIDRs, where "*" trusts every address."""
+    networks: list[IPv4Network | IPv6Network] = []
+    for item in (part.strip() for part in value.split(",")):
+        if item == "*":
+            networks += [ip_network("0.0.0.0/0"), ip_network("::/0")]
+        elif item:
+            try:
+                networks.append(ip_network(item, strict=False))
+            except ValueError:
+                raise ValueError(f"TRUSTED_PROXIES: {item!r} is not an IP address or CIDR range") from None
+    return networks
+
+
+def _is_trusted(host: str, trusted: list[IPv4Network | IPv6Network]) -> bool:
+    try:
+        addr = ip_address(host)
+    except ValueError:
+        return False
+    if addr.version == 6 and addr.ipv4_mapped:
+        addr = addr.ipv4_mapped
+    return any(addr in network for network in trusted)
+
+
+def resolve_client_ip(peer: str | None, forwarded: str, trusted: list[IPv4Network | IPv6Network]) -> str:
+    """Honour X-Forwarded-For only from a trusted peer, taking the right-most hop that is not a trusted proxy."""
+    if not peer:
+        return "unknown"
+    hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+    if not hops or not _is_trusted(peer, trusted):
+        return peer
+    for hop in reversed(hops):
+        if not _is_trusted(hop, trusted):
+            return hop
+    # Every hop is trusted ("*" behind a proxy that overwrites the header, or a private network): left-most wins.
+    return hops[0]
+
+
+_trusted_proxies = parse_trusted_proxies(get_settings().effective_trusted_proxies)
+
+
 def client_ip(request: Request) -> str:
-    """Resolve client IP behind reverse proxies (Railway, Vercel, etc.)."""
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    if request.client:
-        return request.client.host
-    return "unknown"
+    """Resolve the client IP, honouring X-Forwarded-For only from TRUSTED_PROXIES."""
+    peer = request.client.host if request.client else None
+    return resolve_client_ip(peer, request.headers.get("X-Forwarded-For", ""), _trusted_proxies)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
