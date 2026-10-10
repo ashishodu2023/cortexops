@@ -1,8 +1,8 @@
-name: CortexOps eval gate
+name: CortexOps Eval Gate
 description: >-
   Run a CortexOps golden-dataset eval against your AI agent, write a job summary,
   post a sticky PR comment, and fail the job when a threshold regresses.
-author: CortexOps
+author: Ashish Verma
 branding:
   icon: check-circle
   color: purple
@@ -41,11 +41,12 @@ inputs:
     default: "3.11"
   cortexops-version:
     description: >-
-      cortexops to install (0.6.0 or newer): 'latest' (PyPI), a version such as '0.6.0', a pip specifier
-      such as '>=0.6', a local path such as './sdk', 'bundled' (the SDK in the same repo and ref as this action),
+      cortexops to install (0.6.0 or newer): a pip specifier such as '>=0.6.0,<0.7' (the default),
+      a version such as '0.6.0', 'latest' (newest PyPI release), a pip requirement such as
+      'git+https://github.com/ashishodu2023/cortexops@<ref>#subdirectory=sdk', a local path such as './sdk',
       or 'none' to skip installation.
     required: false
-    default: latest
+    default: ">=0.6.0,<0.7"
   install:
     description: Extra pip requirements for your agent, one per line or space-separated (e.g. '-r requirements.txt' or '.').
     required: false
@@ -148,7 +149,12 @@ runs:
         case "$CORTEXOPS_VERSION" in
           none) spec="" ;;
           ""|latest) spec="cortexops" ;;
-          bundled) spec="$GITHUB_ACTION_PATH/../../sdk" ;;
+          bundled)
+            echo "::error title=CortexOps eval gate::cortexops-version 'bundled' is not supported by this action;" \
+                 "use a version, 'latest', a local path such as './sdk', or" \
+                 "'git+https://github.com/ashishodu2023/cortexops@<ref>#subdirectory=sdk'."
+            exit 2
+            ;;
           [0-9]*) spec="cortexops==$CORTEXOPS_VERSION" ;;
           "<"*|">"*|"="*|"~"*|"!"*) spec="cortexops$CORTEXOPS_VERSION" ;;
           *) spec="$CORTEXOPS_VERSION" ;;
@@ -166,7 +172,7 @@ runs:
         if ! "$PY" -m cortexops.cli eval run --help | grep -q -- '--junit-xml'; then
           installed="$("$PY" -m pip show cortexops 2>/dev/null | sed -n 's/^Version: //p')"
           echo "::error title=CortexOps eval gate::cortexops ${installed:-(not installed)} is too old for this action;" \
-               "it needs cortexops>=0.6.0 ('eval run --junit-xml'). Use cortexops-version: latest or '>=0.6.0'."
+               "it needs cortexops>=0.6.0 ('eval run --junit-xml'). Use cortexops-version: '>=0.6.0,<0.7' or latest."
           exit 2
         fi
         "$PY" -m cortexops.cli version
@@ -196,10 +202,10 @@ runs:
         [ -n "$OPENAI_API_KEY" ] || unset OPENAI_API_KEY
         [ -n "$CORTEXOPS_API_KEY" ] || unset CORTEXOPS_API_KEY
 
+        code=0
         if [ -n "$INPUT_COMMAND" ]; then
           echo "Running custom command: $INPUT_COMMAND"
-          bash -c "$INPUT_COMMAND"
-          code=$?
+          bash -c "$INPUT_COMMAND" || code=$?
         elif [ -z "$INPUT_DATASET" ]; then
           echo "::error title=CortexOps eval gate::Either 'dataset' or 'command' must be set."
           code=2
@@ -218,8 +224,7 @@ runs:
             args+=($INPUT_EXTRA_ARGS)
             set +f
           fi
-          "$PY" -m cortexops.cli "${args[@]}"
-          code=$?
+          "$PY" -m cortexops.cli "${args[@]}" || code=$?
         fi
 
         {

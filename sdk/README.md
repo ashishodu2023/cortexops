@@ -15,7 +15,7 @@ Evaluate · Observe · Operate — for LangGraph, CrewAI, and AutoGen.
 ### CI eval gates: GitHub Action and CLI reports
 ```yaml
 # .github/workflows/eval.yml
-- uses: ashishodu2023/cortexops/actions/eval-gate@v0.6.0
+- uses: ashishodu2023/cortexops-eval-action@v1
   with:
     dataset: evals/golden_v1.yaml
     agent: my_app.agent:build_agent()
@@ -205,10 +205,10 @@ cases:
 
 ## CI eval gate
 
-Use the [eval-gate GitHub Action](https://github.com/ashishodu2023/cortexops/tree/main/actions/eval-gate):
+Use the [CortexOps Eval Gate GitHub Action](https://github.com/ashishodu2023/cortexops-eval-action):
 
 ```yaml
-- uses: ashishodu2023/cortexops/actions/eval-gate@main   # pin to a tag or SHA
+- uses: ashishodu2023/cortexops-eval-action@v1
   with:
     dataset: golden_v1.yaml
     agent: agent:build_agent()
