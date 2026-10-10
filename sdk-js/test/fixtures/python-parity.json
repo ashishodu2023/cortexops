@@ -367,7 +367,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Refund REF-8821 was approved successfully"
@@ -420,7 +425,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Refund REF-8821 is pending"
@@ -474,7 +484,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "only a here"
@@ -524,7 +539,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {},
       "tool_calls": [],
@@ -572,7 +592,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": null
@@ -622,7 +647,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "null"
@@ -672,7 +702,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "None"
@@ -722,7 +757,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": ""
@@ -772,7 +812,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "result": "the answer from result"
@@ -822,7 +867,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "answer": "the answer from answer"
@@ -872,7 +922,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Error: upstream exploded"
@@ -922,7 +977,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Traceback (most recent call last)"
@@ -972,7 +1032,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "We FAILED TO reach the service xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -1022,7 +1087,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": true
@@ -1072,7 +1142,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": 42
@@ -1122,7 +1197,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": {
@@ -1182,7 +1262,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": {
@@ -1237,7 +1322,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "hello there"
@@ -1290,7 +1380,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Your refund and SECRET code"
@@ -1340,7 +1435,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "As of March 2023, rates were low"
@@ -1390,7 +1490,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "I don't have access to that"
@@ -1440,7 +1545,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Sorry, I cannot look up orders"
@@ -1493,7 +1603,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done"
@@ -1549,7 +1664,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done"
@@ -1605,7 +1725,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done"
@@ -1661,7 +1786,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done"
@@ -1718,7 +1848,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done"
@@ -1770,7 +1905,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done",
@@ -1825,7 +1965,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done",
@@ -1897,7 +2042,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done"
@@ -1966,7 +2116,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "done"
@@ -2032,7 +2187,12 @@
         "max_latency_ms": 1000.0,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "fast"
@@ -2082,7 +2242,12 @@
         "max_latency_ms": 1000.0,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "slow"
@@ -2132,7 +2297,12 @@
         "max_latency_ms": 1000.0,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "slow"
@@ -2182,7 +2352,12 @@
         "max_latency_ms": 1000.0,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "slow"
@@ -2232,7 +2407,12 @@
         "max_latency_ms": 1000.0,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "very slow"
@@ -2282,7 +2462,12 @@
         "max_latency_ms": 300.0,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "x"
@@ -2332,7 +2517,12 @@
         "max_latency_ms": null,
         "judge": "llm",
         "judge_criteria": "The agent must confirm the refund amount",
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Refund confirmed for amount 49.99"
@@ -2387,7 +2577,12 @@
         "max_latency_ms": null,
         "judge": "llm",
         "judge_criteria": "assistance with refunding",
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "We can assist with refunds"
@@ -2442,7 +2637,12 @@
         "max_latency_ms": null,
         "judge": "llm",
         "judge_criteria": "escalate fraud quickly",
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Thanks"
@@ -2472,11 +2672,20 @@
         ],
         "llm_judge": [
           0.0,
-          "llm_judge_heuristic",
+          "unknown",
           "Heuristic: 0/3 criteria keywords matched (stem)"
         ]
       },
-      "python_error": "ValidationError: 1 validation error for CaseResult"
+      "result": {
+        "case_id": "m39",
+        "passed": true,
+        "score": 80.0,
+        "task_completion": true,
+        "tool_accuracy": 100.0,
+        "latency_ok": true,
+        "failure_kind": "unknown",
+        "failure_detail": "Heuristic: 0/3 criteria keywords matched (stem)"
+      }
     },
     {
       "case": {
@@ -2488,7 +2697,12 @@
         "max_latency_ms": null,
         "judge": "llm",
         "judge_criteria": "the and of",
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "anything"
@@ -2543,7 +2757,12 @@
         "max_latency_ms": null,
         "judge": "llm",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "no criteria"
@@ -2602,7 +2821,12 @@
         "max_latency_ms": 100.0,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "Error: timeout"
@@ -2654,7 +2878,12 @@
         "max_latency_ms": null,
         "judge": "rule",
         "judge_criteria": null,
-        "tags": []
+        "tags": [],
+        "safety_checks": [],
+        "forbidden_tool_calls": [],
+        "max_tool_calls": null,
+        "allowed_domains": null,
+        "sensitive_markers": []
       },
       "output": {
         "output": "über café"

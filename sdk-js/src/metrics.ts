@@ -176,7 +176,7 @@ export class JudgeHeuristicMetric implements Metric {
     const overlap = matched / criteriaKw.length;
     const score = Math.min(100.0, overlap * 150.0);
     const detail = `Heuristic: ${matched}/${criteriaKw.length} criteria keywords matched (stem)`;
-    return [score, score < 50.0 ? "llm_judge_heuristic" : null, detail];
+    return [score, score < 50.0 ? FailureKind.UNKNOWN : null, detail];
   }
 }
 

@@ -64,12 +64,6 @@ describe("parity with the Python SDK metrics (fixtures from scripts/gen_parity_f
         expect(new JudgeHeuristicMetric().score(c, trace)).toEqual(entry.metrics.llm_judge);
       }
       const result = computeCaseResult(c, trace);
-      if (entry.python_error) {
-        // Python crashes here (failure kind "llm_judge_heuristic" is not a FailureKind); JS reports it.
-        expect(entry.python_error).toContain("ValidationError");
-        expect(result.failure_kind).toBe("llm_judge_heuristic");
-        return;
-      }
       const { trace: _t, latency_ms: _l, ...comparable } = result;
       expect(comparable).toEqual(entry.result);
     });
