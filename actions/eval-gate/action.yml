@@ -41,8 +41,8 @@ inputs:
     default: "3.11"
   cortexops-version:
     description: >-
-      cortexops to install: 'latest' (PyPI), a version such as '0.6.0', a pip specifier such as '>=0.6',
-      a local path such as './sdk', 'bundled' (the SDK in the same repo and ref as this action),
+      cortexops to install (0.6.0 or newer): 'latest' (PyPI), a version such as '0.6.0', a pip specifier
+      such as '>=0.6', a local path such as './sdk', 'bundled' (the SDK in the same repo and ref as this action),
       or 'none' to skip installation.
     required: false
     default: latest
@@ -166,7 +166,7 @@ runs:
         if ! "$PY" -m cortexops.cli eval run --help | grep -q -- '--junit-xml'; then
           installed="$("$PY" -m pip show cortexops 2>/dev/null | sed -n 's/^Version: //p')"
           echo "::error title=CortexOps eval gate::cortexops ${installed:-(not installed)} is too old for this action;" \
-               "it needs 'eval run --junit-xml'. Use cortexops-version: bundled or a newer release."
+               "it needs cortexops>=0.6.0 ('eval run --junit-xml'). Use cortexops-version: latest or '>=0.6.0'."
           exit 2
         fi
         "$PY" -m cortexops.cli version

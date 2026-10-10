@@ -17,7 +17,7 @@ export GOOGLE_API_KEY=...        # or configure Vertex AI as described in the AD
 
 ## Trace an agent
 
-CortexOps 0.5.1 recognises ADK agents, but its built-in ADK wrapper calls `agent.run(message)`, which ADK
+CortexOps 0.5.1 and 0.6.0 recognise ADK agents, but their built-in ADK wrapper calls `agent.run(message)`, which ADK
 2.x agents do not support (`TypeError: BaseNode.run() takes 1 positional argument but 2 were given`). Until
 a Runner-based wrapper ships, run the agent through ADK's own `InMemoryRunner` in an adapter object with an
 `invoke` method. `tracer.wrap()` treats any object with `invoke` generically:

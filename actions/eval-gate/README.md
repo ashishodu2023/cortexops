@@ -36,8 +36,9 @@ jobs:
             tool_accuracy < 0.95
 ```
 
-> Requires a `cortexops` release with `eval run --output-json` (newer than 0.5.1). Until it is on
-> PyPI, set `cortexops-version: bundled` to install the SDK from the same ref as the action.
+> Requires `cortexops` 0.6.0 or newer, the first release with `eval run --output-json` and `--junit-xml`.
+> The default `cortexops-version: latest` installs it from PyPI; pin it with `cortexops-version: 0.6.0` or
+> `'>=0.6'`. An older install fails the step with exit code 2 before the eval runs.
 
 ## How the agent is loaded
 
@@ -73,7 +74,7 @@ the job summary, outputs, and PR comment, have it write the reports to the paths
 | `fail-on` | `pass_rate < 1.0` | Gate conditions, one per line; the gate fails if any is true. Metrics (0-1): `task_completion`, `tool_accuracy`, `pass_rate`. Operators: `<`, `<=`, `>`, `>=`. |
 | `working-directory` | `.` | Directory the eval runs in. |
 | `python-version` | `3.11` | Passed to `actions/setup-python`. Empty string uses the Python already on `PATH`. |
-| `cortexops-version` | `latest` | `latest`, a version (`0.6.0`), a specifier (`>=0.6`), a local path (`./sdk`), `bundled` (SDK at the action's ref), or `none`. |
+| `cortexops-version` | `latest` | `latest`, a version (`0.6.0`), a specifier (`>=0.6`), a local path (`./sdk`), `bundled` (SDK at the action's ref), or `none`. Must resolve to 0.6.0 or newer. |
 | `install` | | Extra pip arguments for your agent's dependencies, run in `working-directory` (e.g. `-r requirements.txt`, `.`). |
 | `judge` | `false` | Score cases that define `judge_criteria` with the LLM judge. |
 | `openai-api-key` | | OpenAI key for `judge`. Without it a keyword heuristic is used. |

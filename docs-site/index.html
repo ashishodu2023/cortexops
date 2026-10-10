@@ -359,7 +359,7 @@ const sections={
     title:'Introduction',
     lead:'CortexOps is an evaluation and observability platform for AI agents. Evaluate agent outputs against golden datasets, gate your CI pipeline, and observe every production run in real time.',
     html:`
-<div class="version-badge">v0.2.0</div>
+<div class="version-badge">v0.6.0</div>
 
 <h2>What CortexOps solves</h2>
 <p>AI agents fail in ways traditional software doesn't. Same input, different output every run. Hallucinations that return HTTP 200. Prompt changes that silently break tool call sequences. Latency that spikes without warning.</p>
@@ -552,7 +552,7 @@ cortexops login   <span class="cm"># saves key to ~/.cortexops/credentials</span
 
 <h2>Verify</h2>
 <div class="code-block"><pre>python -c "import cortexops; print(cortexops.__version__)"
-<span class="cm"># 0.1.0</span></pre><button class="copy-btn" onclick="copy(this,&quot;python -c 'import cortexops; print(cortexops.__version__)'&quot;)">Copy</button></div>
+<span class="cm"># 0.6.0</span></pre><button class="copy-btn" onclick="copy(this,&quot;python -c 'import cortexops; print(cortexops.__version__)'&quot;)">Copy</button></div>
 
 <h2>What's included</h2>
 <ul>
@@ -924,7 +924,7 @@ fail_on=<span class="cs">"pass_rate &lt; 1.0"</span></pre></div>
 <tr><td><code>agent</code></td><td></td><td><code>module:attr</code> or <code>file.py:attr</code>; a trailing <code>()</code> calls a factory</td></tr>
 <tr><td><code>command</code></td><td></td><td>Run your own eval script instead; its exit code decides the gate</td></tr>
 <tr><td><code>fail-on</code></td><td><code>pass_rate &lt; 1.0</code></td><td>One condition per line; the gate fails if any is true</td></tr>
-<tr><td><code>cortexops-version</code></td><td><code>latest</code></td><td>Version, pip specifier, local path, or <code>bundled</code> (SDK at the action's ref)</td></tr>
+<tr><td><code>cortexops-version</code></td><td><code>latest</code></td><td>Version (0.6.0 or newer), pip specifier, local path, or <code>bundled</code> (SDK at the action's ref)</td></tr>
 <tr><td><code>comment-on-pr</code></td><td><code>true</code></td><td>Create or update a single sticky PR comment</td></tr>
 <tr><td><code>api-key</code></td><td></td><td><code>CORTEXOPS_API_KEY</code> to also push results to the dashboard</td></tr>
 </tbody>
@@ -1413,7 +1413,7 @@ SDK &amp; CI: <code>X-API-Key: cxo-…</code> &nbsp;·&nbsp; Dashboard: <code>Au
 <div class="code-block"><pre><span class="cm">// Response 200</span>
 {
   <span class="cn">"status"</span>: <span class="cs">"ok"</span>,
-  <span class="cn">"version"</span>: <span class="cs">"0.1.0"</span>,
+  <span class="cn">"version"</span>: <span class="cs">"0.6.0"</span>,
   <span class="cn">"environment"</span>: <span class="cs">"production"</span>,
   <span class="cn">"circuits"</span>: {
     <span class="cn">"stripe"</span>: <span class="cs">"closed"</span>,
@@ -1931,6 +1931,19 @@ curl https://api.getcortexops.com/v1/traces/quota \
     title:'Changelog',
     lead:'All notable changes to CortexOps.',
     html:`
+<h2>v0.6.0 — October 2026</h2>
+<ul>
+<li>eval-gate GitHub Action — job summary, sticky PR comment, fail-on thresholds</li>
+<li>CLI — cortexops eval run --output-json / --summary-md / --junit-xml, --agent module:attr, repeatable --fail-on; exit code 2 for configuration errors</li>
+<li>GitLab CI template and pre-commit hook</li>
+<li>MCP tool-call tracing (cortexops[mcp]) and the cortexops-mcp server</li>
+<li>Safety metrics — PromptInjectionMetric and ToolMisuseMetric</li>
+<li>OpenTelemetry — OTLP/HTTP ingest at /v1/otlp and OTelExporter (cortexops[otel])</li>
+<li>Self-hosting — Docker Compose stack and Helm chart</li>
+<li>Fix — LLM judge no longer crashes eval runs with an invalid failure kind</li>
+</ul>
+<p>Full notes: <a href="https://github.com/ashishodu2023/cortexops/releases/tag/v0.6.0" target="_blank" rel="noopener">GitHub release v0.6.0</a>.</p>
+
 <h2>v0.2.0 — April 2026</h2>
 <p>First public release.</p>
 <ul>

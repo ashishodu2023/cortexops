@@ -148,7 +148,7 @@ The API and worker receive `DATABASE_URL=postgresql+asyncpg://POSTGRES_USER:POST
 | `BOOTSTRAP_TIER` | `pro` | Tier of the bootstrapped key (`pro` or `free`). |
 | `API_BIND` / `API_PORT` | `127.0.0.1` / `8000` | Host interface and port for the API. |
 | `DASHBOARD_BIND` / `DASHBOARD_PORT` | `127.0.0.1` / `3000` | Host interface and port for the dashboard. |
-| `CORTEXOPS_API_IMAGE` | `cortexops-api:local` | Use a prebuilt API image, e.g. `ghcr.io/ashishodu2023/cortexops-api:0.5.1`. |
+| `CORTEXOPS_API_IMAGE` | `cortexops-api:local` | Use a prebuilt API image, e.g. `ghcr.io/ashishodu2023/cortexops-api:0.6.0`. |
 | `CORTEXOPS_DASHBOARD_IMAGE` | `cortexops-dashboard:local` | Use a prebuilt dashboard image. |
 | `VITE_API_URL` | empty | Build-time API URL baked into the dashboard bundle. `CORTEXOPS_API_URL` overrides it at runtime. |
 
@@ -226,7 +226,7 @@ overwrites that header (as above, `$remote_addr` rather than `$proxy_add_x_forwa
 ## Upgrades
 
 ```bash
-git pull                          # or check out a release tag, e.g. git checkout v0.5.1
+git pull                          # or check out a release tag, e.g. git checkout v0.6.0
 docker compose up -d --build      # rebuilds images and recreates changed services
 docker compose ps                 # all services healthy, bootstrap exited 0
 ```
