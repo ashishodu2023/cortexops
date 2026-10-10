@@ -30,6 +30,8 @@ async def _check_db():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Starlette ignores @app.on_event handlers once a lifespan is set, so validate here.
+    await validate_secrets()
     await init_db()
     # Register health checks
     health_aggregator.register("database", _check_db)
@@ -87,7 +89,6 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
-@app.on_event("startup")
 async def validate_secrets():
     """Fail fast on startup if critical secrets are missing or default."""
     import os

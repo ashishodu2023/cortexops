@@ -1,7 +1,11 @@
+import os
 from functools import lru_cache
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Set by Railway on every deployment, whose edge proxy overwrites any client-supplied X-Forwarded-For.
+_RAILWAY_MARKERS = ("RAILWAY_PROJECT_ID", "RAILWAY_ENVIRONMENT_ID", "RAILWAY_SERVICE_ID")
 
 _DEFAULT_CORS = [
     "http://localhost:3000",
@@ -61,6 +65,16 @@ class Settings(BaseSettings):
             parsed = [origin.strip() for origin in value.split(",") if origin.strip()]
             return parsed or _DEFAULT_CORS
         return value
+
+    # Peers allowed to set X-Forwarded-For: comma-separated IPs/CIDRs, or "*" for any peer.
+    # Unset: any peer on Railway (only its edge reaches the app publicly), otherwise none.
+    trusted_proxies: str | None = None
+
+    @property
+    def effective_trusted_proxies(self) -> str:
+        if self.trusted_proxies is not None:
+            return self.trusted_proxies
+        return "*" if any(os.environ.get(name) for name in _RAILWAY_MARKERS) else ""
 
     @property
     def is_production(self) -> bool:
