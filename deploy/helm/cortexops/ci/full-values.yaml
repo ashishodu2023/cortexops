@@ -1,6 +1,6 @@
 # Exercises every optional template: ingress with TLS, HPA, PDB, migration job, existing secret.
 image:
-  tag: "0.5.1"
+  tag: "0.6.0"
 imagePullSecrets:
   - name: ghcr-pull
 serviceAccount:

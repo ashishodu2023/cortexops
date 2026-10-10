@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     app_name: str = "CortexOps API"
     environment: str = "development"
     debug: bool = False
-    version: str = "0.5.1"
+    version: str = "0.6.0"
 
     # Database — MUST be set to PostgreSQL in production
     database_url: str = "sqlite+aiosqlite:///./cortexops.db"

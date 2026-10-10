@@ -3,7 +3,7 @@
 Deploys the CortexOps API, Celery worker and dashboard to Kubernetes. PostgreSQL and Redis are external by default;
 Bitnami subcharts can be enabled for evaluation installs.
 
-- Chart version `0.1.0`, app version `0.5.1`, Kubernetes 1.25+, Helm 3.8+.
+- Chart version `0.1.0`, app version `0.6.0`, Kubernetes 1.25+, Helm 3.8+.
 - Images: `ghcr.io/ashishodu2023/cortexops-api` (API and worker) and `ghcr.io/ashishodu2023/cortexops-dashboard`,
   published by the `Self-hosting` workflow on release tags. To build your own, see [Building images](#building-images).
 - For Docker Compose and general configuration, see [docs/self-hosting.md](../../../docs/self-hosting.md).
@@ -152,10 +152,10 @@ Any other Bitnami subchart value can be set under `postgresql.` and `redis.`.
 ## Building images
 
 ```bash
-docker build -t registry.example.com/cortexops-api:0.5.1 .
-docker build -t registry.example.com/cortexops-dashboard:0.5.1 frontend-new
-docker push registry.example.com/cortexops-api:0.5.1
-docker push registry.example.com/cortexops-dashboard:0.5.1
+docker build -t registry.example.com/cortexops-api:0.6.0 .
+docker build -t registry.example.com/cortexops-dashboard:0.6.0 frontend-new
+docker push registry.example.com/cortexops-api:0.6.0
+docker push registry.example.com/cortexops-dashboard:0.6.0
 
 helm upgrade --install cortexops deploy/helm/cortexops -n cortexops \
   --set image.repository=registry.example.com/cortexops-api \
