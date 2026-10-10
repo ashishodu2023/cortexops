@@ -266,7 +266,7 @@ Add custom metrics by subclassing `cortexops.Metric`.
 - [x] pytest plugin for eval gates (`@cortexops.eval_gate(...)`)
 
 ### v0.6.0 — distribution and CI-first
-- [x] GitHub Action for CI eval gates: job summary, sticky PR comment (shipped in 0.6.0, published as [`cortexops-eval-action`](https://github.com/ashishodu2023/cortexops-eval-action); Marketplace listing pending) ([#29](https://github.com/ashishodu2023/cortexops/issues/29), covers [#19](https://github.com/ashishodu2023/cortexops/issues/19))
+- [x] GitHub Action for CI eval gates: job summary, sticky PR comment (shipped in 0.6.0, published on the [GitHub Marketplace](https://github.com/marketplace/actions/cortexops-eval-gate)) ([#29](https://github.com/ashishodu2023/cortexops/issues/29), covers [#19](https://github.com/ashishodu2023/cortexops/issues/19))
 - [ ] GitLab CI template and pre-commit hook ([#31](https://github.com/ashishodu2023/cortexops/issues/31))
 - [ ] Reposition as "pytest for AI agents: catch regressions before they ship" ([#30](https://github.com/ashishodu2023/cortexops/issues/30))
 - [ ] Cost tracking per eval run (judge API cost) ([#20](https://github.com/ashishodu2023/cortexops/issues/20))

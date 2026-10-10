@@ -1,7 +1,5 @@
 name: CortexOps Eval Gate
-description: >-
-  Run a CortexOps golden-dataset eval against your AI agent, write a job summary,
-  post a sticky PR comment, and fail the job when a threshold regresses.
+description: "Gate pull requests on CortexOps AI agent evals: run a golden dataset, comment the results, fail on regressions."
 author: Ashish Verma
 branding:
   icon: check-circle
