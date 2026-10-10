@@ -75,6 +75,9 @@ async def _run_eval_async(
             run.latency_p50_ms = summary.latency_p50_ms
             run.latency_p95_ms = summary.latency_p95_ms
             run.regressions = summary.regressions
+            run.judge_cost_usd = summary.judge_cost_usd
+            run.judge_tokens_in = summary.judge_tokens_in
+            run.judge_tokens_out = summary.judge_tokens_out
             run.completed_at = datetime.now(timezone.utc)
             run.raw_summary = json.dumps(summary.model_dump(mode="json"))
 
@@ -89,6 +92,9 @@ async def _run_eval_async(
                     latency_ms=cr.latency_ms,
                     failure_kind=cr.failure_kind.value if cr.failure_kind else None,
                     failure_detail=cr.failure_detail,
+                    judge_cost_usd=cr.judge_cost_usd,
+                    judge_tokens_in=cr.judge_tokens_in,
+                    judge_tokens_out=cr.judge_tokens_out,
                 ))
 
             await db.commit()

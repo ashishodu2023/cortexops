@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db import Base
@@ -31,6 +31,17 @@ class Project(Base):
 
 class ApiKey(Base):
     __tablename__ = "api_keys"
+    __table_args__ = (
+        # One active Pro key per project from billing provisioning, across replicas. Keys created by
+        # rotate / resend-email / admin upgrade carry no provision_ref and are not constrained.
+        Index(
+            "uq_api_keys_provisioned_pro_project",
+            "project",
+            unique=True,
+            postgresql_where=text("provision_ref IS NOT NULL AND is_active AND tier = 'pro'"),
+            sqlite_where=text("provision_ref IS NOT NULL AND is_active = 1 AND tier = 'pro'"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     project: Mapped[str] = mapped_column(String(255), ForeignKey("projects.name"), nullable=False, index=True)
@@ -42,6 +53,8 @@ class ApiKey(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Payment event that minted this key ("stripe:<checkout session>", "paypal:<webhook event>")
+    provision_ref: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True, index=True)
 
     project_rel: Mapped[Project] = relationship("Project", back_populates="api_keys")
 
@@ -67,6 +80,10 @@ class EvalRun(Base):
     raw_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # LLM-as-judge spend; NULL when no judge ran or the judge model has no known price
+    judge_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    judge_tokens_in: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    judge_tokens_out: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project_rel: Mapped[Project] = relationship("Project", back_populates="eval_runs")
     case_results: Mapped[list[CaseResultRecord]] = relationship("CaseResultRecord", back_populates="run", lazy="select")
@@ -85,6 +102,9 @@ class CaseResultRecord(Base):
     latency_ms: Mapped[float] = mapped_column(Float, default=0.0)
     failure_kind: Mapped[str | None] = mapped_column(String(50), nullable=True)
     failure_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    judge_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    judge_tokens_in: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    judge_tokens_out: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     run: Mapped[EvalRun] = relationship("EvalRun", back_populates="case_results")
 
@@ -108,6 +128,9 @@ class TraceRecord(Base):
 
 class PromptVersion(Base):
     __tablename__ = "prompt_versions"
+    __table_args__ = (
+        Index("uq_prompt_versions_project_prompt_name_version", "project", "prompt_name", "version", unique=True),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     project: Mapped[str] = mapped_column(String(255), ForeignKey("projects.name"), nullable=False, index=True)

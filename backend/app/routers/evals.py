@@ -4,13 +4,14 @@ import json
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..auth import get_current_key_info
-from ..db import get_db
+from ..db import get_db, retry_on_integrity_error
 from ..models.records import CaseResultRecord, EvalDataset, EvalRun, Project, PromptVersion
 from ..models.schemas import (
     CaseResultResponse,
@@ -24,8 +25,11 @@ from ..models.schemas import (
 )
 from ..tiers import TierInfo, require_project_access
 from ..worker.tasks import run_eval_task
+from .prompts import latest_prompt_version
 
 router = APIRouter(prefix="/v1/evals", tags=["evaluations"])
+
+_INGEST_ATTEMPTS = 3
 
 
 async def _ensure_project(db: AsyncSession, name: str) -> Project:
@@ -70,13 +74,7 @@ async def _upsert_prompt(
 ) -> None:
     if not snapshot or not snapshot.prompt_name or not snapshot.content:
         return
-    result = await db.execute(
-        select(PromptVersion)
-        .where(PromptVersion.project == project, PromptVersion.prompt_name == snapshot.prompt_name)
-        .order_by(PromptVersion.version.desc())
-        .limit(1)
-    )
-    latest = result.scalar_one_or_none()
+    latest = await latest_prompt_version(db, project, snapshot.prompt_name)
     # model/temperature only count as a change when the snapshot actually sent them
     sent = snapshot.model_fields_set
     if (
@@ -136,19 +134,21 @@ async def trigger_eval_run(
     )
 
 
-@router.post("/ingest", response_model=EvalSummaryResponse, status_code=201)
-async def ingest_eval_summary(
-    body: EvalSummaryIngest,
-    db: AsyncSession = Depends(get_db),
-    tier_info: TierInfo = Depends(get_current_key_info),
-):
-    """Store a completed local eval run (from SDK EvalSuite) for dashboard display."""
-    require_project_access(tier_info, body.project)
+async def _load_run(db: AsyncSession, run_id: str) -> EvalRun | None:
+    result = await db.execute(
+        select(EvalRun).options(selectinload(EvalRun.case_results)).where(EvalRun.id == run_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _store_ingest(db: AsyncSession, body: EvalSummaryIngest, run_id: str) -> tuple[EvalRun, bool]:
+    """Insert the run unless `run_id` already exists. Returns (run, created)."""
+    existing = await _load_run(db, run_id)
+    if existing is not None:
+        return existing, False
+
     project = body.project
     await _ensure_project(db, project)
-    run_id = body.run_id or str(uuid.uuid4())
-    now = datetime.utcnow()
-
     run = EvalRun(
         id=run_id,
         project=project,
@@ -164,7 +164,10 @@ async def ingest_eval_summary(
         latency_p95_ms=body.latency_p95_ms,
         regressions=body.regressions,
         baseline_run_id=body.baseline_run_id,
-        completed_at=now,
+        completed_at=datetime.utcnow(),
+        judge_cost_usd=body.judge_cost_usd,
+        judge_tokens_in=body.judge_tokens_in,
+        judge_tokens_out=body.judge_tokens_out,
     )
     db.add(run)
     await db.flush()
@@ -185,6 +188,9 @@ async def ingest_eval_summary(
                 latency_ms=cr.latency_ms,
                 failure_kind=fk,
                 failure_detail=cr.failure_detail,
+                judge_cost_usd=cr.judge_cost_usd,
+                judge_tokens_in=cr.judge_tokens_in,
+                judge_tokens_out=cr.judge_tokens_out,
             )
         )
 
@@ -193,10 +199,38 @@ async def ingest_eval_summary(
 
     await db.flush()
     await db.refresh(run)
-    result = await db.execute(
-        select(EvalRun).options(selectinload(EvalRun.case_results)).where(EvalRun.id == run_id)
-    )
-    stored = result.scalar_one()
+    return await _load_run(db, run_id), True
+
+
+@router.post("/ingest", response_model=EvalSummaryResponse, status_code=201, responses={
+    200: {"description": "run_id was already ingested; the stored run is returned unchanged"},
+    409: {"description": "run_id belongs to another project, or concurrent writes kept conflicting"},
+})
+async def ingest_eval_summary(
+    body: EvalSummaryIngest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    tier_info: TierInfo = Depends(get_current_key_info),
+):
+    """Store a completed local eval run (from SDK EvalSuite) for dashboard display.
+
+    Idempotent per run_id: a retried or concurrent push of the same run returns the stored run
+    (first write wins) with status 200 instead of inserting it twice.
+    """
+    require_project_access(tier_info, body.project)
+    run_id = body.run_id or str(uuid.uuid4())
+
+    try:
+        stored, created = await retry_on_integrity_error(
+            db, lambda: _store_ingest(db, body, run_id), attempts=_INGEST_ATTEMPTS, what=f"eval ingest run_id={run_id}",
+        )
+    except IntegrityError:
+        raise HTTPException(409, "Concurrent writes for this eval run kept conflicting — retry the request.") from None
+    if stored.project != body.project:
+        raise HTTPException(409, f"run_id {run_id} already exists in another project")
+    if not created:
+        response.status_code = 200
+        return _run_to_response(stored)
 
     from ..services.eval_alerts import maybe_send_eval_alerts
     await maybe_send_eval_alerts(db, stored, case_results=list(stored.case_results or []))
@@ -268,8 +302,7 @@ async def get_eval_run(
 
 
 async def _get_run_or_404(db: AsyncSession, run_id: str) -> EvalRun:
-    result = await db.execute(select(EvalRun).where(EvalRun.id == run_id))
-    run = result.scalar_one_or_none()
+    run = await _load_run(db, run_id)
     if not run:
         raise HTTPException(status_code=404, detail=f"Eval run {run_id} not found")
     return run
@@ -288,6 +321,9 @@ def _run_to_response(run: EvalRun) -> EvalSummaryResponse:
                 latency_ms=r.latency_ms,
                 failure_kind=r.failure_kind,
                 failure_detail=r.failure_detail,
+                judge_cost_usd=r.judge_cost_usd,
+                judge_tokens_in=r.judge_tokens_in,
+                judge_tokens_out=r.judge_tokens_out,
             )
             for r in run.case_results
         ]
@@ -310,4 +346,7 @@ def _run_to_response(run: EvalRun) -> EvalSummaryResponse:
         case_results=case_results,
         created_at=run.created_at,
         completed_at=run.completed_at,
+        judge_cost_usd=run.judge_cost_usd,
+        judge_tokens_in=run.judge_tokens_in,
+        judge_tokens_out=run.judge_tokens_out,
     )

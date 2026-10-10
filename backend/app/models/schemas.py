@@ -46,6 +46,9 @@ class CaseResultResponse(BaseModel):
     latency_ms: float
     failure_kind: str | None
     failure_detail: str | None
+    judge_cost_usd: float | None = None
+    judge_tokens_in: int | None = None
+    judge_tokens_out: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -59,6 +62,9 @@ class CaseResultIngest(BaseModel):
     latency_ms: float
     failure_kind: str | None = None
     failure_detail: str | None = None
+    judge_cost_usd: float | None = Field(None, ge=0)
+    judge_tokens_in: int | None = Field(None, ge=0)
+    judge_tokens_out: int | None = Field(None, ge=0)
 
 
 class DatasetIngestSnapshot(BaseModel):
@@ -93,6 +99,10 @@ class EvalSummaryIngest(BaseModel):
     case_results: list[CaseResultIngest] = []
     dataset: DatasetIngestSnapshot | None = None
     prompt: PromptIngestSnapshot | None = None
+    # LLM-as-judge spend (SDK >= 0.6); None when no judge ran or its model has no known price
+    judge_cost_usd: float | None = Field(None, ge=0)
+    judge_tokens_in: int | None = Field(None, ge=0)
+    judge_tokens_out: int | None = Field(None, ge=0)
 
 
 class EvalSummaryResponse(BaseModel):
@@ -113,6 +123,9 @@ class EvalSummaryResponse(BaseModel):
     case_results: list[CaseResultResponse] = []
     created_at: datetime
     completed_at: datetime | None
+    judge_cost_usd: float | None = None
+    judge_tokens_in: int | None = None
+    judge_tokens_out: int | None = None
 
     model_config = {"from_attributes": True}
 
