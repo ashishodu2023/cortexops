@@ -1,0 +1,222 @@
+name: Self-hosting
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker-compose.yml
+      - .env.example
+      - start.py
+      - backend/**
+      - sdk/**
+      - frontend-new/**
+      - deploy/**
+      - .github/workflows/self-hosting.yml
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: self-hosting-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HELM_VERSION: v3.16.4
+  HELM_SHA256: fc307327959aa38ed8f9f7e66d45492bb022a66c3e5da6063958254b9767d179
+  KUBECONFORM_VERSION: v0.6.7
+  KUBECONFORM_SHA256: 95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73
+  KIND_VERSION: v0.27.0
+  KIND_SHA256: a6875aaea358acf0ac07786b1a6755d08fd640f4c79b7a2e46681cc13f49a04b
+  CHART: deploy/helm/cortexops
+
+jobs:
+
+  helm-lint:
+    name: Helm lint + kubeconform
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install helm and kubeconform
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin" && cd "$RUNNER_TEMP"
+          curl -fsSLo helm.tgz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          echo "${HELM_SHA256}  helm.tgz" | sha256sum -c -
+          tar xzf helm.tgz && mv linux-amd64/helm bin/
+          curl -fsSLo kc.tgz "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  kc.tgz" | sha256sum -c -
+          tar xzf kc.tgz -C bin kubeconform
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Build chart dependencies
+        run: helm dependency build "$CHART"
+
+      - name: Lint and validate rendered manifests
+        run: |
+          for values in "" ci/full-values.yaml ci/bundled-values.yaml; do
+            args=()
+            [ -n "$values" ] && args=(-f "$CHART/$values")
+            echo "::group::values: ${values:-defaults}"
+            helm lint --strict "$CHART" "${args[@]}"
+            helm template ci "$CHART" "${args[@]}" > rendered.yaml
+            for k8s in 1.27.0 1.30.0 1.33.0; do
+              kubeconform -strict -summary -kubernetes-version "$k8s" rendered.yaml
+            done
+            echo "::endgroup::"
+          done
+
+  compose:
+    name: Docker Compose smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install the SDK for the smoke test
+        run: pip install ./sdk httpx
+
+      - name: Generate .env and validate the compose file
+        run: |
+          ./deploy/compose/generate-env.sh
+          docker compose config --quiet
+
+      - name: Start the stack
+        run: docker compose up -d --build
+
+      - name: Smoke test
+        run: |
+          ./deploy/compose/smoke-test.sh
+          key="$(docker compose logs --no-log-prefix bootstrap | sed -n 's/.*CORTEXOPS_API_KEY=\(cxo-[0-9a-f]*\).*/\1/p' | tail -n 1)"
+          echo "::add-mask::$key"
+          echo "SMOKE_API_KEY=$key" >> "$GITHUB_ENV"
+
+      - name: Recreated containers keep data and the bootstrap stays idempotent
+        run: |
+          docker compose up -d --force-recreate
+          ./deploy/compose/smoke-test.sh
+
+      - name: Logs
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  kind:
+    name: Helm install on kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install helm and kind
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin" && cd "$RUNNER_TEMP"
+          curl -fsSLo helm.tgz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          echo "${HELM_SHA256}  helm.tgz" | sha256sum -c -
+          tar xzf helm.tgz && mv linux-amd64/helm bin/
+          curl -fsSLo bin/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          echo "${KIND_SHA256}  bin/kind" | sha256sum -c -
+          chmod +x bin/kind
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Build images
+        run: |
+          docker build -t cortexops-api:ci -f Dockerfile .
+          docker build -t cortexops-dashboard:ci frontend-new
+
+      - name: Create cluster and load images
+        run: |
+          kind create cluster --name cortexops --wait 120s
+          kind load docker-image cortexops-api:ci cortexops-dashboard:ci --name cortexops
+
+      - name: Install chart (bundled PostgreSQL and Redis)
+        run: |
+          helm dependency build "$CHART"
+          helm install cx "$CHART" -f "$CHART/ci/bundled-values.yaml" \
+            --set image.repository=cortexops-api --set image.tag=ci --set image.pullPolicy=Never \
+            --set dashboard.image.repository=cortexops-dashboard --set dashboard.image.tag=ci \
+            --set dashboard.image.pullPolicy=Never \
+            --wait --timeout 10m
+
+      - name: Verify API, worker and dashboard
+        run: |
+          kubectl get pods -o wide
+          kubectl rollout status deploy/cx-cortexops-worker --timeout 3m
+          kubectl port-forward svc/cx-cortexops-api 8000:8000 >/dev/null 2>&1 &
+          kubectl port-forward svc/cx-cortexops-dashboard 3000:80 >/dev/null 2>&1 &
+          sleep 5
+          curl -fsS http://localhost:8000/health | tee /dev/stderr | grep -q '"environment":"production"'
+          curl -fsS http://localhost:3000/config.js | tee /dev/stderr | grep -q 'apiUrl: "http://cortexops.local"'
+          curl -fsS -o "$RUNNER_TEMP/key.json" -X POST http://localhost:8000/v1/keys/bootstrap \
+            -H 'Content-Type: application/json' -d '{"project": "kind-smoke", "email": "ci@example.com"}'
+          key_id="$(jq -er 'select(.raw_key | startswith("cxo-")) | .id' "$RUNNER_TEMP/key.json")"
+          internal_key="$(kubectl get secret cx-cortexops -o jsonpath='{.data.INTERNAL_API_KEY}' | base64 -d)"
+          curl -fsS -X POST "http://localhost:8000/v1/admin/keys/${key_id}/upgrade" \
+            -H "X-Internal-Key: ${internal_key}" -H 'Content-Type: application/json' \
+            -d '{"tier": "pro", "scope": "read_write"}' | grep -q '"new_tier":"pro"'
+          echo "Chart installed and serving on kind."
+
+      - name: Upgrade keeps generated secrets
+        run: |
+          before="$(kubectl get secret cx-cortexops -o jsonpath='{.data.JWT_SECRET}')"
+          helm upgrade cx "$CHART" --reuse-values --wait --timeout 5m
+          after="$(kubectl get secret cx-cortexops -o jsonpath='{.data.JWT_SECRET}')"
+          [ "$before" = "$after" ] || { echo "JWT_SECRET changed on upgrade"; exit 1; }
+
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl get all,secret,configmap
+          kubectl describe pods
+          kubectl logs -l app.kubernetes.io/instance=cx --all-containers --tail 100 --prefix
+
+  publish:
+    name: Publish images to GHCR
+    if: github.event_name == 'push'
+    needs: [helm-lint, compose, kind]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Build and push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          owner="$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tags=("${GITHUB_REF_NAME#v}" latest)
+          else
+            tags=(main "sha-${GITHUB_SHA::7}")
+          fi
+          for image in api dashboard; do
+            context=.; [ "$image" = dashboard ] && context=frontend-new
+            repo="ghcr.io/${owner}/cortexops-${image}"
+            docker build -t "${repo}:${tags[0]}" \
+              --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+              --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+              "$context"
+            for tag in "${tags[@]}"; do
+              docker tag "${repo}:${tags[0]}" "${repo}:${tag}"
+              docker push "${repo}:${tag}"
+            done
+          done

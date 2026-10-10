@@ -1,0 +1,72 @@
+# Exercises every optional template: ingress with TLS, HPA, PDB, migration job, existing secret.
+image:
+  tag: "0.5.1"
+imagePullSecrets:
+  - name: ghcr-pull
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/cortexops
+config:
+  billingEnabled: false
+  extraEnv:
+    LOG_FORMAT: json
+secrets:
+  existingSecret: cortexops-secrets
+migrations:
+  job:
+    enabled: true
+api:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetMemoryUtilizationPercentage: 80
+  extraEnv:
+    - name: CORTEXOPS_SLACK_WEBHOOK_URL
+      valueFrom:
+        secretKeyRef:
+          name: cortexops-alerts
+          key: slack-webhook
+  podAnnotations:
+    prometheus.io/scrape: "false"
+  nodeSelector:
+    kubernetes.io/os: linux
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: cortexops
+      effect: NoSchedule
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: api
+worker:
+  replicaCount: 2
+  concurrency: 8
+  autoscaling:
+    enabled: true
+dashboard:
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  api:
+    host: api.cortexops.example.com
+  dashboard:
+    host: cortexops.example.com
+  tls:
+    - secretName: cortexops-tls
+      hosts:
+        - api.cortexops.example.com
+        - cortexops.example.com
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

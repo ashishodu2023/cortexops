@@ -1,0 +1,13 @@
+# Runs in your own environment (language: system) so the eval can import your agent and its
+# dependencies; install cortexops there first (pip install cortexops).
+- id: cortexops-eval
+  name: CortexOps eval gate
+  description: >-
+    Run a CortexOps golden-dataset eval and fail when a --fail-on condition is true.
+    Pass --dataset, --agent and --fail-on in args; narrow `files` to your agent, prompts and datasets.
+  entry: cortexops eval run --quiet --no-step-summary
+  language: system
+  pass_filenames: false
+  require_serial: true
+  stages: [pre-commit, pre-push, manual]
+  minimum_pre_commit_version: "3.2.0"

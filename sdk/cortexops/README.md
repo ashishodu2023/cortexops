@@ -80,10 +80,12 @@ cases:
 ```bash
 cortexops eval run \
   --dataset golden_v1.yaml \
+  --agent "agent:build_agent()" \
   --fail-on "task_completion < 0.90"
 ```
 
-Exits non-zero if the threshold is not met — blocks the PR.
+Exits non-zero if the threshold is not met — blocks the PR. In GitHub Actions, use the
+[eval-gate action](https://github.com/ashishodu2023/cortexops/tree/main/actions/eval-gate) for a job summary and PR comment.
 
 ---
 

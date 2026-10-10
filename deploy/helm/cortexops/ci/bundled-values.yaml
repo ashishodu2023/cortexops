@@ -1,0 +1,15 @@
+# Evaluation install with the bundled PostgreSQL and Redis subcharts, single-host ingress.
+postgresql:
+  enabled: true
+  auth:
+    password: ci-postgres-password
+redis:
+  enabled: true
+  auth:
+    password: ci-redis-password
+ingress:
+  enabled: true
+  api:
+    host: cortexops.local
+  dashboard:
+    host: cortexops.local

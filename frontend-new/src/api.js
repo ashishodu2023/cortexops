@@ -1,4 +1,7 @@
-export const API = import.meta.env?.VITE_API_URL || "https://api.getcortexops.com";
+// Resolution order: runtime config (public/config.js, rewritten by the self-hosted image at startup),
+// then the VITE_API_URL build-time variable, then the hosted API.
+const runtimeApiUrl = typeof window !== "undefined" ? window.__CORTEXOPS_CONFIG__?.apiUrl : "";
+export const API = (runtimeApiUrl || import.meta.env?.VITE_API_URL || "https://api.getcortexops.com").replace(/\/+$/, "");
 
 const SESSION_KEY = "cxo_session";
 

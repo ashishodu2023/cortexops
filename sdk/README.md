@@ -148,17 +148,26 @@ cases:
 
 ## CI eval gate
 
-Add to `.github/workflows/eval.yml`:
+Use the [eval-gate GitHub Action](https://github.com/ashishodu2023/cortexops/tree/main/actions/eval-gate):
 
 ```yaml
-- name: CortexOps eval gate
-  run: |
-    python examples/langgraph_payments/run_eval.py \
-      --dataset golden_v1.yaml \
-      --fail-on "task_completion < 0.90"
+- uses: ashishodu2023/cortexops/actions/eval-gate@main   # pin to a tag or SHA
+  with:
+    dataset: golden_v1.yaml
+    agent: agent:build_agent()
+    fail-on: |
+      task_completion < 0.90
+      tool_accuracy < 0.95
 ```
 
-If the eval drops below threshold, the job exits non-zero and the PR is blocked.
+It writes a report to the job summary, keeps one comment on the PR up to date (needs `pull-requests: write`), and fails the job if any condition is true. Or call the CLI directly:
+
+```bash
+cortexops eval run --dataset golden_v1.yaml --agent "agent:build_agent()" \
+  --fail-on "task_completion < 0.90" --output-json report.json --summary-md summary.md --junit-xml junit.xml
+```
+
+Exit codes: 0 passed, 1 gate failed, 2 configuration error. Inside GitHub Actions the markdown report is also appended to the job summary.
 
 Prefer pytest? Use `@cortexops.eval_gate(...)` and run the gate with the rest of your test suite.
 

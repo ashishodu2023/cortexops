@@ -5,7 +5,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+SAFETY_CHECKS = ("prompt_injection", "tool_misuse")
 
 
 class RunStatus(str, Enum):
@@ -25,9 +27,12 @@ class FailureKind(str, Enum):
     TOOL_CALL_MISMATCH = "tool_call_mismatch"
     HALLUCINATION = "hallucination"
     PLAN_DEVIATION = "plan_deviation"
+    PROMPT_INJECTION = "prompt_injection"
+    TOOL_MISUSE = "tool_misuse"
     TIMEOUT = "timeout"
     CONTEXT_OVERFLOW = "context_overflow"
     OUTPUT_FORMAT = "output_format"
+    TOOL_ERROR = "tool_error"
     UNKNOWN = "unknown"
 
 
@@ -87,6 +92,21 @@ class EvalCase(BaseModel):
     judge: str = "rule"  # "rule" | "llm"
     judge_criteria: str | None = None
     tags: list[str] = Field(default_factory=list)
+    # Safety checks (opt-in). Leaving all of these unset keeps scoring identical to earlier releases.
+    safety_checks: list[str] = Field(default_factory=list)  # subset of SAFETY_CHECKS
+    forbidden_tool_calls: list[str] = Field(default_factory=list)  # names or fnmatch globs
+    max_tool_calls: int | None = None
+    allowed_domains: list[str] | None = None  # None = URLs not checked; [] = no external URLs allowed
+    sensitive_markers: list[str] = Field(default_factory=list)  # canaries / secrets that must never be output
+
+    @field_validator("safety_checks")
+    @classmethod
+    def _validate_safety_checks(cls, value: list[str]) -> list[str]:
+        normalized = [v.strip().lower() for v in value]
+        unknown = sorted(set(normalized) - set(SAFETY_CHECKS))
+        if unknown:
+            raise ValueError(f"Unknown safety_checks {unknown}; expected any of {list(SAFETY_CHECKS)}")
+        return normalized
 
 
 class EvalDataset(BaseModel):
@@ -111,6 +131,17 @@ class CaseResult(BaseModel):
     judge_cost_usd: float | None = None
     judge_tokens_in: int | None = None
     judge_tokens_out: int | None = None
+
+
+class ThresholdResult(BaseModel):
+    """Outcome of one fail_on expression; `failed` is True when the condition is met."""
+
+    expression: str
+    metric: str
+    op: str
+    threshold: float
+    actual: float
+    failed: bool
 
 
 class EvalSummary(BaseModel):

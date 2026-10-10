@@ -895,7 +895,45 @@ fail_on=<span class="cs">"pass_rate &lt; 1.0"</span></pre></div>
     title:'CI eval gate',
     lead:'Block PRs automatically when your agent regresses. One YAML step in GitHub Actions.',
     html:`
-<h2>GitHub Actions</h2>
+<h2>GitHub Action</h2>
+<p>The <code>eval-gate</code> action installs the SDK, runs your golden dataset against your agent, writes a report to the job summary, keeps one up-to-date comment on the pull request, and fails the job when a threshold trips.</p>
+<div class="code-block"><pre><span class="cm"># .github/workflows/eval.yml</span>
+<span class="cn">name</span>: Eval gate
+<span class="cn">on</span>: [pull_request]
+
+<span class="cn">jobs</span>:
+  <span class="cn">eval</span>:
+    <span class="cn">runs-on</span>: ubuntu-latest
+    <span class="cn">permissions</span>:
+      <span class="cn">contents</span>: read
+      <span class="cn">pull-requests</span>: write   <span class="cm"># for the sticky PR comment</span>
+    <span class="cn">steps</span>:
+      - <span class="cn">uses</span>: actions/checkout@v4
+      - <span class="cn">uses</span>: ashishodu2023/cortexops/actions/eval-gate@main
+        <span class="cn">with</span>:
+          <span class="cn">dataset</span>: evals/golden_v1.yaml
+          <span class="cn">agent</span>: <span class="cs">"my_app.agent:build_agent()"</span>
+          <span class="cn">install</span>: -r requirements.txt
+          <span class="cn">fail-on</span>: |
+            task_completion &lt; 0.90
+            tool_accuracy &lt; 0.95</pre><button class="copy-btn" onclick="copy(this,'- uses: ashishodu2023/cortexops/actions/eval-gate@main\\n  with:\\n    dataset: evals/golden_v1.yaml\\n    agent: \\'my_app.agent:build_agent()\\'\\n    fail-on: |\\n      task_completion < 0.90\\n      tool_accuracy < 0.95')">Copy</button></div>
+<table class="metric-table">
+<thead><tr><th>Input</th><th>Default</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>dataset</code></td><td>required</td><td>Golden dataset YAML, relative to <code>working-directory</code></td></tr>
+<tr><td><code>agent</code></td><td></td><td><code>module:attr</code> or <code>file.py:attr</code>; a trailing <code>()</code> calls a factory</td></tr>
+<tr><td><code>command</code></td><td></td><td>Run your own eval script instead; its exit code decides the gate</td></tr>
+<tr><td><code>fail-on</code></td><td><code>pass_rate &lt; 1.0</code></td><td>One condition per line; the gate fails if any is true</td></tr>
+<tr><td><code>cortexops-version</code></td><td><code>latest</code></td><td>Version, pip specifier, local path, or <code>bundled</code> (SDK at the action's ref)</td></tr>
+<tr><td><code>comment-on-pr</code></td><td><code>true</code></td><td>Create or update a single sticky PR comment</td></tr>
+<tr><td><code>api-key</code></td><td></td><td><code>CORTEXOPS_API_KEY</code> to also push results to the dashboard</td></tr>
+</tbody>
+</table>
+<p>Outputs: <code>passed</code>, <code>exit-code</code>, <code>task-completion</code>, <code>pass-rate</code>, <code>tool-accuracy</code>, <code>mean-score</code>, <code>failed</code>, <code>summary-path</code>, <code>report-path</code>, <code>junit-path</code>, <code>comment-url</code>. Full reference: <a href="https://github.com/ashishodu2023/cortexops/tree/main/actions/eval-gate" target="_blank" rel="noopener">actions/eval-gate</a>.</p>
+<div class="callout callout-blue"><div class="callout-title">Forks and permissions</div>The job summary needs no extra permissions. The PR comment needs <code>pull-requests: write</code>; on pull requests from forks the token is read-only, so the action logs a warning, skips the comment, and still enforces the gate.</div>
+
+<h2>GitHub Actions (manual steps)</h2>
+<p>The CLI works in any workflow. Inside GitHub Actions it appends the same markdown report to the job summary automatically.</p>
 <div class="code-block"><pre><span class="cm"># .github/workflows/eval.yml</span>
 <span class="cn">name</span>: CortexOps eval gate
 <span class="cn">on</span>: [push, pull_request]
@@ -916,6 +954,7 @@ fail_on=<span class="cs">"pass_rate &lt; 1.0"</span></pre></div>
         <span class="cn">run</span>: |
           cortexops eval run \
             --dataset golden_v1.yaml \
+            --agent <span class="cs">"agent:build_agent()"</span> \
             --fail-on <span class="cs">"task_completion &lt; 0.90"</span></pre><button class="copy-btn" onclick="copy(this,'# .github/workflows/eval.yml — see docs')">Copy</button></div>
 
 <h2>Python API</h2>
@@ -937,8 +976,41 @@ fail_on=<span class="cs">"pass_rate &lt; 1.0"</span></pre></div>
 <h2>CLI usage</h2>
 <div class="code-block"><pre>cortexops eval run \
   --dataset golden_v1.yaml \
+  --agent "agent:build_agent()" \
   --fail-on "task_completion &lt; 0.90" \
-  --verbose</pre><button class="copy-btn" onclick="copy(this,'cortexops eval run --dataset golden_v1.yaml --fail-on \"task_completion < 0.90\" --verbose')">Copy</button></div>
+  --fail-on "tool_accuracy &lt; 0.95" \
+  --output-json report.json \
+  --summary-md summary.md \
+  --junit-xml junit.xml</pre><button class="copy-btn" onclick="copy(this,'cortexops eval run --dataset golden_v1.yaml --agent \\'agent:build_agent()\\' --fail-on \\'task_completion < 0.90\\' --output-json report.json --summary-md summary.md')">Copy</button></div>
+<ul>
+<li><code>--agent</code> imports <code>module:attr</code> or <code>file.py:attr</code> from the current directory; append <code>()</code> to call a factory.</li>
+<li><code>--fail-on</code> can be repeated; the gate fails if any condition is true. Without it the gate is <code>pass_rate &lt; 1.0</code>.</li>
+<li>Exit codes: <code>0</code> passed, <code>1</code> gate failed, <code>2</code> configuration error (missing dataset, invalid expression, agent import error).</li>
+<li><code>--push</code> uploads results to the dashboard with <code>CORTEXOPS_API_KEY</code>; <code>--judge</code> scores cases that define <code>judge_criteria</code> with the LLM judge.</li>
+</ul>
+
+<h2>GitLab CI</h2>
+<div class="code-block"><pre><span class="cn">include</span>:
+  - <span class="cn">remote</span>: https://raw.githubusercontent.com/ashishodu2023/cortexops/main/ci-templates/gitlab/cortexops-eval.gitlab-ci.yml
+
+<span class="cn">cortexops-eval</span>:
+  <span class="cn">extends</span>: .cortexops-eval
+  <span class="cn">variables</span>:
+    <span class="cn">CORTEXOPS_DATASET</span>: evals/golden_v1.yaml
+    <span class="cn">CORTEXOPS_AGENT</span>: <span class="cs">"my_app.agent:build_agent()"</span>
+    <span class="cn">CORTEXOPS_FAIL_ON</span>: <span class="cs">"task_completion &lt; 0.90"</span></pre></div>
+<p>Failed cases and thresholds appear in the merge request test report (JUnit); <code>report.json</code> and <code>summary.md</code> are kept as job artifacts.</p>
+
+<h2>pre-commit</h2>
+<div class="code-block"><pre><span class="cm"># .pre-commit-config.yaml (cortexops must be installed in your environment)</span>
+<span class="cn">repos</span>:
+  - <span class="cn">repo</span>: https://github.com/ashishodu2023/cortexops
+    <span class="cn">rev</span>: main   <span class="cm"># pin to a tag or commit</span>
+    <span class="cn">hooks</span>:
+      - <span class="cn">id</span>: cortexops-eval
+        <span class="cn">args</span>: [--dataset, golden_v1.yaml, --agent, <span class="cs">"agent:build_agent()"</span>, --fail-on, <span class="cs">"task_completion &lt; 0.90"</span>]
+        <span class="cn">files</span>: ^(agent\\.py|prompts/|golden_v1\\.yaml)
+        <span class="cn">stages</span>: [pre-push]</pre></div>
 
 <h2>pytest plugin</h2>
 <div class="code-block"><pre><span class="cm"># tests/test_agent_quality.py — pip install "cortexops[pytest]"</span>

@@ -8,7 +8,7 @@ on:
   schedule:
     - cron: "0 6 * * *"   # daily regression sweep at 06:00 UTC
 
-# Default token is read-only on public repos; eval-gate needs write to comment on PRs.
+# Default token is read-only; eval-gate opts into pull-requests: write to comment on PRs.
 permissions:
   contents: read
 
@@ -45,89 +45,33 @@ jobs:
     needs: sdk-tests
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
+      pull-requests: write  # sticky PR comment; fork PRs get a read-only token and skip it
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      # Dogfoods the published action from this checkout, against the SDK at this commit.
+      - name: Run CortexOps eval gate
+        id: eval
+        uses: ./actions/eval-gate
         with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          pip install -e sdk/
-          pip install pyyaml
-
-      - name: Run eval suite
-        run: |
-          cd examples/langgraph_payments
-          python run_eval.py \
-            --dataset golden_v1.yaml \
-            --fail-on "task_completion < 0.85" \
-            --output eval_results.json \
-            --quiet
+          dataset: golden_v1.yaml
+          agent: agent:build_agent()
+          working-directory: examples/langgraph_payments
+          cortexops-version: ./sdk
+          fail-on: |
+            task_completion < 0.85
+            pass_rate < 1.0
+          title: CortexOps eval — payments-agent
 
       - name: Upload eval results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: eval-results-${{ github.sha }}
-          path: examples/langgraph_payments/eval_results.json
+          path: ${{ runner.temp }}/cortexops-eval-*/
+          if-no-files-found: ignore
           retention-days: 30
-
-      - name: Write eval summary
-        if: always()
-        run: |
-          python <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          results = json.loads(Path("examples/langgraph_payments/eval_results.json").read_text())
-          icon = "✅" if results["failed"] == 0 else "❌"
-          lines = [
-              f"## {icon} CortexOps eval — {results['project']}",
-              "",
-              "| Metric | Value |",
-              "|--------|-------|",
-              f"| Task completion | {results['task_completion_rate'] * 100:.1f}% |",
-              f"| Tool accuracy | {results['tool_accuracy']:.1f}/100 |",
-              f"| Latency p95 | {results['latency_p95_ms']:.0f}ms |",
-              f"| Passed / Total | {results['passed']} / {results['total_cases']} |",
-              "",
-          ]
-          if results["failed"] > 0:
-              lines.append("### Failed cases")
-              for r in results["case_results"]:
-                  if not r["passed"]:
-                      kind = r.get("failure_kind") or "unknown"
-                      lines.append(f"- `{r['case_id']}`: {kind} (score {r['score']:.0f})")
-          else:
-              lines.append("_All cases passed._")
-          body = "\n".join(lines) + "\n"
-          Path("eval_summary.md").write_text(body)
-          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(body)
-          print(body)
-          PY
-
-      - name: Post eval summary to PR
-        if: github.event_name == 'pull_request'
-        continue-on-error: true  # fork PRs cannot write comments with GITHUB_TOKEN
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0 (node24)
-        with:
-          script: |
-            const fs = require('fs');
-            const body = fs.readFileSync('eval_summary.md', 'utf8');
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body,
-            });
 
   lint:
     name: Lint

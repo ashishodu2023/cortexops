@@ -27,6 +27,10 @@ asyncpg==0.29.0
 # SDK
 pyyaml==6.0.2
 
+# OTLP/HTTP trace ingest (/v1/otlp/v1/traces). Protobuf is the default and, for the Python
+# HTTP exporter, the only OTLP/HTTP encoding, so JSON-only ingest would reject most exporters.
+opentelemetry-proto==1.45.1
+
 # Observability — structured JSON logging
 python-json-logger==2.0.7
 

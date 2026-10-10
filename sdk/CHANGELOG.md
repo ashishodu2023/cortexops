@@ -5,6 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **GitHub Action** — `uses: ashishodu2023/cortexops/actions/eval-gate@<ref>` runs a golden dataset against your agent, writes the report to the job summary, keeps one sticky PR comment up to date, and fails the job when a `fail-on` condition is true. Outputs include `passed`, `task-completion`, `pass-rate`, `summary-path` and `report-path`. See `actions/eval-gate/README.md`.
+- **`cortexops eval run` reports** — `--output-json` (summary, per-threshold results, `gate_passed`, `pass_rate`, `mean_score`; no traces), `--summary-md` (markdown: headline, metrics table, thresholds, failed cases with failure kind and score) and `--junit-xml` (one testcase per eval case and per condition). Inside GitHub Actions the markdown is appended to `$GITHUB_STEP_SUMMARY` automatically (`--no-step-summary` to disable).
+- **`--agent module:attr`** now imports from the current directory, accepts `path/to/file.py:attr` and dotted attributes, and calls factories written as `agent:build_agent()`.
+- **Multiple `--fail-on` conditions** — repeat the flag or pass newline-separated conditions; the gate fails if any is true.
+- `--judge` (LLM judge for cases with `judge_criteria`), `--push` / `--base-url` (upload results with `CORTEXOPS_API_KEY`), `--title`.
+- `EvalSuite.evaluate_threshold()` returns a `ThresholdResult` instead of raising.
+- GitLab CI template (`ci-templates/gitlab/cortexops-eval.gitlab-ci.yml`) and a `cortexops-eval` pre-commit hook.
+
+### Changed
+- `cortexops eval run` with `--fail-on` gates only on the given conditions; previously it also exited 1 when any case failed. Without `--fail-on` the gate is `pass_rate < 1.0` (unchanged behaviour).
+- `cortexops eval run` exits with code 2 for configuration errors (missing dataset, invalid `--fail-on`, agent import failure) instead of 1.
+- `--project` now overrides the dataset's project; it was previously only printed.
+
+---
+
 ## [0.5.1] — 2026-10-09
 
 ### Added

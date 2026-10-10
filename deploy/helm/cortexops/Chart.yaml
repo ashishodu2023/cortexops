@@ -1,0 +1,27 @@
+apiVersion: v2
+name: cortexops
+description: CortexOps reliability infrastructure for AI agents (API, Celery worker and dashboard)
+type: application
+version: 0.1.0
+appVersion: "0.5.1"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/ashishodu2023/cortexops
+sources:
+  - https://github.com/ashishodu2023/cortexops
+keywords:
+  - ai-agents
+  - llm
+  - evaluation
+  - observability
+maintainers:
+  - name: Ashish Verma
+    url: https://github.com/ashishodu2023
+dependencies:
+  - name: postgresql
+    version: 18.12.4
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: postgresql.enabled
+  - name: redis
+    version: 28.3.1
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: redis.enabled

@@ -1,0 +1,12 @@
+# Jaeger v2 all-in-one: in-memory storage, OTLP receivers and the UI in one container.
+#   UI:         http://localhost:16686
+#   OTLP/HTTP:  http://localhost:4318   (used by run.py)
+#   OTLP/gRPC:  localhost:4317
+services:
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    ports:
+      - "127.0.0.1:16686:16686"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+    restart: unless-stopped

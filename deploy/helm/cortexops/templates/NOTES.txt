@@ -1,0 +1,40 @@
+CortexOps {{ .Chart.AppVersion }} has been deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+{{- if not (include "cortexops.databaseConfigured" .) }}
+
+WARNING: no database is configured. The API refuses to start in production without PostgreSQL.
+  Set externalDatabase.url, provide DATABASE_URL via secrets.existingSecret, or enable postgresql.enabled.
+{{- end }}
+{{- if not (or .Values.redis.enabled .Values.externalRedis.url .Values.secrets.existingSecret) }}
+
+WARNING: no Redis is configured. Set externalRedis.url, provide REDIS_URL via secrets.existingSecret,
+  or enable redis.enabled. Background evals will not run without it.
+{{- end }}
+
+1. Reach the API and dashboard
+{{- if .Values.ingress.enabled }}
+   API:       {{ include "cortexops.apiUrl" . }}
+{{- if .Values.dashboard.enabled }}
+   Dashboard: {{ include "cortexops.dashboardUrl" . }}
+{{- end }}
+{{- else }}
+   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "cortexops.fullname" . }}-api 8000:{{ .Values.api.service.port }}
+{{- if .Values.dashboard.enabled }}
+   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "cortexops.fullname" . }}-dashboard 3000:{{ .Values.dashboard.service.port }}
+   Dashboard: http://localhost:3000 (calls the API at {{ include "cortexops.apiUrl" . }})
+{{- end }}
+{{- end }}
+
+2. Create the first API key (works once per project; the raw key is shown only once)
+   curl -X POST {{ include "cortexops.apiUrl" . }}/v1/keys/bootstrap \
+     -H "Content-Type: application/json" \
+     -d '{"project": "my-agent", "email": "you@example.com"}'
+
+   Bootstrapped keys start on the free tier. Lift its limits (and issue further keys) with the internal key:
+   INTERNAL_KEY=$(kubectl -n {{ .Release.Namespace }} get secret {{ include "cortexops.secretName" . }} -o jsonpath='{.data.INTERNAL_API_KEY}' | base64 -d)
+   curl -X POST {{ include "cortexops.apiUrl" . }}/v1/admin/keys/<id from step 2>/upgrade \
+     -H "X-Internal-Key: $INTERNAL_KEY" -H "Content-Type: application/json" \
+     -d '{"tier": "pro", "scope": "read_write"}'
+
+3. Point the SDK at this deployment
+   export CORTEXOPS_API_URL={{ include "cortexops.apiUrl" . }}
+   export CORTEXOPS_API_KEY=<raw_key from step 2>

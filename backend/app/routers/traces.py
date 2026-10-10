@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -12,10 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_key_info
 from ..db import get_db
-from ..models.records import Project, TraceRecord
+from ..models.records import TraceRecord
 from ..models.schemas import TraceDetailResponse, TraceIngest, TraceResponse
-from ..security import idempotency_store, redact_pii
-from ..tiers import TierInfo, check_trace_quota, require_project_access, require_scope
+from ..security import idempotency_store
+from ..services.trace_store import authorize_trace_write, persist_trace
+from ..tiers import TierInfo, require_project_access
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +81,7 @@ async def ingest_trace(
     t0 = time.perf_counter()
 
     # ── Scope enforcement — read_only keys cannot ingest traces ───────────
-    require_scope(tier_info, "read_write")
-    require_project_access(tier_info, body.project)
+    authorize_trace_write(tier_info, body.project)
 
     # ── Idempotency check ─────────────────────────────────────────────────
     if idempotency_key:
@@ -90,48 +89,8 @@ async def ingest_trace(
         if cached:
             return cached
 
-    # ── Quota enforcement (free tier) ─────────────────────────────────────
-    check_trace_quota(tier_info)
-
-    # ── Auto-create project ───────────────────────────────────────────────
-    result = await db.execute(select(Project).where(Project.name == body.project))
-    if not result.scalar_one_or_none():
-        db.add(Project(name=body.project))
-        await db.flush()
-
-    # ── Payload size bomb protection ─────────────────────────────────────
-    raw_size = len(json.dumps(body.model_dump(), default=str))
-    if raw_size > 131072:  # 128KB hard limit per trace
-        raise HTTPException(
-            status_code=413,
-            detail=f"Payload too large ({raw_size} bytes). Max 128KB per trace."
-        )
-
-    # ── PII redaction before storage ──────────────────────────────────────
-    safe_payload = body.model_dump()
-    safe_payload["input"]  = redact_pii(safe_payload.get("input", {}))   # redact PII from inputs too
-    safe_payload["output"] = redact_pii(safe_payload.get("output", {}))
-    safe_payload["nodes"]  = redact_pii(safe_payload.get("nodes", []))
-    if safe_payload.get("failure_detail"):
-        safe_payload["failure_detail"] = redact_pii(safe_payload["failure_detail"])
-    safe_payload["metadata"] = redact_pii(safe_payload.get("metadata", {}))
-    safe_payload["prompt_name"] = redact_pii(safe_payload.get("prompt_name"))
-    safe_payload["prompt_version"] = redact_pii(safe_payload.get("prompt_version"))
-
-    trace = TraceRecord(
-        id=str(uuid.uuid4()),
-        project=body.project,
-        case_id=body.case_id,
-        status=body.status,
-        total_latency_ms=body.total_latency_ms,
-        failure_kind=body.failure_kind,
-        failure_detail=safe_payload.get("failure_detail"),
-        environment=body.environment or "development",
-        raw_trace=json.dumps(safe_payload),
-    )
-    db.add(trace)
-    await db.flush()
-    await db.refresh(trace)
+    # ── Quota, 128KB size limit, project auto-create, PII redaction ───────
+    trace, safe_payload = await persist_trace(db, tier_info, body)
 
     response = _to_response(trace, safe_payload)
 

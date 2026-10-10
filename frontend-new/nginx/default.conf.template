@@ -1,0 +1,39 @@
+# Rendered by the nginx image entrypoint (envsubst, filtered to CORTEXOPS_* variables) at container start.
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ${CORTEXOPS_API_URL}; frame-ancestors 'none'; object-src 'none'; base-uri 'self'" always;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # Locations use `expires` rather than add_header so the security headers above are inherited.
+    location = /config.js {
+        default_type application/javascript;
+        expires -1;
+        return 200 'window.__CORTEXOPS_CONFIG__ = { apiUrl: "${CORTEXOPS_API_URL}" };\n';
+    }
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 'ok\n';
+    }
+
+    location /assets/ {
+        expires 1y;
+        try_files $uri =404;
+    }
+
+    location / {
+        expires -1;
+        try_files $uri $uri/ /index.html;
+    }
+}

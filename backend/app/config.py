@@ -52,8 +52,9 @@ class Settings(BaseSettings):
     max_eval_cases_per_run: int = 500
     eval_timeout_seconds: int = 300
 
-    # CORS — override with comma-separated CORS_ORIGINS env var
-    cors_origins: list[str] = _DEFAULT_CORS
+    # CORS — override with comma-separated CORS_ORIGINS env var (a JSON array also works).
+    # The `| str` lets pydantic-settings pass non-JSON env values through to the validator below.
+    cors_origins: list[str] | str = _DEFAULT_CORS
 
     @field_validator("cors_origins", mode="before")
     @classmethod

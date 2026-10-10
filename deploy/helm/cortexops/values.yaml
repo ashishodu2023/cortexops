@@ -1,0 +1,273 @@
+# Default values for the CortexOps chart. See README.md for the full reference.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- API / worker image (both run the backend image; the worker overrides the command).
+image:
+  repository: ghcr.io/ashishodu2023/cortexops-api
+  # -- Defaults to the chart appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  # -- Defaults to the release fullname when create is true, "default" otherwise.
+  name: ""
+  annotations: {}
+
+# -- Pod security context for the API and worker (the image's appuser has no fixed UID, so set one here).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container security context shared by all CortexOps containers.
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+# -- Non-secret settings, rendered into a ConfigMap.
+config:
+  environment: production
+  debug: false
+  # -- Comma-separated browser origins allowed by CORS. Defaults to the dashboard URL.
+  corsOrigins: ""
+  # -- Public dashboard URL (billing redirect links). Defaults to the dashboard ingress URL.
+  frontendUrl: ""
+  # -- Billing is for the hosted service; when true, production startup requires PAYPAL_WEBHOOK_ID.
+  billingEnabled: false
+  maxEvalCasesPerRun: 500
+  evalTimeoutSeconds: 300
+  # -- Extra plain-text environment variables for the API and worker.
+  extraEnv: {}
+
+# -- Secret settings. Ignored when existingSecret is set.
+secrets:
+  # -- Name of an existing Secret whose keys are loaded as environment variables (envFrom).
+  # It should contain JWT_SECRET, INTERNAL_API_KEY, DATABASE_URL, REDIS_URL, CELERY_BROKER_URL and
+  # CELERY_RESULT_BACKEND (plus any optional keys).
+  existingSecret: ""
+  # -- Generated (and kept across upgrades) when empty.
+  jwtSecret: ""
+  # -- Generated (and kept across upgrades) when empty.
+  internalApiKey: ""
+  # -- Optional LLM judge key for server-side evals.
+  openaiApiKey: ""
+  # -- Extra secret environment variables, e.g. RESEND_API_KEY, SENDGRID_API_KEY, CORTEXOPS_SLACK_WEBHOOK_URL.
+  extraEnv: {}
+
+# -- External PostgreSQL (default). Use the asyncpg driver, e.g.
+# postgresql+asyncpg://cortexops:password@postgres.example.com:5432/cortexops
+externalDatabase:
+  url: ""
+
+# -- External Redis (default), used for the Celery broker and results.
+externalRedis:
+  # -- e.g. redis://:password@redis.example.com:6379/0
+  url: ""
+  # -- Defaults to url.
+  brokerUrl: ""
+  # -- Defaults to url.
+  resultBackendUrl: ""
+
+migrations:
+  # -- Sets RUN_MIGRATIONS=1 on the API so images that support it migrate on startup.
+  runOnStartup: true
+  # -- Run migrations in a Helm hook Job instead (sets RUN_MIGRATIONS=0 on the API).
+  job:
+    enabled: false
+    command: ["alembic", "upgrade", "head"]
+    hooks: "post-install,pre-upgrade"
+    backoffLimit: 3
+    activeDeadlineSeconds: 600
+    resources: {}
+
+api:
+  # -- Use migrations.job when running more than one replica so replicas don't migrate concurrently.
+  replicaCount: 1
+  # -- Override the image command/args (defaults to the image CMD: python start.py).
+  command: []
+  args: []
+  containerPort: 8000
+  service:
+    type: ClusterIP
+    port: 8000
+    annotations: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  startupProbe:
+    httpGet:
+      path: /health
+      port: http
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 30
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: null
+  extraEnv: []
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+worker:
+  enabled: true
+  replicaCount: 1
+  concurrency: 4
+  logLevel: info
+  # -- Overrides the default celery command when set.
+  command: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+  livenessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - celery -A app.worker.celery_app.celery inspect ping -d "celery@${HOSTNAME}" --timeout 10 | grep -q pong
+    initialDelaySeconds: 30
+    periodSeconds: 60
+    timeoutSeconds: 20
+    failureThreshold: 3
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: null
+  extraEnv: []
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+dashboard:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/ashishodu2023/cortexops-dashboard
+    # -- Defaults to the chart appVersion.
+    tag: ""
+    pullPolicy: IfNotPresent
+  # -- API URL used by the browser. Defaults to the API ingress URL (or http://localhost:8000 without ingress).
+  apiUrl: ""
+  containerPort: 8080
+  service:
+    type: ClusterIP
+    port: 80
+    annotations: {}
+  # -- nginx-unprivileged runs as UID 101.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    fsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    periodSeconds: 10
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: null
+  extraEnv: []
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # -- Hosts for the API and dashboard. Using the same host for both routes /v1 and /health to the API.
+  api:
+    host: api.cortexops.example.com
+  dashboard:
+    host: cortexops.example.com
+  tls: []
+  #  - secretName: cortexops-tls
+  #    hosts:
+  #      - api.cortexops.example.com
+  #      - cortexops.example.com
+
+podDisruptionBudget:
+  # -- Creates a PDB for each enabled component. Needs replicaCount >= 2 to allow voluntary evictions.
+  enabled: false
+  minAvailable: 1
+  maxUnavailable: null
+
+# -- Optional bundled PostgreSQL (Bitnami) for evaluation installs. Prefer a managed database in production.
+postgresql:
+  enabled: false
+  auth:
+    username: cortexops
+    database: cortexops
+    # -- Set explicitly (or use existingSecret) so upgrades keep the same password.
+    password: ""
+    existingSecret: ""
+
+# -- Optional bundled Redis (Bitnami) for evaluation installs.
+redis:
+  enabled: false
+  architecture: standalone
+  auth:
+    enabled: true
+    password: ""
+    existingSecret: ""

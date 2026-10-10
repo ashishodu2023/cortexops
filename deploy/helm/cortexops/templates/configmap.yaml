@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cortexops.configMapName" . }}
+  labels:
+    {{- include "cortexops.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: {{ .Values.config.environment | quote }}
+  DEBUG: {{ .Values.config.debug | toString | quote }}
+  CORS_ORIGINS: {{ default (include "cortexops.dashboardUrl" .) .Values.config.corsOrigins | quote }}
+  FRONTEND_URL: {{ default (include "cortexops.dashboardUrl" .) .Values.config.frontendUrl | quote }}
+  BILLING_ENABLED: {{ .Values.config.billingEnabled | toString | quote }}
+  MAX_EVAL_CASES_PER_RUN: {{ .Values.config.maxEvalCasesPerRun | toString | quote }}
+  EVAL_TIMEOUT_SECONDS: {{ .Values.config.evalTimeoutSeconds | toString | quote }}
+  {{- range $key, $value := .Values.config.extraEnv }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}

@@ -1,0 +1,52 @@
+{{- if .Values.migrations.job.enabled }}
+{{- $ctx := dict "ctx" . "component" "migrations" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "cortexops.fullname" . }}-migrations-{{ .Release.Revision }}
+  labels:
+    {{- include "cortexops.componentLabels" $ctx | nindent 4 }}
+  annotations:
+    helm.sh/hook: {{ .Values.migrations.job.hooks | quote }}
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrations.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrations.job.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "cortexops.componentLabels" $ctx | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "cortexops.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrations
+          image: {{ include "cortexops.apiImage" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            {{- toYaml .Values.migrations.job.command | nindent 12 }}
+          envFrom:
+            {{- include "cortexops.envFrom" . | nindent 12 }}
+          {{- with (include "cortexops.dependencyEnv" .) }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.migrations.job.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

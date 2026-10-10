@@ -11,6 +11,8 @@ import textwrap
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
+from .models import FailureKind
+
 # Judge model prices in USD per 1M tokens: (input, output). OpenAI list prices at the time of
 # writing; verify against https://openai.com/api/pricing. Override per judge with
 # LLMJudge(prices={...}) or globally with register_model_price(). Dated snapshots resolve to
@@ -489,7 +491,7 @@ class LLMJudgeMetric:
                 )
                 self.last_result = result
                 score = result.score * 100.0
-                failed_key = "llm_judge" if not result.passed else None
+                failed_key = FailureKind.UNKNOWN if not result.passed else None
                 return score, failed_key, result.reasoning
             except Exception:
                 pass  # fall through to heuristic
@@ -515,7 +517,7 @@ class LLMJudgeMetric:
         overlap = matched / len(criteria_kw)
         score   = min(100.0, overlap * 150.0)  # generous scaling
         detail  = f"Heuristic: {matched}/{len(criteria_kw)} criteria keywords matched (stem)"
-        failed_key = "llm_judge_heuristic" if score < 50.0 else None
+        failed_key = FailureKind.UNKNOWN if score < 50.0 else None
         return score, failed_key, detail
 
 

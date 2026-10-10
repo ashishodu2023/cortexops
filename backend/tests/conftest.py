@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.auth import get_current_key_info  # noqa: E402
 from app.main import app  # noqa: E402
+from app.security import _rate_limiter  # noqa: E402
 from app.tiers import TierInfo  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -39,6 +40,15 @@ def client(tier_info):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    # The per-IP limiter is process-global and every TestClient request comes from the same
+    # address, so without a reset the suite starts getting 429s once it passes 200 requests.
+    _rate_limiter._buckets.clear()
+    yield
+    _rate_limiter._buckets.clear()
 
 
 @pytest.fixture(autouse=True)
