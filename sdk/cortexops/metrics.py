@@ -169,6 +169,15 @@ def compute_case_result(case: EvalCase, trace: Trace, extra_metrics: list[Metric
     tool_score, _, _ = ToolAccuracyMetric().score(case, trace)
     lat_score, _, _ = LatencyMetric().score(case, trace)
 
+    judge_results = [r for r in (getattr(m, "last_result", None) for m in metrics) if r is not None]
+    judge_tokens_in = judge_tokens_out = judge_cost = None
+    if judge_results:
+        from .judge import aggregate_usage
+
+        judge_tokens_in, judge_tokens_out, judge_cost = aggregate_usage(
+            (r.tokens_in, r.tokens_out, r.cost_usd) for r in judge_results
+        )
+
     return CaseResult(
         case_id=case.id,
         passed=final_score >= 80.0,
@@ -180,4 +189,7 @@ def compute_case_result(case: EvalCase, trace: Trace, extra_metrics: list[Metric
         failure_kind=failure_kind,
         failure_detail=failure_detail,
         trace=trace,
+        judge_cost_usd=judge_cost,
+        judge_tokens_in=judge_tokens_in,
+        judge_tokens_out=judge_tokens_out,
     )

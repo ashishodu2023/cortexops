@@ -107,6 +107,10 @@ class CaseResult(BaseModel):
     failure_kind: FailureKind | None = None
     failure_detail: str | None = None
     trace: Trace | None = None
+    # LLM-as-judge usage; None when no judge call was made (cost also None for unpriced models)
+    judge_cost_usd: float | None = None
+    judge_tokens_in: int | None = None
+    judge_tokens_out: int | None = None
 
 
 class EvalSummary(BaseModel):
@@ -125,6 +129,10 @@ class EvalSummary(BaseModel):
     baseline_run_id: str | None = None
     case_results: list[CaseResult] = Field(default_factory=list)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    # Totals over case_results; cost is None if any judged case has an unknown price
+    judge_cost_usd: float | None = None
+    judge_tokens_in: int | None = None
+    judge_tokens_out: int | None = None
 
     def summary(self) -> str:
         lines = [
@@ -137,6 +145,11 @@ class EvalSummary(BaseModel):
         ]
         if self.regressions:
             lines.append(f"  Regressions     : {self.regressions}  (vs baseline {self.baseline_run_id})")
+        if self.judge_tokens_in is not None or self.judge_tokens_out is not None:
+            from .judge import format_judge_cost
+
+            cost = format_judge_cost(self.judge_cost_usd, self.judge_tokens_in, self.judge_tokens_out)
+            lines.append(f"  Judge cost      : {cost}")
         failing = [r for r in self.case_results if not r.passed]
         if failing:
             lines.append("  Failed cases:")
