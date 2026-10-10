@@ -20,9 +20,10 @@ All commands below run from `backend/` (or `/app` inside the Docker image, which
 |---|---|
 | `RUN_MIGRATIONS=1` | Runs `alembic upgrade head` before serving. |
 | SQLite, `RUN_MIGRATIONS` unset | `Base.metadata.create_all()` - local dev and tests, unchanged from before. |
-| Postgres, `RUN_MIGRATIONS` unset | Checks that the database is at the head revision and refuses to start otherwise (`SchemaNotCurrentError`). It never creates or alters tables. |
+| Postgres, `RUN_MIGRATIONS` unset, empty database | Runs `alembic upgrade head` (fresh install: new self-hosted deployments, preview environments). |
+| Postgres, `RUN_MIGRATIONS` unset, database has tables | Checks that the database is at the head revision and refuses to start otherwise (`SchemaNotCurrentError`). It never alters existing tables. |
 
-The fail-fast check is deliberate: new code must not serve requests against an old schema, and it must never silently `create_all` tables on a database Alembic does not know about.
+The fail-fast check is deliberate: new code must not serve requests against an old schema, and a database that already holds data (including one created by `create_all` before Alembic) is only ever migrated by an explicit step.
 
 ## Dev workflow
 
@@ -99,7 +100,7 @@ Either way the baseline verifies that each existing table has the baseline colum
 
 ## Production rollout on Railway
 
-The Docker image already contains `alembic.ini`, `migrations/` and `scripts/migrate.py` under `/app`. **After this release the app will not start on Postgres until the schema is at head**, so one of the two options in step 4 must be configured before (or together with) the deploy.
+The Docker image already contains `alembic.ini`, `migrations/` and `scripts/migrate.py` under `/app`. **After this release the app will not start against the existing production database until the schema is at head**, so one of the two options in step 4 must be configured before (or together with) the deploy. (Only a completely empty database is migrated automatically.)
 
 1. **Back up.** Take a Railway Postgres backup (or `pg_dump --format=custom "$DATABASE_URL" > pre-alembic.dump`). Note the time.
 2. **Check for duplicate prompt versions.** `0002_uniqueness` refuses to add the unique index while duplicates exist:
@@ -127,7 +128,7 @@ The Docker image already contains `alembic.ini`, `migrations/` and `scripts/migr
    - **Pre-deploy command (preferred):** set the service's pre-deploy command to `python scripts/migrate.py` (working directory `/app`). Railway runs it once per deploy before switching traffic, and a failure aborts the deploy while the old version keeps serving.
    - **Or `RUN_MIGRATIONS=1`:** set the variable on the service; every replica upgrades on boot. Safe with several replicas because `env.py` takes a Postgres advisory lock, and a no-op when already at head. A failing migration makes the new deployment fail its health check, so the previous one stays live.
 
-   Self-hosted equivalents: run `python scripts/migrate.py` before starting the container, or set `RUN_MIGRATIONS=1`. A one-line start-command change (`sh -c "python scripts/migrate.py && python start.py"`) is the alternative for platforms without a pre-deploy hook; it is documented here rather than changed in the `Dockerfile`.
+   Self-hosted equivalents: a fresh install needs nothing (an empty database is migrated on first start); to upgrade an existing install, run `python scripts/migrate.py` before starting the container, or set `RUN_MIGRATIONS=1`. A one-line start-command change (`sh -c "python scripts/migrate.py && python start.py"`) is the alternative for platforms without a pre-deploy hook; it is documented here rather than changed in the `Dockerfile`.
 
 5. **Deploy** the release.
 6. **Verify:**

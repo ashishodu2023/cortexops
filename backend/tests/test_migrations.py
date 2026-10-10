@@ -15,7 +15,13 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
 from app.db import Base
-from app.migrate import SchemaNotCurrentError, alembic_config, assert_schema_current, upgrade_head_async
+from app.migrate import (
+    SchemaNotCurrentError,
+    alembic_config,
+    assert_schema_current,
+    ensure_schema_current,
+    upgrade_head_async,
+)
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
@@ -206,6 +212,31 @@ def test_assert_schema_current(db_url):
         asyncio.run(check())
     _upgrade(db_url)
     asyncio.run(check())
+
+
+def _ensure_schema_current(url: str) -> None:
+    async def run():
+        engine = create_async_engine(url, poolclass=NullPool)
+        try:
+            await ensure_schema_current(engine)
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+def test_startup_migrates_only_an_empty_database(db_url):
+    _ensure_schema_current(db_url)
+    assert _revision(db_url) == {HEAD}
+    assert _schema_diff(db_url) == []
+    _ensure_schema_current(db_url)
+
+
+def test_startup_leaves_an_unmigrated_database_alone(db_url):
+    _legacy_db(db_url)
+    with pytest.raises(SchemaNotCurrentError, match="none"):
+        _ensure_schema_current(db_url)
+    assert _revision(db_url) == set()
 
 
 def test_startup_upgrade_runs_from_inside_an_event_loop(db_url):

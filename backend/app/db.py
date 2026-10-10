@@ -48,7 +48,8 @@ async def init_db() -> None:
 
     RUN_MIGRATIONS=1: apply Alembic migrations (`alembic upgrade head`).
     SQLite without RUN_MIGRATIONS (local dev, tests): create_all().
-    Anything else (Postgres): refuse to start unless the schema is already at the latest revision.
+    Anything else (Postgres): an empty database is migrated to head; a non-empty one must already
+    be at the latest revision or startup fails.
     """
     from . import migrate
 
@@ -59,7 +60,7 @@ async def init_db() -> None:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         return
-    await migrate.assert_schema_current(engine)
+    await migrate.ensure_schema_current(engine)
 
 
 async def get_db():

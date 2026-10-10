@@ -8,6 +8,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -43,6 +44,23 @@ async def current_revisions(engine: AsyncEngine) -> set[str]:
     async with engine.connect() as conn:
         heads = await conn.run_sync(lambda sync_conn: MigrationContext.configure(sync_conn).get_current_heads())
     return set(heads)
+
+
+async def is_empty_database(engine: AsyncEngine) -> bool:
+    async with engine.connect() as conn:
+        return not await conn.run_sync(lambda sync_conn: inspect(sync_conn).get_table_names())
+
+
+async def ensure_schema_current(engine: AsyncEngine) -> None:
+    """Migrate an empty database (fresh install) to head; anything else must already be at head.
+
+    Databases that already hold tables are never altered implicitly: adopting or upgrading them
+    is an explicit step (RUN_MIGRATIONS=1, scripts/migrate.py, or `alembic upgrade head`).
+    """
+    if await is_empty_database(engine):
+        await upgrade_head_async(engine.url.render_as_string(hide_password=False))
+        return
+    await assert_schema_current(engine)
 
 
 async def assert_schema_current(engine: AsyncEngine) -> None:
