@@ -7,6 +7,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- **GitHub Action** — published as the standalone [`ashishodu2023/cortexops-eval-action`](https://github.com/ashishodu2023/cortexops-eval-action) (`uses: ashishodu2023/cortexops-eval-action@v1`) for the GitHub Marketplace. `actions/eval-gate` stays as the development copy; see `actions/eval-gate/RELEASING.md` and `scripts/sync-eval-action.sh`.
+- **GitHub Action** — `cortexops-version` defaults to `>=0.6.0,<0.7` instead of `latest`, and accepts `git+https://github.com/ashishodu2023/cortexops@<ref>#subdirectory=sdk`. `bundled` is removed (it only worked inside this repository); it now fails with a configuration error.
+
+### Fixed
+- **GitHub Action** — when the gate failed or the eval could not run, the step stopped before setting `passed`, `exit-code` and the metric outputs, and `fail-job: false` still failed the job. GitHub runs `shell: bash` with `-e`; the exit code is now captured explicitly.
+
 ---
 
 ## [0.6.0] — 2026-10-10
