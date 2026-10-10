@@ -223,6 +223,13 @@ function formatWhen(iso){
   return d.toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
 }
 
+// LLM-as-judge spend; null when the run made no judge calls. Unpriced judge models report tokens only.
+function formatJudgeCost(r){
+  if(r?.judge_cost_usd==null&&r?.judge_tokens_in==null)return null;
+  if(r.judge_cost_usd==null)return"n/a";
+  return`$${r.judge_cost_usd.toFixed(r.judge_cost_usd>=0.01?4:6)}`;
+}
+
 const TRACE_DATE_PRESETS=[["all","All time"],["24h","24 hours"],["7d","7 days"],["30d","30 days"],["custom","Custom"]];
 
 function buildTraceDateQuery(preset,fromDate,toDate){
@@ -1964,7 +1971,7 @@ export default function App(){
                         {run.case_results?.length>0&&<span style={{fontSize:11,color:M.gray400}}>{expandedEval===run.run_id?"▲":"▼"}</span>}
                       </div>
                       <div style={{display:"flex",gap:16,paddingLeft:18,flexWrap:"wrap"}}>
-                        {[["Tool accuracy",`${(run.tool_accuracy||0).toFixed(0)}/100`],["P50",`${Math.round(run.latency_p50_ms||0)}ms`],["P95",`${Math.round(run.latency_p95_ms||0)}ms`],["Dataset",run.dataset_name||"golden"],["When",formatWhen(run.created_at)]].map(([l,v])=>(
+                        {[["Tool accuracy",`${(run.tool_accuracy||0).toFixed(0)}/100`],["P50",`${Math.round(run.latency_p50_ms||0)}ms`],["P95",`${Math.round(run.latency_p95_ms||0)}ms`],...(formatJudgeCost(run)?[["Judge cost",formatJudgeCost(run)]]:[]),["Dataset",run.dataset_name||"golden"],["When",formatWhen(run.created_at)]].map(([l,v])=>(
                           <span key={l} style={{fontSize:12,color:M.gray600}}>{l}: <span style={{color:M.gray900,fontFamily:M.mono}}>{v}</span></span>
                         ))}
                       </div>
@@ -1980,6 +1987,7 @@ export default function App(){
                                 <span>Score: <span style={{fontFamily:M.mono,color:M.gray800}}>{(cr.score||0).toFixed(2)}</span></span>
                                 <span>Tool acc: <span style={{fontFamily:M.mono,color:M.gray800}}>{(cr.tool_accuracy||0).toFixed(0)}</span></span>
                                 <span>Latency: <span style={{fontFamily:M.mono,color:M.gray800}}>{Math.round(cr.latency_ms||0)}ms</span></span>
+                                {formatJudgeCost(cr)&&<span>Judge: <span style={{fontFamily:M.mono,color:M.gray800}}>{formatJudgeCost(cr)}</span></span>}
                               </div>
                               {cr.failure_detail&&<div style={{fontSize:11,color:M.red,marginTop:6,fontFamily:M.mono}}>{cr.failure_detail}</div>}
                             </div>
