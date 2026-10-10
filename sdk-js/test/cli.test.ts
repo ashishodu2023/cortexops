@@ -140,6 +140,9 @@ describe("cortexops-js CLI", () => {
     ]);
     expect(json.case_results).toHaveLength(9);
     expect(json.case_results[0]).not.toHaveProperty("trace");
+    expect(json.case_results[0]).toMatchObject({ judge_cost_usd: null, judge_tokens_in: null, judge_tokens_out: null });
+    // same key order as the Python report (EvalSummary.model_dump): judge totals after timestamp
+    expect(Object.keys(json).slice(-5)).toEqual(["case_results", "timestamp", "judge_cost_usd", "judge_tokens_in", "judge_tokens_out"]);
 
     const md = readFileSync(join(dir, "out/summary.md"), "utf8");
     expect(md).toMatch(/^## Payments gate: FAILED\n/);

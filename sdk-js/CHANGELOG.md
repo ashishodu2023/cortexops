@@ -28,5 +28,6 @@ First release of the TypeScript / JavaScript SDK.
   - automatic `GITHUB_STEP_SUMMARY` append and `--push`
   - exit codes 0 / 1 / 2
 - `CortexClient`: `pushTrace`, `getTrace`, `listTraces`, `pushEval`, `getEval`, `listRuns`, `diff`, `quota`.
+- LLM-judge usage fields `judge_cost_usd`, `judge_tokens_in` and `judge_tokens_out` on case results and eval summaries, sent by `pushEval` and included in the JSON report, matching the Python SDK. The offline judge heuristic makes no LLM call, so they are `null` (unknown, never 0) unless set on the results; `aggregateJudgeUsage()` and `formatJudgeCost()` mirror the Python helpers.
 - JSON Schema for the golden dataset format (`schema/golden-dataset.v1.schema.json`).
 - ESM and CommonJS builds with type definitions; Node.js 18 or newer.

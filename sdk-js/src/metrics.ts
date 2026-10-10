@@ -219,5 +219,9 @@ export function computeCaseResult(evalCase: EvalCase, trace: Trace, extraMetrics
     failure_kind: failureKind,
     failure_detail: failureDetail,
     trace,
+    // the offline judge heuristic makes no LLM call, so there is no judge usage to report
+    judge_cost_usd: null,
+    judge_tokens_in: null,
+    judge_tokens_out: null,
   };
 }

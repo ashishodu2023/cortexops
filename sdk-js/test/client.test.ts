@@ -50,7 +50,13 @@ describe("CortexClient", () => {
     for (const cr of payload.case_results as Array<Record<string, unknown>>) {
       expect(cr).not.toHaveProperty("trace");
       for (const f of caseFields) expect(cr).toHaveProperty(f);
+      expect(cr).toMatchObject({ judge_cost_usd: null, judge_tokens_in: null, judge_tokens_out: null });
     }
+    expect(payload).toMatchObject({ judge_cost_usd: null, judge_tokens_in: null, judge_tokens_out: null });
+    const { judge_cost_usd: _c, judge_tokens_in: _i, judge_tokens_out: _o, ...legacy } = summary;
+    const legacyPayload = evalIngestPayload({ ...legacy, case_results: legacy.case_results.map(({ judge_cost_usd: _x, ...cr }) => cr) });
+    expect(legacyPayload).toMatchObject({ judge_cost_usd: null, judge_tokens_in: null, judge_tokens_out: null });
+    expect((legacyPayload.case_results as Array<Record<string, unknown>>)[0]).toHaveProperty("judge_cost_usd", null);
     expect(payload.dataset).toEqual({ name: "golden_v1", cases: [{ id: "a" }] });
     expect(Number.isInteger(payload.dataset_version)).toBe(true);
     expect(summary.case_results[0]!.trace).not.toBeNull();

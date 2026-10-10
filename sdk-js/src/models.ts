@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { fixed, percent } from "./pyfmt.js";
+import { fixed, percent, pyRound } from "./pyfmt.js";
 
 /*
  * Data models mirror the Python SDK (`cortexops.models`) field-for-field and use the
@@ -161,6 +161,14 @@ export interface CaseResult {
   failure_kind: string | null;
   failure_detail: string | null;
   trace: Trace | null;
+  /**
+   * LLM-as-judge usage, as reported by the Python SDK. null when no judge call was made (the
+   * JS SDK scores `judge: llm` cases with the offline heuristic, so it always reports null);
+   * the cost is also null when the judge model has no known price, never 0.
+   */
+  judge_cost_usd?: number | null;
+  judge_tokens_in?: number | null;
+  judge_tokens_out?: number | null;
 }
 
 export interface EvalSummary {
@@ -181,6 +189,52 @@ export interface EvalSummary {
   baseline_run_id: string | null;
   case_results: CaseResult[];
   timestamp: string;
+  /** Totals over `case_results`; the cost is null if any judged case has an unknown cost. */
+  judge_cost_usd?: number | null;
+  judge_tokens_in?: number | null;
+  judge_tokens_out?: number | null;
+}
+
+export interface JudgeUsage {
+  judge_cost_usd: number | null;
+  judge_tokens_in: number | null;
+  judge_tokens_out: number | null;
+}
+
+/** The judge usage fields of a case result or summary, with missing values as null. */
+export function judgeUsage(x: Partial<Record<keyof JudgeUsage, number | null>>): JudgeUsage {
+  return {
+    judge_cost_usd: x.judge_cost_usd ?? null,
+    judge_tokens_in: x.judge_tokens_in ?? null,
+    judge_tokens_out: x.judge_tokens_out ?? null,
+  };
+}
+
+/**
+ * Sum judge usage over cases (Python `cortexops.judge.aggregate_usage`). Cases without token
+ * counts (no judge call) are skipped; all totals are null when nothing was judged, and the
+ * cost is null when any judged case has an unknown cost, so a partial sum is never reported.
+ */
+export function aggregateJudgeUsage(items: Iterable<Partial<Record<keyof JudgeUsage, number | null>>>): JudgeUsage {
+  const judged = [...items].map(judgeUsage).filter((u) => u.judge_tokens_in !== null || u.judge_tokens_out !== null);
+  if (!judged.length) return { judge_cost_usd: null, judge_tokens_in: null, judge_tokens_out: null };
+  const costs = judged.map((u) => u.judge_cost_usd);
+  return {
+    judge_cost_usd: costs.some((c) => c === null) ? null : pyRound(costs.reduce<number>((a, c) => a + c!, 0), 8),
+    judge_tokens_in: judged.reduce((a, u) => a + (u.judge_tokens_in ?? 0), 0),
+    judge_tokens_out: judged.reduce((a, u) => a + (u.judge_tokens_out ?? 0), 0),
+  };
+}
+
+function thousands(n: number): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** Python `cortexops.judge.format_judge_cost`. */
+export function formatJudgeCost(costUsd: number | null, tokensIn: number | null, tokensOut: number | null): string {
+  const tokens = `${thousands(tokensIn || 0)} in / ${thousands(tokensOut || 0)} out tokens`;
+  if (costUsd === null) return `unknown, no price for the judge model (${tokens})`;
+  return `$${fixed(costUsd, costUsd >= 0.01 ? 4 : 6)} (${tokens})`;
 }
 
 export function createEvalCase(init: Partial<EvalCase> & { id: string; input: EvalCase["input"] }): EvalCase {
@@ -208,6 +262,10 @@ export function formatSummary(s: EvalSummary): string {
   ];
   if (s.regressions) {
     lines.push(`  Regressions     : ${s.regressions}  (vs baseline ${s.baseline_run_id})`);
+  }
+  const usage = judgeUsage(s);
+  if (usage.judge_tokens_in !== null || usage.judge_tokens_out !== null) {
+    lines.push(`  Judge cost      : ${formatJudgeCost(usage.judge_cost_usd, usage.judge_tokens_in, usage.judge_tokens_out)}`);
   }
   const failing = s.case_results.filter((r) => !r.passed);
   if (failing.length) {

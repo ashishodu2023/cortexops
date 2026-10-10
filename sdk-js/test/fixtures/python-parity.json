@@ -156,6 +156,18 @@
       "prompt": {
         "required": false,
         "type": "app.models.schemas.PromptIngestSnapshot | None"
+      },
+      "judge_cost_usd": {
+        "required": false,
+        "type": "float | None"
+      },
+      "judge_tokens_in": {
+        "required": false,
+        "type": "int | None"
+      },
+      "judge_tokens_out": {
+        "required": false,
+        "type": "int | None"
       }
     },
     "CaseResultIngest": {
@@ -190,6 +202,18 @@
       "failure_detail": {
         "required": false,
         "type": "str | None"
+      },
+      "judge_cost_usd": {
+        "required": false,
+        "type": "float | None"
+      },
+      "judge_tokens_in": {
+        "required": false,
+        "type": "int | None"
+      },
+      "judge_tokens_out": {
+        "required": false,
+        "type": "int | None"
       }
     }
   },
@@ -269,7 +293,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       },
       {
         "case_id": "refund_pending_01",
@@ -279,7 +306,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       },
       {
         "case_id": "refund_rejected_01",
@@ -289,7 +319,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       },
       {
         "case_id": "refund_not_found_01",
@@ -299,7 +332,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       },
       {
         "case_id": "dispute_unauthorized_01",
@@ -309,7 +345,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       },
       {
         "case_id": "dispute_duplicate_charge_01",
@@ -319,7 +358,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       },
       {
         "case_id": "dispute_not_received_01",
@@ -329,7 +371,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       },
       {
         "case_id": "edge_general_inquiry_01",
@@ -339,7 +384,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       },
       {
         "case_id": "edge_empty_input_01",
@@ -349,7 +397,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     ]
   },
@@ -409,7 +460,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -467,7 +521,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "output_format",
-        "failure_detail": "Missing expected content: ['approved']"
+        "failure_detail": "Missing expected content: ['approved']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -526,7 +583,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "output_format",
-        "failure_detail": "Missing expected content: ['b', 'c']"
+        "failure_detail": "Missing expected content: ['b', 'c']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -579,7 +639,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Agent produced no output"
+        "failure_detail": "Agent produced no output",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -634,7 +697,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Agent produced no output"
+        "failure_detail": "Agent produced no output",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -689,7 +755,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Agent produced no output"
+        "failure_detail": "Agent produced no output",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -744,7 +813,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Agent produced no output"
+        "failure_detail": "Agent produced no output",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -799,7 +871,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Agent produced no output"
+        "failure_detail": "Agent produced no output",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -854,7 +929,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -909,7 +987,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -964,7 +1045,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Output contains error signal: Error: upstream exploded"
+        "failure_detail": "Output contains error signal: Error: upstream exploded",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1019,7 +1103,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Output contains error signal: Traceback (most recent call last)"
+        "failure_detail": "Output contains error signal: Traceback (most recent call last)",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1074,7 +1161,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Output contains error signal: We FAILED TO reach the service xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        "failure_detail": "Output contains error signal: We FAILED TO reach the service xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1129,7 +1219,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1184,7 +1277,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1247,7 +1343,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1306,7 +1405,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1364,7 +1466,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1422,7 +1527,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "hallucination",
-        "failure_detail": "Output contains prohibited content: ['refund', 'secret']"
+        "failure_detail": "Output contains prohibited content: ['refund', 'secret']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1477,7 +1585,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "hallucination",
-        "failure_detail": "Hallucination signal detected: pattern '\\bas of (january|february|march|april|may|june|july|august|september|october|november|december) 20[0-9]{2}\\b'"
+        "failure_detail": "Hallucination signal detected: pattern '\\bas of (january|february|march|april|may|june|july|august|september|october|november|december) 20[0-9]{2}\\b'",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1532,7 +1643,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "hallucination",
-        "failure_detail": "Hallucination signal detected: pattern '\\bi (don't|do not) have (access|information|data)\\b'"
+        "failure_detail": "Hallucination signal detected: pattern '\\bi (don't|do not) have (access|information|data)\\b'",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1587,7 +1701,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "hallucination",
-        "failure_detail": "Hallucination signal detected: pattern '\\bi cannot (access|retrieve|look up)\\b'"
+        "failure_detail": "Hallucination signal detected: pattern '\\bi cannot (access|retrieve|look up)\\b'",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1648,7 +1765,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1708,7 +1828,10 @@
         "tool_accuracy": 50.0,
         "latency_ok": true,
         "failure_kind": "tool_call_mismatch",
-        "failure_detail": "Missing tool calls: ['send_email']"
+        "failure_detail": "Missing tool calls: ['send_email']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1769,7 +1892,10 @@
         "tool_accuracy": 33.3,
         "latency_ok": true,
         "failure_kind": "tool_call_mismatch",
-        "failure_detail": "Missing tool calls: ['b', 'c']"
+        "failure_detail": "Missing tool calls: ['b', 'c']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1831,7 +1957,10 @@
         "tool_accuracy": 66.7,
         "latency_ok": true,
         "failure_kind": "tool_call_mismatch",
-        "failure_detail": "Missing tool calls: ['c']"
+        "failure_detail": "Missing tool calls: ['c']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1890,7 +2019,10 @@
         "tool_accuracy": 0.0,
         "latency_ok": true,
         "failure_kind": "tool_call_mismatch",
-        "failure_detail": "Missing tool calls: ['a', 'b', 'c']"
+        "failure_detail": "Missing tool calls: ['a', 'b', 'c']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -1950,7 +2082,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2012,7 +2147,10 @@
         "tool_accuracy": 0.0,
         "latency_ok": true,
         "failure_kind": "tool_call_mismatch",
-        "failure_detail": "Missing tool calls: ['lookup_refund']"
+        "failure_detail": "Missing tool calls: ['lookup_refund']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2086,7 +2224,10 @@
         "tool_accuracy": 6.2,
         "latency_ok": true,
         "failure_kind": "tool_call_mismatch",
-        "failure_detail": "Missing tool calls: ['t1', 't10', 't11', 't12', 't13', 't14', 't15', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9']"
+        "failure_detail": "Missing tool calls: ['t1', 't10', 't11', 't12', 't13', 't14', 't15', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2174,7 +2315,10 @@
         "tool_accuracy": 93.8,
         "latency_ok": true,
         "failure_kind": "tool_call_mismatch",
-        "failure_detail": "Missing tool calls: ['t15']"
+        "failure_detail": "Missing tool calls: ['t15']",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2229,7 +2373,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2284,7 +2431,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2339,7 +2489,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": false,
         "failure_kind": "timeout",
-        "failure_detail": "Latency 1250ms exceeded budget 1000ms"
+        "failure_detail": "Latency 1250ms exceeded budget 1000ms",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2394,7 +2547,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": false,
         "failure_kind": "timeout",
-        "failure_detail": "Latency 2000ms exceeded budget 1000ms"
+        "failure_detail": "Latency 2000ms exceeded budget 1000ms",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2449,7 +2605,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": false,
         "failure_kind": "timeout",
-        "failure_detail": "Latency 5000ms exceeded budget 1000ms"
+        "failure_detail": "Latency 5000ms exceeded budget 1000ms",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2504,7 +2663,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": false,
         "failure_kind": "timeout",
-        "failure_detail": "Latency 375ms exceeded budget 300ms"
+        "failure_detail": "Latency 375ms exceeded budget 300ms",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2564,7 +2726,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": "Heuristic: 2/5 criteria keywords matched (stem)"
+        "failure_detail": "Heuristic: 2/5 criteria keywords matched (stem)",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2624,7 +2789,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2684,7 +2852,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": "unknown",
-        "failure_detail": "Heuristic: 0/3 criteria keywords matched (stem)"
+        "failure_detail": "Heuristic: 0/3 criteria keywords matched (stem)",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2744,7 +2915,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2804,7 +2978,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2863,7 +3040,10 @@
         "tool_accuracy": 0.0,
         "latency_ok": false,
         "failure_kind": "unknown",
-        "failure_detail": "Output contains error signal: Error: timeout"
+        "failure_detail": "Output contains error signal: Error: timeout",
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     },
     {
@@ -2920,7 +3100,10 @@
         "tool_accuracy": 100.0,
         "latency_ok": true,
         "failure_kind": null,
-        "failure_detail": null
+        "failure_detail": null,
+        "judge_cost_usd": null,
+        "judge_tokens_in": null,
+        "judge_tokens_out": null
       }
     }
   ],
@@ -3612,11 +3795,261 @@
           "latency_ms": 10.0,
           "latency_ok": true,
           "failure_kind": "unknown",
-          "failure_detail": "Agent produced no output"
+          "failure_detail": "Agent produced no output",
+          "judge_cost_usd": null,
+          "judge_tokens_in": null,
+          "judge_tokens_out": null
         }
       ],
-      "timestamp": "2026-01-01T00:00:00"
+      "timestamp": "2026-01-01T00:00:00",
+      "judge_cost_usd": null,
+      "judge_tokens_in": null,
+      "judge_tokens_out": null
     },
     "text": "CortexOps eval — gate-proj\n  Run ID          : 00000000-0000-0000-0000-000000000000\n  Cases           : 9  (7 passed, 2 failed)\n  Task completion : 77.8%\n  Tool accuracy   : 66.7/100\n  Latency p50/p95 : 12ms / 2000ms\n  Regressions     : 2  (vs baseline base-123)\n  Failed cases:\n    - bad_case: FailureKind.UNKNOWN (score 75)"
+  },
+  "judge_cost": {
+    "aggregate": [
+      {
+        "usages": [],
+        "total": [
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "usages": [
+          [
+            null,
+            null,
+            null
+          ]
+        ],
+        "total": [
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "usages": [
+          [
+            1200,
+            300,
+            0.00036
+          ]
+        ],
+        "total": [
+          1200,
+          300,
+          0.00036
+        ]
+      },
+      {
+        "usages": [
+          [
+            1200,
+            300,
+            0.00036
+          ],
+          [
+            null,
+            null,
+            null
+          ],
+          [
+            800,
+            150,
+            0.00021
+          ]
+        ],
+        "total": [
+          2000,
+          450,
+          0.00057
+        ]
+      },
+      {
+        "usages": [
+          [
+            1200,
+            300,
+            0.00036
+          ],
+          [
+            900,
+            100,
+            null
+          ]
+        ],
+        "total": [
+          2100,
+          400,
+          null
+        ]
+      },
+      {
+        "usages": [
+          [
+            5,
+            null,
+            null
+          ]
+        ],
+        "total": [
+          5,
+          0,
+          null
+        ]
+      },
+      {
+        "usages": [
+          [
+            0,
+            0,
+            0.0
+          ]
+        ],
+        "total": [
+          0,
+          0,
+          0.0
+        ]
+      },
+      {
+        "usages": [
+          [
+            1234567,
+            89012,
+            0.1
+          ],
+          [
+            1,
+            2,
+            0.2
+          ]
+        ],
+        "total": [
+          1234568,
+          89014,
+          0.3
+        ]
+      }
+    ],
+    "format": [
+      {
+        "args": [
+          null,
+          1200,
+          300
+        ],
+        "text": "unknown, no price for the judge model (1,200 in / 300 out tokens)"
+      },
+      {
+        "args": [
+          null,
+          null,
+          5
+        ],
+        "text": "unknown, no price for the judge model (0 in / 5 out tokens)"
+      },
+      {
+        "args": [
+          0.0,
+          0,
+          0
+        ],
+        "text": "$0.000000 (0 in / 0 out tokens)"
+      },
+      {
+        "args": [
+          0.00036,
+          1200,
+          300
+        ],
+        "text": "$0.000360 (1,200 in / 300 out tokens)"
+      },
+      {
+        "args": [
+          0.005,
+          3,
+          4
+        ],
+        "text": "$0.005000 (3 in / 4 out tokens)"
+      },
+      {
+        "args": [
+          0.0099999,
+          10,
+          1
+        ],
+        "text": "$0.010000 (10 in / 1 out tokens)"
+      },
+      {
+        "args": [
+          0.01,
+          1234567,
+          89012
+        ],
+        "text": "$0.0100 (1,234,567 in / 89,012 out tokens)"
+      },
+      {
+        "args": [
+          12.3456789,
+          1000000,
+          0
+        ],
+        "text": "$12.3457 (1,000,000 in / 0 out tokens)"
+      }
+    ],
+    "summaries": [
+      {
+        "summary": {
+          "run_id": "00000000-0000-0000-0000-000000000000",
+          "project": "gate-proj",
+          "dataset_version": 1,
+          "total_cases": 10,
+          "passed": 9,
+          "failed": 1,
+          "warnings": 0,
+          "task_completion_rate": 0.9,
+          "tool_accuracy": 87.5,
+          "latency_p50_ms": 12.4,
+          "latency_p95_ms": 1999.5,
+          "regressions": 0,
+          "baseline_run_id": null,
+          "case_results": [],
+          "timestamp": "2026-01-01T00:00:00",
+          "judge_cost_usd": 0.00057,
+          "judge_tokens_in": 2000,
+          "judge_tokens_out": 450
+        },
+        "text": "CortexOps eval — gate-proj\n  Run ID          : 00000000-0000-0000-0000-000000000000\n  Cases           : 10  (9 passed, 1 failed)\n  Task completion : 90.0%\n  Tool accuracy   : 87.5/100\n  Latency p50/p95 : 12ms / 2000ms\n  Judge cost      : $0.000570 (2,000 in / 450 out tokens)"
+      },
+      {
+        "summary": {
+          "run_id": "00000000-0000-0000-0000-000000000000",
+          "project": "gate-proj",
+          "dataset_version": 1,
+          "total_cases": 10,
+          "passed": 9,
+          "failed": 1,
+          "warnings": 0,
+          "task_completion_rate": 0.9,
+          "tool_accuracy": 87.5,
+          "latency_p50_ms": 12.4,
+          "latency_p95_ms": 1999.5,
+          "regressions": 0,
+          "baseline_run_id": null,
+          "case_results": [],
+          "timestamp": "2026-01-01T00:00:00",
+          "judge_cost_usd": null,
+          "judge_tokens_in": 2000,
+          "judge_tokens_out": 450
+        },
+        "text": "CortexOps eval — gate-proj\n  Run ID          : 00000000-0000-0000-0000-000000000000\n  Cases           : 10  (9 passed, 1 failed)\n  Task completion : 90.0%\n  Tool accuracy   : 87.5/100\n  Latency p50/p95 : 12ms / 2000ms\n  Judge cost      : unknown, no price for the judge model (2,000 in / 450 out tokens)"
+      }
+    ]
   }
 }

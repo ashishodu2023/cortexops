@@ -1,5 +1,5 @@
 import type { GateResult } from "./eval.js";
-import type { EvalSummary } from "./models.js";
+import { judgeUsage, type EvalSummary } from "./models.js";
 import { fixed, pyFloat } from "./pyfmt.js";
 import { VERSION } from "./version.js";
 
@@ -41,7 +41,7 @@ export interface EvalReport extends Omit<EvalSummary, "case_results"> {
 
 /** JSON-serialisable report: the summary fields (without per-case traces) plus gate results. */
 export function buildReport(summary: EvalSummary, gates: readonly GateResult[], options: { dataset?: string } = {}): EvalReport {
-  const { case_results, timestamp, ...rest } = summary;
+  const { case_results, timestamp, judge_cost_usd: _cost, judge_tokens_in: _in, judge_tokens_out: _out, ...rest } = summary;
   return {
     schema_version: REPORT_SCHEMA_VERSION,
     cortexops_version: VERSION,
@@ -52,8 +52,9 @@ export function buildReport(summary: EvalSummary, gates: readonly GateResult[], 
     mean_score: meanScore(summary),
     thresholds: gates.map(({ expression, metric, op, threshold, actual, failed }) => ({ expression, metric, op, threshold, actual, failed })),
     ...rest,
-    case_results: case_results.map(({ trace: _trace, ...r }) => r),
+    case_results: case_results.map(({ trace: _trace, ...r }) => ({ ...r, ...judgeUsage(r) })),
     timestamp,
+    ...judgeUsage(summary),
   };
 }
 
