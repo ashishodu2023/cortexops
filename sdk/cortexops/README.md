@@ -85,7 +85,8 @@ cortexops eval run \
 ```
 
 Exits non-zero if the threshold is not met — blocks the PR. In GitHub Actions, use the
-[eval-gate action](https://github.com/ashishodu2023/cortexops/tree/main/actions/eval-gate) for a job summary and PR comment.
+[CortexOps Eval Gate action](https://github.com/ashishodu2023/cortexops-eval-action)
+(`uses: ashishodu2023/cortexops-eval-action@v1`) for a job summary and PR comment.
 
 ---
 
