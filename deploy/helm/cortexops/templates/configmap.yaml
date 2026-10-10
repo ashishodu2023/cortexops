@@ -9,6 +9,7 @@ data:
   DEBUG: {{ .Values.config.debug | toString | quote }}
   CORS_ORIGINS: {{ default (include "cortexops.dashboardUrl" .) .Values.config.corsOrigins | quote }}
   FRONTEND_URL: {{ default (include "cortexops.dashboardUrl" .) .Values.config.frontendUrl | quote }}
+  TRUSTED_PROXIES: {{ .Values.config.trustedProxies | quote }}
   BILLING_ENABLED: {{ .Values.config.billingEnabled | toString | quote }}
   MAX_EVAL_CASES_PER_RUN: {{ .Values.config.maxEvalCasesPerRun | toString | quote }}
   EVAL_TIMEOUT_SECONDS: {{ .Values.config.evalTimeoutSeconds | toString | quote }}

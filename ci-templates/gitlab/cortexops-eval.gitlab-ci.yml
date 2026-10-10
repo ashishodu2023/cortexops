@@ -14,8 +14,8 @@
 #         task_completion < 0.90
 #         tool_accuracy < 0.95
 #
-# Requires a cortexops release with `eval run --junit-xml` (newer than 0.5.1); until then set
-# CORTEXOPS_PIP_SPEC: "git+https://github.com/ashishodu2023/cortexops.git@main#subdirectory=sdk".
+# Requires cortexops 0.6.0 or newer (`eval run --junit-xml`); the default CORTEXOPS_PIP_SPEC
+# installs the latest release from PyPI. Pin it with e.g. CORTEXOPS_PIP_SPEC: "cortexops==0.6.0".
 # Pin the include to a tag or commit instead of main. The job fails when any
 # CORTEXOPS_FAIL_ON condition is true; failed cases and thresholds show up in the
 # merge request test report (JUnit), and report.json / summary.md are kept as artifacts.

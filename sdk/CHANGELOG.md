@@ -7,6 +7,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- **GitHub Action** — published as the standalone [`ashishodu2023/cortexops-eval-action`](https://github.com/ashishodu2023/cortexops-eval-action) (`uses: ashishodu2023/cortexops-eval-action@v1`) for the GitHub Marketplace. `actions/eval-gate` stays as the development copy; see `actions/eval-gate/RELEASING.md` and `scripts/sync-eval-action.sh`.
+- **GitHub Action** — `cortexops-version` defaults to `>=0.6.0,<0.7` instead of `latest`, and accepts `git+https://github.com/ashishodu2023/cortexops@<ref>#subdirectory=sdk`. `bundled` is removed (it only worked inside this repository); it now fails with a configuration error.
+
+### Fixed
+- **GitHub Action** — when the gate failed or the eval could not run, the step stopped before setting `passed`, `exit-code` and the metric outputs, and `fail-job: false` still failed the job. GitHub runs `shell: bash` with `-e`; the exit code is now captured explicitly.
+
+---
+
+## [0.6.0] — 2026-10-10
+
 ### Added
 - **GitHub Action** — `uses: ashishodu2023/cortexops/actions/eval-gate@<ref>` runs a golden dataset against your agent, writes the report to the job summary, keeps one sticky PR comment up to date, and fails the job when a `fail-on` condition is true. Outputs include `passed`, `task-completion`, `pass-rate`, `summary-path` and `report-path`. See `actions/eval-gate/README.md`.
 - **`cortexops eval run` reports** — `--output-json` (summary, per-threshold results, `gate_passed`, `pass_rate`, `mean_score`; no traces), `--summary-md` (markdown: headline, metrics table, thresholds, failed cases with failure kind and score) and `--junit-xml` (one testcase per eval case and per condition). Inside GitHub Actions the markdown is appended to `$GITHUB_STEP_SUMMARY` automatically (`--no-step-summary` to disable).
@@ -15,11 +26,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `--judge` (LLM judge for cases with `judge_criteria`), `--push` / `--base-url` (upload results with `CORTEXOPS_API_KEY`), `--title`.
 - `EvalSuite.evaluate_threshold()` returns a `ThresholdResult` instead of raising.
 - GitLab CI template (`ci-templates/gitlab/cortexops-eval.gitlab-ci.yml`) and a `cortexops-eval` pre-commit hook.
+- **MCP tool-call tracing** — `pip install "cortexops[mcp]"`. `cortexops.integrations.mcp.instrument_mcp_session(session, tracer, server_name=...)` patches an MCP `ClientSession` (mcp 1.x and 2.x) or `mcp.Client` (2.x) so each `call_tool` is recorded as a `ToolCall` named `<server>/<tool>` with redacted arguments, a result summary, error status and latency. `trace_run()` opens an async-safe trace around an agent run and `mcp_node()` groups calls into one node. See `docs/mcp.md`.
+- **CortexOps MCP server** — `cortexops-mcp` (stdio, optional streamable HTTP) exposes traces, evals, golden datasets and prompts to Cursor, Claude Desktop and Claude Code. Read-only by default; `promote_trace_to_dataset` is only registered with `--allow-writes`.
+- **Safety metrics** — `PromptInjectionMetric` (direct and indirect injection, leaked system prompts, echoed payloads, secrets and canaries in the output, tool calls after an injection) and `ToolMisuseMetric` (forbidden tools, tool-call budgets, dangerous arguments, URLs outside `allowed_domains`, call loops). Opt in per case with the new `EvalCase` fields `safety_checks`, `forbidden_tool_calls`, `max_tool_calls`, `allowed_domains` and `sensitive_markers`. Safety findings are blocking: they fail the case instead of being averaged into the score. See `docs/safety-metrics.md`.
+- **New failure kinds** — `FailureKind.TOOL_ERROR` (a run failed because of an MCP tool), `FailureKind.PROMPT_INJECTION` and `FailureKind.TOOL_MISUSE`.
+- **OpenTelemetry export** — `pip install "cortexops[otel]"`. `cortexops.otel.OTelExporter` plus `CortexTracer(exporters=[...])` send CortexOps traces to any OTel backend (Jaeger, Tempo, Honeycomb, a Collector) with GenAI semantic-convention attributes. See `docs/opentelemetry.md`.
+- **OTLP/HTTP ingest** (hosted API) — `POST /v1/otlp/v1/traces` accepts protobuf or JSON, optionally gzip, authenticated with `X-API-Key` or `Authorization: Bearer`. Apps instrumented with OpenLLMetry/Traceloop, OpenInference, Logfire or GenAI-semconv libraries can send traces without the SDK.
+- `CortexClient.list_traces()` filters (`status`, `environment`, `prompt_name`, `prompt_version`, `since`, `until`), plus `get_quota()`, `list_prompt_versions()` and `diff_prompts()`.
+- **Self-hosting** — one-command Docker Compose stack (`deploy/compose`: postgres, redis, api, worker, dashboard, and a bootstrap service that creates the first API key) and a Helm chart (`deploy/helm/cortexops`). See `docs/self-hosting.md`.
+- `BILLING_ENABLED` setting (default `true`): set it to `false` to run the API in production without PayPal/Stripe billing secrets.
+- **Open golden datasets** (`datasets/`): `customer_support`, `rag_qa` and `tool_workflows`, each with a deterministic reference agent, degraded variants and an eval gate.
+- **Framework integration guides** (`docs/integrations/`) for LangGraph, CrewAI, PydanticAI, OpenAI Agents SDK and Google ADK. Every code sample is run against the real framework packages by `docs/integrations/_verify/verify_guides.py`.
+- **Agent Reliability Report, October 2026** (`docs/reports/agent-reliability-2026-10.md`).
+- **TypeScript SDK** (`sdk-js/`, `@cortexops/sdk` 0.1.0) — tracer, framework integrations, eval gate and `cortexops-js eval run` CLI with scoring parity fixtures generated from the Python SDK. Not yet published to npm.
 
 ### Changed
-- `cortexops eval run` with `--fail-on` gates only on the given conditions; previously it also exited 1 when any case failed. Without `--fail-on` the gate is `pass_rate < 1.0` (unchanged behaviour).
-- `cortexops eval run` exits with code 2 for configuration errors (missing dataset, invalid `--fail-on`, agent import failure) instead of 1.
+- **Behaviour change:** `cortexops eval run` with `--fail-on` gates only on the given conditions; previously it also exited 1 when any case failed. Without `--fail-on` the gate is `pass_rate < 1.0` (unchanged behaviour). Add `--fail-on "pass_rate < 1.0"` to keep failing on any failed case.
+- **Behaviour change:** `cortexops eval run` exits with code 2 for configuration errors (missing dataset, invalid `--fail-on`, agent import failure) instead of 1. Exit code 1 now always means the gate failed.
 - `--project` now overrides the dataset's project; it was previously only printed.
+- The repository's own eval gate runs through the new GitHub Action.
+- The API container image no longer ships pip (its vendored libraries were flagged by Trivy), and `pip-audit` audits the backend and SDK requirements in an isolated environment.
+
+### Fixed
+- Eval cases scored by the LLM judge (`judge: llm`) below 100 crashed the whole run with a `ValidationError`, because the judge returned an invalid failure kind. Both the LLM and heuristic paths now report `FailureKind.UNKNOWN` and keep the judge's reasoning in `failure_detail`.
+- Hosted API: `GET /v1/evals/{run_id}` returned 500 on every call (case results were lazy-loaded under the async session).
+- Hosted API: a comma-separated `CORS_ORIGINS` (the documented format) failed startup with a `SettingsError`.
+- Backend tests no longer hit the process-wide rate limiter (false `429` responses once the suite grew past 200 requests).
 
 ---
 

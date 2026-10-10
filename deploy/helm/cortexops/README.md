@@ -3,7 +3,7 @@
 Deploys the CortexOps API, Celery worker and dashboard to Kubernetes. PostgreSQL and Redis are external by default;
 Bitnami subcharts can be enabled for evaluation installs.
 
-- Chart version `0.1.0`, app version `0.5.1`, Kubernetes 1.25+, Helm 3.8+.
+- Chart version `0.1.0`, app version `0.6.0`, Kubernetes 1.25+, Helm 3.8+.
 - Images: `ghcr.io/ashishodu2023/cortexops-api` (API and worker) and `ghcr.io/ashishodu2023/cortexops-dashboard`,
   published by the `Self-hosting` workflow on release tags. To build your own, see [Building images](#building-images).
 - For Docker Compose and general configuration, see [docs/self-hosting.md](../../../docs/self-hosting.md).
@@ -85,6 +85,7 @@ The response contains `raw_key` (shown once) and `id`. Bootstrapped keys start o
 | `config.debug` | `false` | `DEBUG`. |
 | `config.corsOrigins` | dashboard URL | `CORS_ORIGINS`, comma-separated. |
 | `config.frontendUrl` | dashboard URL | `FRONTEND_URL`. |
+| `config.trustedProxies` | private ranges | `TRUSTED_PROXIES`: peers whose `X-Forwarded-For` is trusted (IPs/CIDRs, or `*`). Must cover the ingress controller pods. |
 | `config.billingEnabled` | `false` | `BILLING_ENABLED`. Hosted billing; when true, production requires `PAYPAL_WEBHOOK_ID`. |
 | `config.maxEvalCasesPerRun` / `config.evalTimeoutSeconds` | `500` / `300` | Server-side eval limits. |
 | `config.extraEnv` | `{}` | Extra plain environment variables (map) for the API and worker. |
@@ -146,16 +147,18 @@ Any other Bitnami subchart value can be set under `postgresql.` and `redis.`.
   Kubernetes cannot verify a named `USER` as non-root, which is why a numeric UID is required with `runAsNonRoot`.
 - ServiceAccount tokens are not mounted; CortexOps does not call the Kubernetes API.
 - Pods roll automatically when the ConfigMap or Secret inputs change (checksum annotations).
-- The API trusts the first `X-Forwarded-For` address for rate limiting and audit logs; run it only behind an ingress
-  controller that sets that header.
+- The API honours `X-Forwarded-For` for rate limiting and audit logs only when the connecting peer is in
+  `config.trustedProxies`, and then uses the right-most address that is not a trusted proxy. The default trusts the
+  private ranges, which fits most pod networks; if your pod CIDR is outside them (e.g. `100.64.0.0/10`), add it.
+  Any pod in a trusted range can set the header, so narrow it to the ingress controller's pod CIDR where you can.
 
 ## Building images
 
 ```bash
-docker build -t registry.example.com/cortexops-api:0.5.1 .
-docker build -t registry.example.com/cortexops-dashboard:0.5.1 frontend-new
-docker push registry.example.com/cortexops-api:0.5.1
-docker push registry.example.com/cortexops-dashboard:0.5.1
+docker build -t registry.example.com/cortexops-api:0.6.0 .
+docker build -t registry.example.com/cortexops-dashboard:0.6.0 frontend-new
+docker push registry.example.com/cortexops-api:0.6.0
+docker push registry.example.com/cortexops-dashboard:0.6.0
 
 helm upgrade --install cortexops deploy/helm/cortexops -n cortexops \
   --set image.repository=registry.example.com/cortexops-api \

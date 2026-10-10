@@ -48,7 +48,7 @@ Every case carries at least one category tag, plus domain tags (`refund`, `prici
 
 Filter with the SDK: `GoldenDataset.load("datasets/rag_qa/golden.yaml").filter("adversarial")`.
 
-## Scoring caveats (CortexOps SDK 0.5.1)
+## Scoring caveats (CortexOps SDK 0.5.1 and 0.6.0)
 
 Read these before choosing `fail_on` thresholds; the reliability report shows each one in practice.
 

@@ -135,7 +135,7 @@ cases:
 
 ## CI eval gate
 
-Add the [eval-gate GitHub Action](actions/eval-gate) to a workflow:
+Add the [CortexOps Eval Gate GitHub Action](https://github.com/ashishodu2023/cortexops-eval-action) to a workflow:
 
 ```yaml
 jobs:
@@ -146,7 +146,7 @@ jobs:
       pull-requests: write   # for the sticky PR comment
     steps:
       - uses: actions/checkout@v4
-      - uses: ashishodu2023/cortexops/actions/eval-gate@main   # pin to a tag or SHA
+      - uses: ashishodu2023/cortexops-eval-action@v1
         with:
           dataset: golden_v1.yaml
           agent: agent:build_agent()
@@ -266,7 +266,7 @@ Add custom metrics by subclassing `cortexops.Metric`.
 - [x] pytest plugin for eval gates (`@cortexops.eval_gate(...)`)
 
 ### v0.6.0 — distribution and CI-first
-- [ ] GitHub Action for CI eval gates: job summary, sticky PR comment, Marketplace ([#29](https://github.com/ashishodu2023/cortexops/issues/29), covers [#19](https://github.com/ashishodu2023/cortexops/issues/19))
+- [x] GitHub Action for CI eval gates: job summary, sticky PR comment (shipped in 0.6.0, published on the [GitHub Marketplace](https://github.com/marketplace/actions/cortexops-eval-gate)) ([#29](https://github.com/ashishodu2023/cortexops/issues/29), covers [#19](https://github.com/ashishodu2023/cortexops/issues/19))
 - [ ] GitLab CI template and pre-commit hook ([#31](https://github.com/ashishodu2023/cortexops/issues/31))
 - [ ] Reposition as "pytest for AI agents: catch regressions before they ship" ([#30](https://github.com/ashishodu2023/cortexops/issues/30))
 - [ ] Cost tracking per eval run (judge API cost) ([#20](https://github.com/ashishodu2023/cortexops/issues/20))
@@ -275,7 +275,7 @@ Add custom metrics by subclassing `cortexops.Metric`.
 - [ ] Integration pages upstream: LangGraph, CrewAI, PydanticAI, OpenAI Agents SDK, Google ADK ([#36](https://github.com/ashishodu2023/cortexops/issues/36))
 - [ ] Open golden datasets for common agent archetypes + Agent Reliability Report ([#37](https://github.com/ashishodu2023/cortexops/issues/37))
 - [ ] Activation metric: time to first hosted trace / eval per API key ([#38](https://github.com/ashishodu2023/cortexops/issues/38))
-- [ ] Working one-command Docker Compose stack ([#4](https://github.com/ashishodu2023/cortexops/issues/4))
+- [x] Working one-command Docker Compose stack, shipped in 0.6.0 ([#4](https://github.com/ashishodu2023/cortexops/issues/4))
 - [ ] Foundations: Alembic migrations + unique constraints ([#47](https://github.com/ashishodu2023/cortexops/issues/47)), transactional outbox for Pro key emails ([#48](https://github.com/ashishodu2023/cortexops/issues/48)), per-task `use_prompt` and PydanticAI async tracing ([#49](https://github.com/ashishodu2023/cortexops/issues/49)), deploy version check ([#46](https://github.com/ashishodu2023/cortexops/issues/46)), CI hygiene ([#50](https://github.com/ashishodu2023/cortexops/issues/50))
 
 ### v0.7.0 — ecosystem
@@ -286,7 +286,7 @@ Add custom metrics by subclassing `cortexops.Metric`.
 - [ ] Safety checks: prompt-injection and tool-misuse detection ([#41](https://github.com/ashishodu2023/cortexops/issues/41))
 
 ### v1.0.0 — enterprise
-- [ ] Self-hosting: Docker Compose quickstart + Helm chart ([#40](https://github.com/ashishodu2023/cortexops/issues/40))
+- [x] Self-hosting: Docker Compose quickstart + Helm chart, shipped in 0.6.0 ([#40](https://github.com/ashishodu2023/cortexops/issues/40))
 - [ ] Multi-tenant dashboard ([#42](https://github.com/ashishodu2023/cortexops/issues/42))
 - [ ] SOC 2 compliance mode (audit logs, data residency) ([#43](https://github.com/ashishodu2023/cortexops/issues/43))
 - [ ] Enterprise SSO (SAML/OIDC) ([#44](https://github.com/ashishodu2023/cortexops/issues/44))

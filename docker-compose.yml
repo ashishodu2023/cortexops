@@ -15,6 +15,8 @@ x-backend-env: &backend-env
   JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (see .env.example)}
   INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY in .env (see .env.example)}
   CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+  # Published ports and a reverse proxy on the host reach the API from Docker's private bridge addresses.
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,::1,fc00::/7}
   BILLING_ENABLED: ${BILLING_ENABLED:-false}
   MAX_EVAL_CASES_PER_RUN: ${MAX_EVAL_CASES_PER_RUN:-500}
   EVAL_TIMEOUT_SECONDS: ${EVAL_TIMEOUT_SECONDS:-300}

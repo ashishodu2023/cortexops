@@ -42,6 +42,9 @@ config:
   corsOrigins: ""
   # -- Public dashboard URL (billing redirect links). Defaults to the dashboard ingress URL.
   frontendUrl: ""
+  # -- Peers whose X-Forwarded-For is trusted (comma-separated IPs/CIDRs, or "*"); should cover the ingress
+  # controller's pod addresses. Empty trusts none, so every request is rate limited by the ingress pod address.
+  trustedProxies: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,::1,fc00::/7"
   # -- Billing is for the hosted service; when true, production startup requires PAYPAL_WEBHOOK_ID.
   billingEnabled: false
   maxEvalCasesPerRun: 500
