@@ -70,13 +70,18 @@ class SlackAlerter:
     def _build_blocks(self, p: AlertPayload) -> list[dict]:
         status_icon = "red_circle" if p.failed > 0 else "large_yellow_circle"
         tc_pct = f"{p.task_completion_rate:.1%}"
-        regression_line = f"\n:chart_with_downwards_trend: *{p.regressions} regressions* vs baseline" if p.regressions else ""
+        regression_line = (
+            f"\n:chart_with_downwards_trend: *{p.regressions} regressions* vs baseline" if p.regressions else ""
+        )
 
         header = f":{status_icon}: *CortexOps eval alert — {p.project}*"
 
         failed_lines = ""
         for case in p.failed_cases[:5]:
-            failed_lines += f"\n  • `{case['case_id']}` — {case.get('failure_kind', 'unknown')} (score {case.get('score', 0):.0f})"
+            failed_lines += (
+                f"\n  • `{case['case_id']}` — {case.get('failure_kind', 'unknown')}"
+                f" (score {case.get('score', 0):.0f})"
+            )
         if len(p.failed_cases) > 5:
             failed_lines += f"\n  _...and {len(p.failed_cases) - 5} more_"
 

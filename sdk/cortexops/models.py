@@ -64,6 +64,10 @@ class Trace(BaseModel):
     status: RunStatus = RunStatus.COMPLETED
     failure_kind: FailureKind | None = None
     failure_detail: str | None = None
+    environment: str | None = None
+    prompt_name: str | None = None
+    prompt_version: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     def tool_calls(self) -> list[ToolCall]:

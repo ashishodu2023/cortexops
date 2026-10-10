@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
-
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import get_settings
-from .db import init_db, get_db
-
+from .db import get_db, init_db
 from .observability import configure_logging, health_aggregator
-from .resilience import stripe_circuit, slack_circuit, openai_circuit
-from .security import RequestIDMiddleware, RateLimitMiddleware
-from .routers import admin, billing, eval_api, evals, keys, jwt_auth, prompts, traces
+from .resilience import openai_circuit, slack_circuit, stripe_circuit
+from .routers import admin, billing, eval_api, evals, jwt_auth, keys, prompts, traces
+from .security import RateLimitMiddleware, RequestIDMiddleware
 
 settings = get_settings()
 _log = logging.getLogger(__name__)

@@ -659,7 +659,7 @@ CortexOps eval — payments-agent
 
 tracer = <span class="cf">CortexTracer</span>(
     project=<span class="cs">"payments-agent"</span>,
-    ,          <span class="cm"># optional — for hosted API</span>
+    api_key=<span class="cs">"cxo-..."</span>,          <span class="cm"># optional — for hosted API</span>
     api_url=<span class="cs">"https://api.getcortexops.com"</span>,
     environment=<span class="cs">"production"</span>,
     sample_rate=<span class="cv">1.0</span>,            <span class="cm"># 1.0 = trace everything</span>
@@ -675,9 +675,24 @@ agent = tracer.wrap(your_agent)</pre><button class="copy-btn" onclick="copy(this
 <tr><td><code>api_key</code></td><td>str</td><td>None</td><td>Your cxo- key. Required for hosted tracing.</td></tr>
 <tr><td><code>api_url</code></td><td>str</td><td>None</td><td>Hosted API URL. Omit to run locally only.</td></tr>
 <tr><td><code>environment</code></td><td>str</td><td>"development"</td><td>Environment tag — development / staging / production.</td></tr>
-<tr><td><code>sample_rate</code></td><td>float</td><td>1.0</td><td>Fraction of runs to trace. 0.1 = 10% sampling.</td></tr>
+<tr><td><code>sample_rate</code></td><td>float</td><td>1.0</td><td>Fraction of runs to trace. 0.1 = 10% sampling. Falls back to the <code>CORTEXOPS_SAMPLE_RATE</code> env var.</td></tr>
+<tr><td><code>sample_errors</code></td><td>bool</td><td>True</td><td>Capture failed runs even when they were not sampled, so regressions are never dropped.</td></tr>
 </tbody>
 </table>
+
+<h2>Sampling</h2>
+<div class="code-block"><pre><span class="cm"># Trace 10% of successful runs in production — failures are always captured</span>
+export CORTEXOPS_SAMPLE_RATE=0.1</pre><button class="copy-btn" onclick="copy(this,'export CORTEXOPS_SAMPLE_RATE=0.1')">Copy</button></div>
+<p>An explicit <code>sample_rate=</code> argument overrides the env var. Each trace records its <code>sample_rate</code> and whether it was sampled, shown as <em>Sampling</em> in the dashboard trace detail.</p>
+
+<h2>Prompt version tracking</h2>
+<div class="code-block"><pre>tracer.set_prompt(<span class="cs">"refund-system"</span>, <span class="cs">"v3"</span>)   <span class="cm"># tag every trace with refund-system@v3</span>
+
+<span class="ck">with</span> tracer.use_prompt(<span class="cs">"refund-system"</span>, <span class="cs">"v4-candidate"</span>):
+    agent.invoke({<span class="cs">"messages"</span>: [...]})        <span class="cm"># tagged v4-candidate, then back to v3</span>
+
+tracer.clear_prompt()</pre><button class="copy-btn" onclick="copy(this,'tracer.set_prompt(\'refund-system\', \'v3\')')">Copy</button></div>
+<p>Hosted traces store <code>prompt_name</code> and <code>prompt_version</code>. Filter with <code>GET /v1/traces?project=payments-agent&amp;prompt_name=refund-system&amp;prompt_version=v3</code>, or search by prompt in the dashboard Traces tab.</p>
 
 <h2>Auto-detection</h2>
 <p><code>tracer.wrap()</code> auto-detects the framework and wraps the right method:</p>
@@ -866,10 +881,11 @@ score, key, detail = <span class="cf">TaskCompletionMetric</span>().score(case, 
 fail_on=<span class="cs">"task_completion &lt; 0.90"</span>
 
 <span class="cm"># Block when tool accuracy drops below 80%</span>
-fail_on=<span class="cs">"tool_accuracy &lt; 80"</span>
+fail_on=<span class="cs">"tool_accuracy &lt; 0.80"</span>
 
-<span class="cm"># Block when p95 latency exceeds 2 seconds</span>
-fail_on=<span class="cs">"latency_p95_ms &gt; 2000"</span></pre></div>
+<span class="cm"># Block unless every case passes</span>
+fail_on=<span class="cs">"pass_rate &lt; 1.0"</span></pre></div>
+<p>Supported metrics: <code>task_completion</code>, <code>tool_accuracy</code>, and <code>pass_rate</code>, all as 0–1 ratios. Operators: <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>.</p>
     `,
     prev:{id:'promote-trace',label:'Promote from trace'},next:{id:'ci',label:'CI eval gate'}
   },
@@ -923,6 +939,21 @@ fail_on=<span class="cs">"latency_p95_ms &gt; 2000"</span></pre></div>
   --dataset golden_v1.yaml \
   --fail-on "task_completion &lt; 0.90" \
   --verbose</pre><button class="copy-btn" onclick="copy(this,'cortexops eval run --dataset golden_v1.yaml --fail-on \"task_completion < 0.90\" --verbose')">Copy</button></div>
+
+<h2>pytest plugin</h2>
+<div class="code-block"><pre><span class="cm"># tests/test_agent_quality.py — pip install "cortexops[pytest]"</span>
+<span class="ck">import</span> cortexops
+
+<span class="cf">@cortexops.eval_gate</span>(<span class="cs">"golden_v1.yaml"</span>, fail_on=<span class="cs">"task_completion &lt; 0.90"</span>)
+<span class="ck">def</span> <span class="cf">test_payments_agent</span>():
+    <span class="ck">return</span> build_agent()   <span class="cm"># return the agent — the gate runs every case</span></pre><button class="copy-btn" onclick="copy(this,'import cortexops\n\n@cortexops.eval_gate(\'golden_v1.yaml\', fail_on=\'task_completion < 0.90\')\ndef test_payments_agent():\n    return build_agent()')">Copy</button></div>
+<ul>
+<li>The plugin loads automatically once <code>cortexops</code> is installed — no <code>conftest.py</code> changes.</li>
+<li>Dataset paths resolve relative to the test file. Fixtures work as usual.</li>
+<li>With no <code>fail_on</code>, the gate fails if any case fails. Pass a list for several conditions, or <code>None</code> to only record results.</li>
+<li>Gates are marked <code>cortexops_eval</code>: run them alone with <code>pytest -m cortexops_eval</code> or skip them with <code>-m "not cortexops_eval"</code>.</li>
+<li>An eval summary per gate is printed at the end of the pytest report.</li>
+</ul>
     `,
     prev:{id:'metrics',label:'Metrics'},next:{id:'langgraph',label:'LangGraph'}
   },
@@ -1116,8 +1147,12 @@ CORTEXOPS_WEBHOOK_SECRET=your-signing-secret</pre></div>
     "project": "payments-agent",
     "prompt_name": "system_prompt",
     "content": "You are a payment agent. Approve refunds under $500...",
-    "message": "Initial version"
+    "commit_message": "Initial version"
   }'</pre></div>
+
+<h2>Link traces to prompt versions</h2>
+<div class="code-block"><pre>tracer.set_prompt(<span class="cs">"system_prompt"</span>, <span class="cv">2</span>)   <span class="cm"># every trace now carries system_prompt@2</span></pre></div>
+<p>Compare production behaviour across versions with <code>GET /v1/traces?project=payments-agent&amp;prompt_name=system_prompt&amp;prompt_version=2</code>.</p>
 
 <h2>View diff between versions</h2>
 <div class="code-block"><pre>GET /v1/prompts/diff?project=payments-agent

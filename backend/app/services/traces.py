@@ -1,5 +1,6 @@
 
 from datetime import datetime
+
 try:
     from clickhouse_connect import get_client
     client = get_client(host="clickhouse")

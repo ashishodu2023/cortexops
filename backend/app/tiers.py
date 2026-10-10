@@ -133,7 +133,7 @@ def require_project_access(tier_info: TierInfo, project: str) -> None:
         )
 
 
-def require_scope(tier_info: "TierInfo", required: str = "read_write") -> None:
+def require_scope(tier_info: TierInfo, required: str = "read_write") -> None:
     """
     Raise HTTP 403 if the key is read_only and a write operation is attempted.
     Call at the top of any write endpoint (POST, PUT, DELETE).

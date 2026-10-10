@@ -177,26 +177,31 @@ class EvalSuite:
             cases=cases,
         )
 
+    _THRESHOLD_METRICS = ("task_completion", "tool_accuracy", "pass_rate")
+
+    @classmethod
+    def _parse_threshold(cls, fail_on: str) -> tuple[str, str, float]:
+        """Parse 'task_completion < 0.90' into (metric, op, threshold); raise ValueError if invalid."""
+        import re
+
+        m = re.fullmatch(r"(\w+)\s*([<>]=?)\s*(\d+(?:\.\d+)?|\.\d+)", fail_on.strip())
+        if not m:
+            raise ValueError(f"Invalid fail_on expression: '{fail_on}'")
+        metric, op, threshold_str = m.groups()
+        if metric not in cls._THRESHOLD_METRICS:
+            raise ValueError(f"Unknown metric in fail_on: '{metric}'")
+        return metric, op, float(threshold_str)
+
     @classmethod
     def _check_threshold(cls, summary: EvalSummary, fail_on: str) -> None:
         """Parse and evaluate a threshold expression like 'task_completion < 0.90'."""
-        import re
-
-        m = re.match(r"(\w+)\s*([<>]=?)\s*([\d.]+)", fail_on.strip())
-        if not m:
-            raise ValueError(f"Invalid fail_on expression: '{fail_on}'")
-
-        metric, op, threshold_str = m.groups()
-        threshold = float(threshold_str)
+        metric, op, threshold = cls._parse_threshold(fail_on)
 
         actual = {
             "task_completion": summary.task_completion_rate,
             "tool_accuracy": summary.tool_accuracy / 100.0,
             "pass_rate": summary.passed / max(summary.total_cases, 1),
-        }.get(metric)
-
-        if actual is None:
-            raise ValueError(f"Unknown metric in fail_on: '{metric}'")
+        }[metric]
 
         failed = {
             "<": actual < threshold,

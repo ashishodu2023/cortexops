@@ -20,11 +20,11 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Security
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -88,7 +88,7 @@ def _verify(token: str, secret: str, *, allow_expired_grace: int = 0) -> dict:
     try:
         header, body, sig = token.split(".")
     except ValueError:
-        raise ValueError("Malformed JWT")
+        raise ValueError("Malformed JWT") from None
 
     # Reject alg:none and any non-HS256 algorithm (prevents alg confusion)
     try:
@@ -324,7 +324,7 @@ async def refresh_jwt(
             db, event="login_refresh", outcome="failure", ip_address=ip, user_agent=ua,
             detail="invalid_or_expired_token",
         )
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from None
 
     key_id = payload.get("key_id")
     project = payload.get("project")
@@ -413,7 +413,7 @@ async def verify_jwt(
     try:
         payload = _verify(credentials.credentials, _JWT_SECRET)
     except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from None
 
     ttl = int(payload["exp"] - time.time())
     return {
@@ -442,4 +442,4 @@ async def get_jwt_payload(
     try:
         return _verify(credentials.credentials, _JWT_SECRET)
     except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from None

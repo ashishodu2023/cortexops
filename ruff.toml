@@ -1,1 +1,8 @@
 line-length = 121
+target-version = "py310"
+
+[lint]
+# Explicit rule set so CI does not change when ruff's defaults do.
+select = ["E", "F", "I", "UP", "B"]
+# B008: FastAPI dependency injection relies on `Depends(...)` / `Query(...)` defaults.
+ignore = ["B008"]

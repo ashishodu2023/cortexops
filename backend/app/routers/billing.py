@@ -12,11 +12,12 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import generate_api_key, get_current_key_info
+from ..auth import get_current_key_info
 from ..config import get_settings
 from ..db import get_db
-from ..models.records import ApiKey, Project
+from ..models.records import ApiKey
 from ..security import billing_limiter, client_ip
+from ..services.provisioning import provision_pro_key
 from ..tiers import TierInfo
 
 logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         try:
             event = s.Webhook.construct_event(body, sig, STRIPE_WEBHOOK_SECRET)
         except stripe.error.SignatureVerificationError:
-            raise HTTPException(status_code=400, detail="Invalid webhook signature")
+            raise HTTPException(status_code=400, detail="Invalid webhook signature") from None
     else:
         if get_settings().is_production:
             raise HTTPException(status_code=503, detail="Stripe webhooks not configured.")
@@ -112,144 +113,40 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     if etype == "checkout.session.completed":
         sess = event["data"]["object"]
-        # Stripe SDK v15 returns StripeObject — use getattr, not .get()
-        raw_meta = getattr(sess, "metadata", None)
-        meta = getattr(raw_meta, "_data", None) or {}
-        sess_id = getattr(sess, "id", "") or ""
-        project = meta.get("project", f"stripe-{sess_id[:8]}")
-        email_addr = meta.get("email", "") or ""
-        await _provision(db, project, email_addr, sess_id)
+        meta = _stripe_get(sess, "metadata") or {}
+        sess_id = _stripe_get(sess, "id") or ""
+        project = _stripe_get(meta, "project") or f"stripe-{sess_id[:8]}"
+        email_addr = (
+            _stripe_get(meta, "email")
+            or _stripe_get(_stripe_get(sess, "customer_details"), "email")
+            or _stripe_get(sess, "customer_email")
+            or ""
+        )
+        result = await provision_pro_key(db, project=project, email=email_addr, source="stripe", ref=sess_id)
+        return {"status": "ok", "event": etype, "provision": result.status, "email": result.email_status}
 
     elif etype == "customer.subscription.deleted":
         sub = event["data"]["object"]
-        raw_meta = getattr(sub, "metadata", None)
-        meta = getattr(raw_meta, "_data", None) or {}
-        logger.info(f"Subscription cancelled: {meta.get('project', '')}")
+        meta = _stripe_get(sub, "metadata") or {}
+        logger.info("Subscription cancelled: %s", _stripe_get(meta, "project") or "")
 
     elif etype == "invoice.payment_failed":
         inv = event["data"]["object"]
-        customer = getattr(inv, "customer", "") or ""
-        logger.warning(f"Payment failed: {customer}")
+        logger.warning("Payment failed: %s", _stripe_get(inv, "customer") or "")
 
     return {"status": "ok", "event": etype}
 
 
-
-async def _send_key_email(email: str, project: str, raw_key: str) -> None:
-    """
-    Send the API key to the customer by email.
-    Uses httpx to call a transactional email service.
-    Configure SMTP or use SendGrid/Resend via SENDGRID_API_KEY or RESEND_API_KEY env vars.
-    Falls back to logging if no email service is configured.
-    """
-    sendgrid_key = os.getenv("SENDGRID_API_KEY")
-    resend_key   = os.getenv("RESEND_API_KEY")
-    sendgrid_key = os.getenv("SENDGRID_API_KEY")
-    logger.info(f"Email send: resend_configured={bool(resend_key)} sendgrid_configured={bool(sendgrid_key)}")
-
-    subject = "Your CortexOps Pro API key"
-    body = f"""Welcome to CortexOps Pro!
-
-Your API key for project '{project}':
-
-  {raw_key}
-
-Add it to your environment:
-
-  export CORTEXOPS_API_KEY={raw_key}
-  export CORTEXOPS_PROJECT={project}
-
-Or run the CLI login flow:
-
-  pip install cortexops
-  cortexops login
-
-Then use without any key argument:
-
-  from cortexops import CortexTracer
-  tracer = CortexTracer(project="{project}")  # key auto-loaded
-
-Dashboard: https://app.getcortexops.com
-Docs:      https://docs.getcortexops.com
-
-Keep this key safe — it is shown only once.
-
-— Ashish @ CortexOps
-ashish@getcortexops.com
-"""
-
-    if resend_key:
-        try:
-            import httpx
-            r = httpx.post(
-                "https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
-                json={
-                    "from": "CortexOps <ashish@getcortexops.com>",
-                    "to": [email],
-                    "subject": subject,
-                    "text": body,
-                },
-                timeout=10.0,
-            )
-            if r.status_code == 200:
-                logger.info(f"Key email sent via Resend to {email}")
-                return
-            logger.warning(f"Resend failed: {r.status_code} {r.text}")
-        except Exception as e:
-            logger.warning(f"Resend error: {e}")
-
-    elif sendgrid_key:
-        try:
-            import httpx
-            r = httpx.post(
-                "https://api.sendgrid.com/v3/mail/send",
-                headers={"Authorization": f"Bearer {sendgrid_key}", "Content-Type": "application/json"},
-                json={
-                    "personalizations": [{"to": [{"email": email}]}],
-                    "from": {"email": "ashish@getcortexops.com", "name": "CortexOps"},
-                    "subject": subject,
-                    "content": [{"type": "text/plain", "value": body}],
-                },
-                timeout=10.0,
-            )
-            if r.status_code in (200, 202):
-                logger.info(f"Key email sent via SendGrid to {email}")
-                return
-            logger.warning(f"SendGrid failed: {r.status_code}")
-        except Exception as e:
-            logger.warning(f"SendGrid error: {e}")
-
-    # Fallback — log delivery attempt without exposing key material
-    logger.info("EMAIL_FALLBACK to=%s project=%s (key provisioned — retrieve via admin)", email, project)
-
-async def _provision(db, project_name, email, ref):
-    # Idempotency — check if a pro key already exists for this project from this Stripe ref
-    existing = await db.execute(
-        select(ApiKey).where(
-            ApiKey.project == project_name,
-            ApiKey.name == "pro",
-            ApiKey.tier == "pro",
-            ApiKey.is_active,
-        )
-    )
-    if existing.scalars().first():
-        logger.info(f"Pro key already exists for project={project_name} — skipping provision")
+def _stripe_get(obj, key: str):
+    """Read a field from a StripeObject (SDK v15) or a plain dict (unsigned dev webhooks)."""
+    if obj is None:
         return None
-
-    r = await db.execute(select(Project).where(Project.name == project_name))
-    proj = r.scalar_one_or_none()
-    if not proj:
-        proj = Project(name=project_name, description=f"Stripe {ref}")
-        db.add(proj)
-        await db.flush()
-    raw_key, hashed = generate_api_key()
-    db.add(ApiKey(id=str(uuid.uuid4()), project=project_name, name=f"pro-{ref[:8]}", tier="pro", key_hash=hashed, is_active=True))
-    await db.commit()
-    logger.info(f"Provisioned key for project={project_name} email={email}")
-    # Send email directly — await so it runs in the same event loop context
-    await _send_key_email(email, project_name, raw_key)
-    return raw_key
+    if isinstance(obj, dict):
+        return obj.get(key)
+    data = getattr(obj, "_data", None)
+    if isinstance(data, dict) and key in data:
+        return data[key]
+    return getattr(obj, key, None)
 
 
 @router.get("/session/{session_id}", responses={
@@ -491,7 +388,7 @@ async def paypal_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         import json as _json
         payload = _json.loads(event)
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON payload.")
+        raise HTTPException(status_code=400, detail="Invalid JSON payload.") from None
 
     event_type   = payload.get("event_type", "")
     resource     = payload.get("resource", {})
@@ -507,46 +404,16 @@ async def paypal_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             logger.error("PayPal ACTIVATED webhook missing custom_id/project")
             return {"status": "skipped", "reason": "no project identifier"}
 
-        # Idempotency: skip if Pro key already exists for this subscription
-        existing = await db.scalar(
-            select(ApiKey).where(
-                ApiKey.project == project,
-                ApiKey.tier == "pro",
-                ApiKey.is_active,
-            )
-        )
-        if existing:
-            logger.info("PayPal: Pro key already exists for project=%s — skipping", project)
-            return {"status": "already_provisioned"}
-
-        # Generate Pro API key
-        from ..auth import generate_api_key as _gen_key
-        raw_key, hashed = _gen_key()
-
-        api_key = ApiKey(
-            id=str(uuid.uuid4()),
-            project=project,
-            name=f"paypal-pro-{subscription_id[:12]}",
-            key_hash=hashed,
-            tier="pro",
-            scope="read_write",
-            is_active=True,
-        )
-        db.add(api_key)
-        await db.commit()
-
         subscriber_email = (
-            resource.get("subscriber", {}).get("email_address")
+            (resource.get("subscriber") or {}).get("email_address")
             or resource.get("custom", "")
         )
-        if subscriber_email and "@" in subscriber_email:
-            await _send_key_email(subscriber_email, project, raw_key)
-        else:
-            logger.info(
-                "PayPal Pro key provisioned: project=%s subscription=%s (email key delivery pending)",
-                project,
-                subscription_id,
-            )
+        result = await provision_pro_key(
+            db, project=project, email=subscriber_email, source="paypal", ref=subscription_id,
+        )
+        if result.status == "already_provisioned":
+            return {"status": "already_provisioned"}
+        return {"status": "processed", "event_type": event_type, "email": result.email_status}
 
     elif event_type in ("BILLING.SUBSCRIPTION.CANCELLED", "BILLING.SUBSCRIPTION.SUSPENDED"):
         # Downgrade Pro keys to free for this project

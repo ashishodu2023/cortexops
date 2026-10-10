@@ -137,7 +137,10 @@ class TraceIngest(BaseModel):
     failure_kind: str | None = None
     failure_detail: str | None = None
     nodes: list[dict[str, Any]] = []
-    environment: str = "development"
+    environment: str | None = "development"
+    prompt_name: str | None = Field(None, max_length=255)
+    prompt_version: str | None = Field(None, max_length=64)
+    metadata: dict[str, Any] = {}
 
 
 class TraceResponse(BaseModel):
@@ -149,6 +152,9 @@ class TraceResponse(BaseModel):
     failure_kind: str | None
     failure_detail: str | None
     environment: str
+    prompt_name: str | None = None
+    prompt_version: str | None = None
+    sampled: bool | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -17,7 +17,6 @@ from typing import Any
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-
 # ── PII redaction patterns (checklist item 7) ─────────────────────────────
 _PII_PATTERNS: list[tuple[re.Pattern, str]] = [
     # Email addresses

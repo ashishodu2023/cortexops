@@ -21,10 +21,12 @@ class Project(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
-    eval_runs: Mapped[list["EvalRun"]] = relationship("EvalRun", back_populates="project_rel", lazy="select")
-    traces: Mapped[list["TraceRecord"]] = relationship("TraceRecord", back_populates="project_rel", lazy="select")
-    api_keys: Mapped[list["ApiKey"]] = relationship("ApiKey", back_populates="project_rel", lazy="select")
-    prompt_versions: Mapped[list["PromptVersion"]] = relationship("PromptVersion", back_populates="project_rel", lazy="select")
+    eval_runs: Mapped[list[EvalRun]] = relationship("EvalRun", back_populates="project_rel", lazy="select")
+    traces: Mapped[list[TraceRecord]] = relationship("TraceRecord", back_populates="project_rel", lazy="select")
+    api_keys: Mapped[list[ApiKey]] = relationship("ApiKey", back_populates="project_rel", lazy="select")
+    prompt_versions: Mapped[list[PromptVersion]] = relationship(
+        "PromptVersion", back_populates="project_rel", lazy="select"
+    )
 
 
 class ApiKey(Base):
@@ -41,7 +43,7 @@ class ApiKey(Base):
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    project_rel: Mapped["Project"] = relationship("Project", back_populates="api_keys")
+    project_rel: Mapped[Project] = relationship("Project", back_populates="api_keys")
 
 
 class EvalRun(Base):
@@ -66,8 +68,8 @@ class EvalRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    project_rel: Mapped["Project"] = relationship("Project", back_populates="eval_runs")
-    case_results: Mapped[list["CaseResultRecord"]] = relationship("CaseResultRecord", back_populates="run", lazy="select")
+    project_rel: Mapped[Project] = relationship("Project", back_populates="eval_runs")
+    case_results: Mapped[list[CaseResultRecord]] = relationship("CaseResultRecord", back_populates="run", lazy="select")
 
 
 class CaseResultRecord(Base):
@@ -84,7 +86,7 @@ class CaseResultRecord(Base):
     failure_kind: Mapped[str | None] = mapped_column(String(50), nullable=True)
     failure_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    run: Mapped["EvalRun"] = relationship("EvalRun", back_populates="case_results")
+    run: Mapped[EvalRun] = relationship("EvalRun", back_populates="case_results")
 
 
 class TraceRecord(Base):
@@ -101,7 +103,7 @@ class TraceRecord(Base):
     environment: Mapped[str] = mapped_column(String(50), default="development")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
 
-    project_rel: Mapped["Project"] = relationship("Project", back_populates="traces")
+    project_rel: Mapped[Project] = relationship("Project", back_populates="traces")
 
 
 class PromptVersion(Base):
@@ -119,8 +121,8 @@ class PromptVersion(Base):
     author: Mapped[str] = mapped_column(String(255), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
 
-    project_rel: Mapped["Project"] = relationship("Project", back_populates="prompt_versions")
-    parent: Mapped["PromptVersion | None"] = relationship("PromptVersion", remote_side=[id], lazy="select")
+    project_rel: Mapped[Project] = relationship("Project", back_populates="prompt_versions")
+    parent: Mapped[PromptVersion | None] = relationship("PromptVersion", remote_side=[id], lazy="select")
 
 
 class EvalDataset(Base):

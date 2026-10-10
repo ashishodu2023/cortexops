@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 import uuid
-
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -12,15 +12,50 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_key_info
 from ..db import get_db
-from ..models.records import TraceRecord, Project
+from ..models.records import Project, TraceRecord
 from ..models.schemas import TraceDetailResponse, TraceIngest, TraceResponse
-from ..security import redact_pii, idempotency_store
+from ..security import idempotency_store, redact_pii
 from ..tiers import TierInfo, check_trace_quota, require_project_access, require_scope
 
-import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/traces", tags=["traces"])
+
+_PROMPT_FILTER_BATCH = 100
+
+
+def _json_field_token(key: str, value: str) -> str:
+    # raw_trace is written with json.dumps defaults, so a top-level field serializes as `"key": "value"`
+    return f"{json.dumps(key)}: {json.dumps(value)}"
+
+
+def _load_raw(t: TraceRecord) -> dict:
+    try:
+        raw = json.loads(t.raw_trace) if t.raw_trace else {}
+    except ValueError:
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _to_response(t: TraceRecord, raw: dict | None = None) -> TraceResponse:
+    if raw is None:
+        raw = _load_raw(t)
+    meta = raw.get("metadata") or {}
+    sampled = meta.get("sampled") if isinstance(meta, dict) else None
+    return TraceResponse(
+        trace_id=t.id,
+        project=t.project,
+        case_id=t.case_id,
+        status=t.status,
+        total_latency_ms=t.total_latency_ms,
+        failure_kind=t.failure_kind,
+        failure_detail=t.failure_detail,
+        environment=t.environment,
+        prompt_name=raw.get("prompt_name"),
+        prompt_version=raw.get("prompt_version"),
+        sampled=sampled if isinstance(sampled, bool) else None,
+        created_at=t.created_at,
+    )
 
 
 @router.post("", response_model=TraceResponse, status_code=201, responses={
@@ -79,6 +114,9 @@ async def ingest_trace(
     safe_payload["nodes"]  = redact_pii(safe_payload.get("nodes", []))
     if safe_payload.get("failure_detail"):
         safe_payload["failure_detail"] = redact_pii(safe_payload["failure_detail"])
+    safe_payload["metadata"] = redact_pii(safe_payload.get("metadata", {}))
+    safe_payload["prompt_name"] = redact_pii(safe_payload.get("prompt_name"))
+    safe_payload["prompt_version"] = redact_pii(safe_payload.get("prompt_version"))
 
     trace = TraceRecord(
         id=str(uuid.uuid4()),
@@ -88,24 +126,14 @@ async def ingest_trace(
         total_latency_ms=body.total_latency_ms,
         failure_kind=body.failure_kind,
         failure_detail=safe_payload.get("failure_detail"),
-        environment=body.environment,
+        environment=body.environment or "development",
         raw_trace=json.dumps(safe_payload),
     )
     db.add(trace)
     await db.flush()
     await db.refresh(trace)
 
-    response = TraceResponse(
-        trace_id=trace.id,
-        project=trace.project,
-        case_id=trace.case_id,
-        status=trace.status,
-        total_latency_ms=trace.total_latency_ms,
-        failure_kind=trace.failure_kind,
-        failure_detail=trace.failure_detail,
-        environment=trace.environment,
-        created_at=trace.created_at,
-    )
+    response = _to_response(trace, safe_payload)
 
     if idempotency_key:
         idempotency_store.set(idempotency_key, "POST:/v1/traces", response)
@@ -132,6 +160,8 @@ async def list_traces(
     limit: int = Query(50, le=500),
     status: str | None = Query(None),
     environment: str | None = Query(None),
+    prompt_name: str | None = Query(None, max_length=255),
+    prompt_version: str | None = Query(None, max_length=64),
     from_: datetime | None = Query(None, alias="from"),
     to: datetime | None = Query(None, alias="to"),
     db: AsyncSession = Depends(get_db),
@@ -165,24 +195,36 @@ async def list_traces(
         q = q.where(TraceRecord.status == status)
     if environment:
         q = q.where(TraceRecord.environment == environment)
-    q = q.order_by(TraceRecord.created_at.desc()).limit(limit)
+    prompt_filters = {
+        key: value
+        for key, value in (("prompt_name", prompt_name), ("prompt_version", prompt_version))
+        if value
+    }
+    # The substring match is only a prefilter: the same token can appear inside nested
+    # input/output/metadata, so rows are re-checked against the parsed top-level fields.
+    for key, value in prompt_filters.items():
+        q = q.where(TraceRecord.raw_trace.contains(_json_field_token(key, value), autoescape=True))
+    q = q.order_by(TraceRecord.created_at.desc(), TraceRecord.id.desc())
 
-    result = await db.execute(q)
-    traces = result.scalars().all()
-    return [
-        TraceResponse(
-            trace_id=t.id,
-            project=t.project,
-            case_id=t.case_id,
-            status=t.status,
-            total_latency_ms=t.total_latency_ms,
-            failure_kind=t.failure_kind,
-            failure_detail=t.failure_detail,
-            environment=t.environment,
-            created_at=t.created_at,
-        )
-        for t in traces
-    ]
+    if not prompt_filters:
+        result = await db.execute(q.limit(limit))
+        return [_to_response(t) for t in result.scalars().all()]
+
+    matches: list[TraceResponse] = []
+    batch_size = max(limit, _PROMPT_FILTER_BATCH)
+    offset = 0
+    while len(matches) < limit:
+        rows = (await db.execute(q.offset(offset).limit(batch_size))).scalars().all()
+        for t in rows:
+            raw = _load_raw(t)
+            if all(raw.get(key) == value for key, value in prompt_filters.items()):
+                matches.append(_to_response(t, raw))
+                if len(matches) == limit:
+                    break
+        if len(rows) < batch_size:
+            break
+        offset += batch_size
+    return matches
 
 
 @router.get("/quota", tags=["traces"], responses={
@@ -237,15 +279,5 @@ async def get_trace(
 
     require_project_access(tier_info, trace.project)
 
-    return TraceDetailResponse(
-        trace_id=trace.id,
-        project=trace.project,
-        case_id=trace.case_id,
-        status=trace.status,
-        total_latency_ms=trace.total_latency_ms,
-        failure_kind=trace.failure_kind,
-        failure_detail=trace.failure_detail,
-        environment=trace.environment,
-        created_at=trace.created_at,
-        raw_trace=json.loads(trace.raw_trace),
-    )
+    raw = json.loads(trace.raw_trace)
+    return TraceDetailResponse(**_to_response(trace, raw).model_dump(), raw_trace=raw)

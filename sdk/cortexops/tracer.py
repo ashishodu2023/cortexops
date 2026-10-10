@@ -24,6 +24,26 @@ _ENV_KEY           = "CORTEXOPS_API_KEY"
 _ENV_URL           = "CORTEXOPS_API_URL"
 _ENV_PROJECT       = "CORTEXOPS_PROJECT"
 _ENV_ENV           = "CORTEXOPS_ENVIRONMENT"
+_ENV_SAMPLE_RATE   = "CORTEXOPS_SAMPLE_RATE"
+# Hosted API limits on TraceIngest.prompt_name / prompt_version; longer labels get the trace rejected
+_MAX_PROMPT_NAME    = 255
+_MAX_PROMPT_VERSION = 64
+
+
+def _resolve_sample_rate(explicit: float | None) -> float:
+    """Resolve sample rate — explicit arg > CORTEXOPS_SAMPLE_RATE > 1.0."""
+    if explicit is not None:
+        rate = explicit
+    elif env_rate := os.getenv(_ENV_SAMPLE_RATE):
+        try:
+            rate = float(env_rate)
+        except ValueError:
+            raise ValueError(f"{_ENV_SAMPLE_RATE} must be a number between 0.0 and 1.0, got {env_rate!r}") from None
+    else:
+        rate = 1.0
+    if not 0.0 <= rate <= 1.0:
+        raise ValueError(f"sample_rate must be between 0.0 and 1.0, got {rate}")
+    return rate
 
 
 def _resolve_api_key(explicit: str | None) -> str | None:
@@ -82,8 +102,9 @@ class CortexTracer:
         api_key: str | None = None,
         api_url: str = _DEFAULT_API_URL,
         environment: str | None = None,
-        sample_rate: float = 1.0,
+        sample_rate: float | None = None,
         local_store: bool = True,
+        sample_errors: bool = True,
     ) -> None:
         # Project: arg > env var
         self.project     = project or os.getenv(_ENV_PROJECT) or "default"
@@ -92,14 +113,14 @@ class CortexTracer:
         self.api_url     = _resolve_api_url(api_url)
         # Environment: arg > env var > "development"
         self.environment = environment or os.getenv(_ENV_ENV, "development")
-        # Validate and store sample rate (0.0 = trace nothing, 1.0 = trace everything)
-        if not 0.0 <= sample_rate <= 1.0:
-            raise ValueError(f"sample_rate must be between 0.0 and 1.0, got {sample_rate}")
-        self.sample_rate = sample_rate
-        self.sample_errors = True  # always trace failures regardless of sample_rate
+        # Sample rate: arg > CORTEXOPS_SAMPLE_RATE > 1.0 (0.0 = trace nothing, 1.0 = trace everything)
+        self.sample_rate = _resolve_sample_rate(sample_rate)
+        # Failed runs are captured even when not sampled, so regressions are never dropped
+        self.sample_errors = sample_errors
         self.local_store = local_store
         self._traces: list[Trace] = []
         self._current_trace: Trace | None = None
+        self._prompt: tuple[str, str] | None = None
 
         # Inform user where key came from — only in development
         if self.environment == "development" and self.api_key:
@@ -118,6 +139,60 @@ class CortexTracer:
     def is_hosted(self) -> bool:
         """True if traces will be shipped to the hosted API."""
         return bool(self.api_key)
+
+    # ── Prompt version tracking ─────────────────────────────────────────
+
+    def set_prompt(self, name: str, version: str | int) -> None:
+        """Tag every subsequent trace with a prompt name and version.
+
+        Usage:
+            tracer.set_prompt("refund-system", "v3")
+            graph.invoke(...)   # trace carries prompt_name / prompt_version
+
+        Pair with `CortexClient.commit_prompt()` to keep the prompt content
+        versioned in the hosted prompt registry.
+        """
+        name = str(name).strip()
+        version = str(version).strip()
+        if not name:
+            raise ValueError("prompt name must be a non-empty string")
+        if not version:
+            raise ValueError("prompt version must be non-empty")
+        if len(name) > _MAX_PROMPT_NAME:
+            raise ValueError(f"prompt name must be at most {_MAX_PROMPT_NAME} characters")
+        if len(version) > _MAX_PROMPT_VERSION:
+            raise ValueError(f"prompt version must be at most {_MAX_PROMPT_VERSION} characters")
+        self._prompt = (name, version)
+
+    def clear_prompt(self) -> None:
+        """Stop tagging traces with a prompt version."""
+        self._prompt = None
+
+    @property
+    def prompt(self) -> tuple[str, str] | None:
+        """The active (prompt_name, prompt_version), or None."""
+        return self._prompt
+
+    @contextmanager
+    def use_prompt(self, name: str, version: str | int):
+        """Temporarily tag traces with a prompt version, restoring the previous one on exit."""
+        previous = self._prompt
+        self.set_prompt(name, version)
+        try:
+            yield self
+        finally:
+            self._prompt = previous
+
+    def _new_trace(self, input: dict, *, sampled: bool) -> Trace:
+        trace = Trace(
+            project=self.project,
+            input=input,
+            environment=self.environment,
+            metadata={"sample_rate": self.sample_rate, "sampled": sampled},
+        )
+        if self._prompt:
+            trace.prompt_name, trace.prompt_version = self._prompt
+        return trace
 
     # ── Framework detection helpers ─────────────────────────────────────
 
@@ -312,7 +387,11 @@ class CortexTracer:
                     raise ImportError("pip install openai-agents") from e
                 import asyncio
                 return await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: Runner.run_sync(agent, prompt, **kwargs)
+                    None, lambda: tracer._run_traced(
+                        fn=lambda: Runner.run_sync(agent, prompt, **kwargs),
+                        input={"prompt": prompt},
+                        framework="openai_agents",
+                    )
                 )
 
             def __getattr__(self_, name: str) -> Any:
@@ -390,7 +469,11 @@ class CortexTracer:
             async def arun(self_, message: str, **kwargs) -> Any:
                 import asyncio
                 return await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: agent.run(message, **kwargs)
+                    None, lambda: tracer._run_traced(
+                        fn=lambda: agent.run(message, **kwargs),
+                        input={"message": message},
+                        framework="agno",
+                    )
                 )
 
             def __getattr__(self_, name: str) -> Any:
@@ -634,19 +717,23 @@ class CortexTracer:
         if not sampled and self.sample_errors:
             # Not sampled, but we still want to catch errors.
             # Run with lightweight error-only capture.
+            t0 = time.perf_counter()
             try:
                 return fn()
             except Exception as exc:
                 # An error occurred — capture it even though not sampled
-                trace = Trace(project=self.project, input=input)
+                trace = self._new_trace(input, sampled=False)
+                trace.total_latency_ms = (time.perf_counter() - t0) * 1000
                 trace.status = RunStatus.FAILED
                 trace.failure_kind = FailureKind.UNKNOWN
                 trace.failure_detail = str(exc)
-                trace.metadata = {"sampled": False, "captured_reason": "error"}
+                trace.metadata["captured_reason"] = "error"
                 self._traces.append(trace)
+                if self.api_key:
+                    self._flush_trace(trace)
                 raise
 
-        trace = Trace(project=self.project, input=input)
+        trace = self._new_trace(input, sampled=True)
         self._current_trace = trace
         t0 = time.perf_counter()
 

@@ -147,6 +147,16 @@ Add to `.github/workflows/eval.yml`:
 
 If the eval drops below threshold, the job exits non-zero and the PR is blocked.
 
+Or gate from pytest (`pip install "cortexops[pytest]"`):
+
+```python
+import cortexops
+
+@cortexops.eval_gate("golden_v1.yaml", fail_on="task_completion < 0.90")
+def test_payments_agent():
+    return build_agent()
+```
+
 ---
 
 ## Repo structure
@@ -231,12 +241,12 @@ Add custom metrics by subclassing `cortexops.Metric`.
 - [x] Production → CI: promote failed traces to golden dataset cases
 - [x] FailureKind analytics on dashboard Overview
 
-### v0.5.x — next
-- [ ] Prompt version tracking in SDK (`tracer.set_prompt(name, version)`)
+### v0.5.1 — shipped
+- [x] Prompt version tracking in SDK (`tracer.set_prompt(name, version)`)
 - [x] Slack webhook alerts on quality regression
-- [ ] Auto email on Pro key provision (remove manual step)
-- [ ] Trace sampling configuration (`sample_rate=0.1`)
-- [ ] pytest plugin for eval gates (`@cortexops.eval_gate(...)`)
+- [x] Auto email on Pro key provision (remove manual step)
+- [x] Trace sampling configuration (`sample_rate=0.1`, `CORTEXOPS_SAMPLE_RATE`)
+- [x] pytest plugin for eval gates (`@cortexops.eval_gate(...)`)
 
 ### v0.6.0
 - [ ] Google ADK native tracing

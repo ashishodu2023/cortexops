@@ -24,7 +24,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install ruff
-        run: pip install ruff
+        run: pip install ruff==0.17.0
 
       - name: Run ruff
         run: ruff check sdk/cortexops backend/app --line-length 121
@@ -47,6 +47,12 @@ jobs:
 
       - name: Run SDK tests
         run: cd sdk && pytest tests/ -v --tb=short
+
+      - name: Install backend deps
+        run: pip install -r backend/requirements.txt pytest
+
+      - name: Run backend tests
+        run: cd backend && pytest tests/ -v --tb=short
 
   # ════════════════════════════════════════════════════════════
   # JOB 3: PYTHON SAST — Bandit

@@ -202,9 +202,15 @@ function InsightCard({label,value,sub,color,bar,barColor,onClick,loading}){
   );
 }
 
+// API timestamps are UTC but serialized without an offset; without "Z" browsers parse them as local time.
+function parseApiDate(v){
+  if(typeof v==="string"&&/^\d{4}-\d{2}-\d{2}T[\d:.]+$/.test(v))return new Date(`${v}Z`);
+  return new Date(v);
+}
+
 function timeAgo(iso){
   if(!iso)return"—";
-  const s=Math.floor((Date.now()-new Date(iso).getTime())/1000);
+  const s=Math.floor((Date.now()-parseApiDate(iso).getTime())/1000);
   if(s<60)return`${s}s ago`;
   if(s<3600)return`${Math.floor(s/60)}m ago`;
   if(s<86400)return`${Math.floor(s/3600)}h ago`;
@@ -213,7 +219,7 @@ function timeAgo(iso){
 
 function formatWhen(iso){
   if(!iso)return"—";
-  const d=new Date(iso);
+  const d=parseApiDate(iso);
   return d.toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
 }
 
@@ -334,9 +340,15 @@ function TraceRow({trace,onClick,showCase=true}){
       {showCase&&<span style={{flex:1,fontSize:13,color:M.gray900,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{trace.case_id||"live trace"}</span>}
       <Badge color={trace.status==="failed"?M.red:M.green} bg={trace.status==="failed"?M.redLight:M.greenLight}>{trace.status==="failed"?"Failed":"OK"}</Badge>
       <LatencyChip ms={trace.total_latency_ms||0}/>
+      {trace.prompt_name&&<span title={promptLabel(trace)}><Badge color={M.purple} bg={M.purpleLight}>{promptLabel(trace).slice(0,24)}</Badge></span>}
       {trace.failure_kind&&<Badge color={M.red} bg={M.redLight}>{trace.failure_kind.replace("FailureKind.","").slice(0,12)}</Badge>}
     </div>
   );
+}
+
+function promptLabel(trace){
+  if(!trace?.prompt_name)return"";
+  return trace.prompt_version?`${trace.prompt_name}@${trace.prompt_version}`:trace.prompt_name;
 }
 
 function LatencyChip({ms}){
@@ -461,7 +473,9 @@ function WaterfallPanel({trace,onClose,loading,datasets,token,onPromoted}){
           {[["Latency",`${Math.round(trace.total_latency_ms||0)}ms`,M.amber,M.amberLight],
             ["Environment",trace.environment||"development",M.cyan,M.cyanLight],
             ["Case",trace.case_id||"live trace",M.gray700,M.gray100],
-            ["Failure",trace.failure_kind?.replace("FailureKind.","")||"none",trace.failure_kind?M.red:M.gray600,trace.failure_kind?M.redLight:M.gray100]
+            ["Failure",trace.failure_kind?.replace("FailureKind.","")||"none",trace.failure_kind?M.red:M.gray600,trace.failure_kind?M.redLight:M.gray100],
+            ["Prompt",promptLabel({prompt_name:trace.prompt_name??raw.prompt_name,prompt_version:trace.prompt_version??raw.prompt_version})||"untracked",M.purple,M.purpleLight],
+            ["Sampling",raw.metadata?.sample_rate!=null?`${Math.round(raw.metadata.sample_rate*100)}%${raw.metadata.sampled===false?" · error capture":""}`:"100%",M.gray700,M.gray100]
           ].map(([l,v,c,bg])=>(
             <div key={l} style={{background:bg,borderRadius:8,padding:"10px 12px",border:`1px solid ${M.gray200}`}}>
               <div style={{fontSize:10,color:M.gray600,textTransform:"uppercase",letterSpacing:".06em",marginBottom:3,fontWeight:600}}>{l}</div>
@@ -1514,8 +1528,8 @@ export default function App(){
   const evalPassing=latest&&latest.task_completion_rate>=.9;
   const healthPct=successRate!=="—"?parseFloat(successRate):null;
   const completed=traces.length-failed;
-  const minLat=traces.length?Math.min(...traces.map(t=>t.total_latency_ms||0)):0;
-  const maxLat=traces.length?Math.max(...traces.map(t=>t.total_latency_ms||0)):0;
+  const minLat=traces.length?Math.round(Math.min(...traces.map(t=>t.total_latency_ms||0))):0;
+  const maxLat=traces.length?Math.round(Math.max(...traces.map(t=>t.total_latency_ms||0))):0;
   const latBuckets=traces.slice(0,24).reverse().map(t=>t.total_latency_ms||0);
   const overallStatus=healthPct==null?"unknown":healthPct>=95&&evalPassing!==false&&failed===0?"healthy":healthPct>=80?"degraded":"critical";
   const statusColor={healthy:M.green,degraded:M.amber,critical:M.red,unknown:M.gray500}[overallStatus];
@@ -1524,7 +1538,7 @@ export default function App(){
     if(tab==="traces"&&filter!=="all"&&t.status!==filter)return false;
     if(traceSearch.trim()){
       const q=traceSearch.toLowerCase();
-      const match=(t.trace_id||"").toLowerCase().includes(q)||(t.case_id||"").toLowerCase().includes(q)||(t.failure_kind||"").toLowerCase().includes(q);
+      const match=(t.trace_id||"").toLowerCase().includes(q)||(t.case_id||"").toLowerCase().includes(q)||(t.failure_kind||"").toLowerCase().includes(q)||promptLabel(t).toLowerCase().includes(q);
       if(!match)return false;
     }
     return true;
@@ -1814,7 +1828,7 @@ export default function App(){
                   title="Trace explorer"
                   subtitle={`${filteredTraces.length} shown · ${traces.length} loaded${traceDateActive?` · ${traceDateLabel(traceDatePreset,traceDateFrom,traceDateTo)}`:""}${filter!=="all"?` · ${filter} only`:""}`}
                   action={
-                    <input value={traceSearch} onChange={e=>setTraceSearch(e.target.value)} placeholder="Search ID, case, failure…"
+                    <input value={traceSearch} onChange={e=>setTraceSearch(e.target.value)} placeholder="Search ID, case, failure, prompt…"
                       style={{background:M.gray50,border:`1px solid ${M.gray200}`,borderRadius:6,padding:"6px 10px",fontSize:12,color:M.gray900,minWidth:200}}/>
                   } noPad>
                   <div style={{padding:"10px 18px",borderBottom:`1px solid ${M.gray200}`,display:"grid",gap:10}}>
@@ -2030,7 +2044,7 @@ export default function App(){
                       </div>
                       {ds.description&&<div style={{fontSize:13,color:M.gray600,lineHeight:1.45,marginBottom:4}}>{ds.description}</div>}
                       <div style={{fontSize:11,color:M.gray500,fontFamily:M.mono}}>
-                        {ds.id?.slice(0,8)} · {ds.created_at?new Date(ds.created_at).toLocaleString():"—"}
+                        {ds.id?.slice(0,8)} · {ds.created_at?parseApiDate(ds.created_at).toLocaleString():"—"}
                       </div>
                     </div>
                     {expandedDataset===ds.id&&(
@@ -2135,7 +2149,7 @@ export default function App(){
                       <div style={{flex:1}}>
                         <div style={{fontSize:14,fontWeight:500}}>{k.name||"default"}</div>
                         <div style={{fontFamily:M.mono,fontSize:11,color:M.gray500}}>{k.id.slice(0,8)}… · {k.tier} · {k.scope}</div>
-                        <div style={{fontSize:11,color:M.gray500,marginTop:4}}>Created {k.created_at?new Date(k.created_at).toLocaleDateString():"—"}{k.last_used_at?` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`:""}</div>
+                        <div style={{fontSize:11,color:M.gray500,marginTop:4}}>Created {k.created_at?parseApiDate(k.created_at).toLocaleDateString():"—"}{k.last_used_at?` · Last used ${parseApiDate(k.last_used_at).toLocaleDateString()}`:""}</div>
                       </div>
                       <span style={{fontSize:11,color:k.is_active?M.green:M.red,fontWeight:600}}>{k.is_active?"active":"revoked"}</span>
                       {sessionKeyId===k.id&&<Badge color={M.blue} bg={M.blueLight}>current</Badge>}

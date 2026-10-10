@@ -81,7 +81,10 @@ def detect_regressions(
             "is_regression": False,
             "delta": 0.0,
             "confidence": "insufficient_data",
-            "details": f"Need {min_samples}+ samples. Got baseline={len(baseline_scores)}, current={len(current_scores)}.",
+            "details": (
+                f"Need {min_samples}+ samples. "
+                f"Got baseline={len(baseline_scores)}, current={len(current_scores)}."
+            ),
         }
 
     baseline_mean = statistics.mean(baseline_scores)

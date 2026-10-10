@@ -10,6 +10,39 @@ Evaluate · Observe · Operate — for LangGraph, CrewAI, and AutoGen.
 
 ---
 
+## What's New in v0.5.1
+
+### Prompt version tracking
+```python
+tracer = CortexTracer(project="payments-agent")
+tracer.set_prompt("refund-system", "v3")   # every trace is tagged refund-system@v3
+graph = tracer.wrap(your_langgraph_app)
+
+with tracer.use_prompt("refund-system", "v4-candidate"):
+    graph.invoke({"messages": [...]})       # tagged v4-candidate, then back to v3
+```
+Filter hosted traces with `GET /v1/traces?project=...&prompt_name=refund-system&prompt_version=v3`.
+
+### pytest eval gates
+```python
+# test_agent_quality.py — pip install "cortexops[pytest]"
+import cortexops
+
+@cortexops.eval_gate("golden_v1.yaml", fail_on="task_completion < 0.90")
+def test_payments_agent():
+    return build_agent()   # return the agent; the gate runs every case
+```
+The plugin loads automatically, prints an eval summary at the end of the pytest run,
+and marks gates with `cortexops_eval` so `pytest -m "not cortexops_eval"` skips them.
+
+### Sampling configuration
+```bash
+export CORTEXOPS_SAMPLE_RATE=0.1   # trace 10% of successful runs; failures are always captured
+```
+Or pass `CortexTracer(sample_rate=0.1, sample_errors=True)`.
+
+---
+
 ## What's New in v0.4.0
 
 ### LLM-as-judge evaluation
@@ -126,6 +159,8 @@ Add to `.github/workflows/eval.yml`:
 ```
 
 If the eval drops below threshold, the job exits non-zero and the PR is blocked.
+
+Prefer pytest? Use `@cortexops.eval_gate(...)` and run the gate with the rest of your test suite.
 
 ---
 

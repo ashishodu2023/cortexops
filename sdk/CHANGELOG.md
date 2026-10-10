@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.5.1] — 2026-10-09
+
+### Added
+- **Prompt version tracking** — `tracer.set_prompt(name, version)`, `tracer.clear_prompt()`, and the `tracer.use_prompt(name, version)` context manager tag every trace with `prompt_name` / `prompt_version`. The hosted API stores them, `GET /v1/traces` filters by `prompt_name` / `prompt_version`, and the dashboard shows the prompt on each trace.
+- **pytest plugin for eval gates** — `@cortexops.eval_gate("golden_v1.yaml", fail_on="task_completion < 0.90")` turns a test that returns an agent into a golden-dataset gate. Auto-registered via the `pytest11` entry point; adds the `cortexops_eval` marker and an eval summary to the pytest report. Install with `pip install "cortexops[pytest]"`.
+- **Sampling configuration** — `CORTEXOPS_SAMPLE_RATE` environment variable and a `sample_errors` constructor flag. Each trace records its `sample_rate` and whether it was sampled.
+- **Automatic Pro key email** (hosted API) — Stripe and PayPal checkouts email the new key automatically (Resend, falling back to SendGrid), with every outcome in the auth audit log. Admins can rotate and re-send a key with `POST /v1/admin/keys/{id}/resend-email`.
+
+### Fixed
+- Unsampled failed runs (`sample_rate < 1.0`) raised `ValueError: "Trace" object has no field "metadata"` instead of the agent's own exception, and were never sent to the hosted API.
+- Traces now include the tracer's `environment`; previously every hosted trace was recorded as `development`.
+- `fail_on` expressions with trailing text (e.g. `"task_completion < 0.9 or else"`) are now rejected instead of being silently truncated.
+- Hosted API: Stripe webhook retries could create duplicate Pro keys.
+
+---
+
 ## [0.5.0] — 2026-07-05
 
 ### Added
