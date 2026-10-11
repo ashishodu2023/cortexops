@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import random as _random
 import time
@@ -123,6 +124,7 @@ class CortexTracer:
         self._traces: list[Trace] = []
         self._current_trace: Trace | None = None
         self._prompt: tuple[str, str] | None = None
+        self._auth_warned = False
 
         # Inform user where key came from — only in development
         if self.environment == "development" and self.api_key:
@@ -133,7 +135,6 @@ class CortexTracer:
                 elif _CREDENTIALS_FILE.exists():
                     source = "~/.cortexops/credentials"
             if source != "argument":
-                import logging
                 logging.getLogger(__name__).debug(  # nosemgrep: python-logger-credential-disclosure
                     "CortexTracer: api_key loaded from %s", source  # logs source path, not the key
                 )
@@ -803,12 +804,18 @@ class CortexTracer:
     def _flush_trace(self, trace: Trace) -> None:
         try:
             import httpx
-            httpx.post(
+            response = httpx.post(
                 f"{self.api_url}/v1/traces",
                 json=trace.model_dump(mode="json"),
                 headers={"X-API-Key": self.api_key},
                 timeout=2.0,
             )
+            if response.status_code == 401 and not self._auth_warned:
+                self._auth_warned = True
+                logging.getLogger(__name__).warning(
+                    "Invalid CortexOps API key. Get a free key at getcortexops.com "
+                    "(then set CORTEXOPS_API_KEY or run `cortexops login`). Traces are not being uploaded."
+                )
         except Exception:
             pass  # non-blocking — tracing never breaks the agent
 
