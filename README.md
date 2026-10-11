@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/cortexops.svg)](https://pypi.org/project/cortexops/)
 [![Downloads](https://img.shields.io/pypi/dm/cortexops.svg)](https://pypi.org/project/cortexops/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen.svg)](https://github.com/ashishodu2023/cortexops/actions)
+[![Tests](https://img.shields.io/badge/tests-140%20passing-brightgreen.svg)](https://github.com/ashishodu2023/cortexops/actions)
 [![Frameworks](https://img.shields.io/badge/frameworks-12-blue.svg)](https://getcortexops.com)
 
 **Reliability infrastructure for AI agents.**  
@@ -135,17 +135,34 @@ cases:
 
 ## CI eval gate
 
-Add to `.github/workflows/eval.yml`:
+Add the [CortexOps Eval Gate GitHub Action](https://github.com/ashishodu2023/cortexops-eval-action) to a workflow:
 
 ```yaml
-- name: CortexOps eval gate
-  run: |
-    python examples/langgraph_payments/run_eval.py \
-      --dataset golden_v1.yaml \
-      --fail-on "task_completion < 0.90"
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # for the sticky PR comment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ashishodu2023/cortexops-eval-action@v1
+        with:
+          dataset: golden_v1.yaml
+          agent: agent:build_agent()
+          fail-on: |
+            task_completion < 0.90
+            tool_accuracy < 0.95
 ```
 
-If the eval drops below threshold, the job exits non-zero and the PR is blocked.
+It writes a report (metrics, thresholds, failed cases) to the job summary, keeps one comment on the PR up to date, and fails the job if any condition is true. Without the action, the same gate is one CLI call:
+
+```bash
+cortexops eval run --dataset golden_v1.yaml --agent "agent:build_agent()" \
+  --fail-on "task_completion < 0.90" --output-json report.json --summary-md summary.md
+```
+
+GitLab users can include [`ci-templates/gitlab/cortexops-eval.gitlab-ci.yml`](ci-templates/gitlab/cortexops-eval.gitlab-ci.yml); a `cortexops-eval` [pre-commit](.pre-commit-hooks.yaml) hook is also available.
 
 Or gate from pytest (`pip install "cortexops[pytest]"`):
 
@@ -241,25 +258,39 @@ Add custom metrics by subclassing `cortexops.Metric`.
 - [x] Production → CI: promote failed traces to golden dataset cases
 - [x] FailureKind analytics on dashboard Overview
 
-### v0.5.1 — shipped
+### v0.5.x — shipped in 0.5.1
 - [x] Prompt version tracking in SDK (`tracer.set_prompt(name, version)`)
 - [x] Slack webhook alerts on quality regression
 - [x] Auto email on Pro key provision (remove manual step)
 - [x] Trace sampling configuration (`sample_rate=0.1`, `CORTEXOPS_SAMPLE_RATE`)
 - [x] pytest plugin for eval gates (`@cortexops.eval_gate(...)`)
 
-### v0.6.0
-- [ ] Google ADK native tracing
-- [ ] Azure OpenAI tracing example
-- [ ] OpenTelemetry Jaeger export example
-- [ ] Cost tracking per eval run (judge API cost)
-- [ ] GitHub Actions job summary output
+### v0.6.0 — distribution and CI-first
+- [x] GitHub Action for CI eval gates: job summary, sticky PR comment (shipped in 0.6.0, published on the [GitHub Marketplace](https://github.com/marketplace/actions/cortexops-eval-gate)) ([#29](https://github.com/ashishodu2023/cortexops/issues/29), covers [#19](https://github.com/ashishodu2023/cortexops/issues/19))
+- [ ] GitLab CI template and pre-commit hook ([#31](https://github.com/ashishodu2023/cortexops/issues/31))
+- [ ] Reposition as "pytest for AI agents: catch regressions before they ship" ([#30](https://github.com/ashishodu2023/cortexops/issues/30))
+- [ ] Cost tracking per eval run (judge API cost) ([#20](https://github.com/ashishodu2023/cortexops/issues/20))
+- [ ] Google ADK native tracing ([#39](https://github.com/ashishodu2023/cortexops/issues/39), example [#1](https://github.com/ashishodu2023/cortexops/issues/1))
+- [ ] Azure OpenAI tracing example ([#2](https://github.com/ashishodu2023/cortexops/issues/2))
+- [ ] Integration pages upstream: LangGraph, CrewAI, PydanticAI, OpenAI Agents SDK, Google ADK ([#36](https://github.com/ashishodu2023/cortexops/issues/36))
+- [ ] Open golden datasets for common agent archetypes + Agent Reliability Report ([#37](https://github.com/ashishodu2023/cortexops/issues/37))
+- [ ] Activation metric: time to first hosted trace / eval per API key ([#38](https://github.com/ashishodu2023/cortexops/issues/38))
+- [x] Working one-command Docker Compose stack, shipped in 0.6.0 ([#4](https://github.com/ashishodu2023/cortexops/issues/4))
+- [ ] Foundations: Alembic migrations + unique constraints ([#47](https://github.com/ashishodu2023/cortexops/issues/47)), transactional outbox for Pro key emails ([#48](https://github.com/ashishodu2023/cortexops/issues/48)), per-task `use_prompt` and PydanticAI async tracing ([#49](https://github.com/ashishodu2023/cortexops/issues/49)), deploy version check ([#46](https://github.com/ashishodu2023/cortexops/issues/46)), CI hygiene ([#50](https://github.com/ashishodu2023/cortexops/issues/50))
 
-### v1.0.0
-- [ ] Multi-tenant dashboard
-- [ ] SOC 2 compliance mode (audit logs, data residency)
-- [ ] Enterprise SSO (SAML/OIDC)
-- [ ] LangGraph Studio integration
+### v0.7.0 — ecosystem
+- [ ] OpenTelemetry GenAI semantic conventions: OTLP ingest + export ([#32](https://github.com/ashishodu2023/cortexops/issues/32), Jaeger [#5](https://github.com/ashishodu2023/cortexops/issues/5), Tempo [#6](https://github.com/ashishodu2023/cortexops/issues/6))
+- [ ] TypeScript SDK `@cortexops/sdk`: tracer + eval gate CLI ([#33](https://github.com/ashishodu2023/cortexops/issues/33))
+- [ ] MCP tool-call tracing in the SDK ([#34](https://github.com/ashishodu2023/cortexops/issues/34))
+- [ ] CortexOps MCP server for Cursor / Claude Desktop ([#35](https://github.com/ashishodu2023/cortexops/issues/35))
+- [ ] Safety checks: prompt-injection and tool-misuse detection ([#41](https://github.com/ashishodu2023/cortexops/issues/41))
+
+### v1.0.0 — enterprise
+- [x] Self-hosting: Docker Compose quickstart + Helm chart, shipped in 0.6.0 ([#40](https://github.com/ashishodu2023/cortexops/issues/40))
+- [ ] Multi-tenant dashboard ([#42](https://github.com/ashishodu2023/cortexops/issues/42))
+- [ ] SOC 2 compliance mode (audit logs, data residency) ([#43](https://github.com/ashishodu2023/cortexops/issues/43))
+- [ ] Enterprise SSO (SAML/OIDC) ([#44](https://github.com/ashishodu2023/cortexops/issues/44))
+- [ ] LangGraph Studio integration ([#45](https://github.com/ashishodu2023/cortexops/issues/45))
 
 Want to work on any of these? See [open issues](https://github.com/ashishodu2023/cortexops/issues) or open a [discussion](https://github.com/ashishodu2023/cortexops/discussions).
 

@@ -63,8 +63,26 @@ class CortexClient:
     def get_trace(self, trace_id: str) -> dict:
         return self._get(f"/v1/traces/{trace_id}")
 
-    def list_traces(self, project: str, limit: int = 50) -> list[dict]:
-        return self._get("/v1/traces", {"project": project, "limit": limit})
+    def list_traces(
+        self,
+        project: str,
+        limit: int = 50,
+        *,
+        status: str | None = None,
+        environment: str | None = None,
+        prompt_name: str | None = None,
+        prompt_version: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+    ) -> list[dict]:
+        """List traces, newest first. `since` / `until` are ISO 8601 timestamps (sent as from / to)."""
+        params: dict = {"project": project, "limit": limit}
+        optional = {
+            "status": status, "environment": environment, "prompt_name": prompt_name,
+            "prompt_version": prompt_version, "from": since, "to": until,
+        }
+        params.update({k: v for k, v in optional.items() if v is not None})
+        return self._get("/v1/traces", params)
 
     def push_eval(self, summary, *, dataset: dict | None = None, prompt: dict | None = None) -> dict:
         """Push a completed EvalSuite summary to POST /v1/evals/ingest."""
@@ -148,3 +166,18 @@ class CortexClient:
 
     def list_prompt_catalog(self, project: str) -> list[dict]:
         return self._get("/v1/prompts/catalog", {"project": project})
+
+    def get_quota(self) -> dict:
+        """Usage, limits, and the project bound to the current API key."""
+        return self._get("/v1/traces/quota")
+
+    def list_prompt_versions(self, project: str, prompt_name: str, limit: int = 20) -> list[dict]:
+        return self._get("/v1/prompts", {"project": project, "prompt_name": prompt_name, "limit": limit})
+
+    def diff_prompts(self, project: str, prompt_name: str, version_a: int, version_b: int) -> dict:
+        return self._get("/v1/prompts/diff", {
+            "project": project,
+            "prompt_name": prompt_name,
+            "version_a": version_a,
+            "version_b": version_b,
+        })

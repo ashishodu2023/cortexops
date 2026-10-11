@@ -1,0 +1,63 @@
+# CortexOps eval gate for GitLab CI.
+#
+# Include this file and extend the hidden job:
+#
+#   include:
+#     - remote: https://raw.githubusercontent.com/ashishodu2023/cortexops/main/ci-templates/gitlab/cortexops-eval.gitlab-ci.yml
+#
+#   cortexops-eval:
+#     extends: .cortexops-eval
+#     variables:
+#       CORTEXOPS_DATASET: evals/golden_v1.yaml
+#       CORTEXOPS_AGENT: "my_app.agent:build_agent()"
+#       CORTEXOPS_FAIL_ON: |
+#         task_completion < 0.90
+#         tool_accuracy < 0.95
+#
+# Requires cortexops 0.6.0 or newer (`eval run --junit-xml`); the default CORTEXOPS_PIP_SPEC
+# installs the latest release from PyPI. Pin it with e.g. CORTEXOPS_PIP_SPEC: "cortexops==0.6.0".
+# Pin the include to a tag or commit instead of main. The job fails when any
+# CORTEXOPS_FAIL_ON condition is true; failed cases and thresholds show up in the
+# merge request test report (JUnit), and report.json / summary.md are kept as artifacts.
+# Set CORTEXOPS_API_KEY (masked CI/CD variable) to also push results to the dashboard,
+# and OPENAI_API_KEY with CORTEXOPS_JUDGE: "true" for LLM-as-judge scoring.
+
+.cortexops-eval:
+  image: python:3.11-slim
+  stage: test
+  variables:
+    CORTEXOPS_DATASET: ""            # golden dataset YAML, relative to CORTEXOPS_WORKDIR (required)
+    CORTEXOPS_AGENT: ""              # module:attr or file.py:attr; trailing () calls a factory
+    CORTEXOPS_FAIL_ON: ""            # one condition per line; default 'pass_rate < 1.0'
+    CORTEXOPS_WORKDIR: "."           # directory the eval runs in
+    CORTEXOPS_PIP_SPEC: "cortexops"  # e.g. "cortexops==0.6.0" or a git+https URL
+    CORTEXOPS_INSTALL: ""            # extra pip args for your agent, e.g. "-r requirements.txt"
+    CORTEXOPS_JUDGE: "false"
+    CORTEXOPS_EXTRA_ARGS: ""         # extra args for `cortexops eval run`
+    PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  script:
+    - |
+      set -eu
+      out="$CI_PROJECT_DIR/cortexops-eval"
+      pip install -q "$CORTEXOPS_PIP_SPEC"
+      mkdir -p "$out"
+      cd "$CORTEXOPS_WORKDIR"
+      if [ -n "$CORTEXOPS_INSTALL" ]; then pip install -q $CORTEXOPS_INSTALL; fi
+      if [ -z "$CORTEXOPS_DATASET" ]; then echo "CORTEXOPS_DATASET is required" >&2; exit 2; fi
+      set -- eval run --dataset "$CORTEXOPS_DATASET" --quiet \
+        --output-json "$out/report.json" \
+        --summary-md "$out/summary.md" \
+        --junit-xml "$out/junit.xml"
+      if [ -n "$CORTEXOPS_AGENT" ]; then set -- "$@" --agent "$CORTEXOPS_AGENT"; fi
+      if [ -n "$CORTEXOPS_FAIL_ON" ]; then set -- "$@" --fail-on "$CORTEXOPS_FAIL_ON"; fi
+      if [ "$CORTEXOPS_JUDGE" = "true" ]; then set -- "$@" --judge; fi
+      if [ -n "${CORTEXOPS_API_KEY:-}" ]; then set -- "$@" --push; fi
+      cortexops "$@" $CORTEXOPS_EXTRA_ARGS
+  artifacts:
+    when: always
+    expire_in: 30 days
+    expose_as: CortexOps eval report
+    paths:
+      - cortexops-eval/
+    reports:
+      junit: cortexops-eval/junit.xml

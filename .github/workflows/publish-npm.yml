@@ -1,0 +1,80 @@
+name: Publish TypeScript SDK to npm
+
+# Releases @cortexops/sdk from sdk-js/. Triggered by pushing a tag sdk-js-v<version>
+# (it must match sdk-js/package.json) or manually; manual runs default to a dry run.
+# Requires the NPM_TOKEN repository secret: an npm automation or granular access token
+# with publish rights on the @cortexops scope. Provenance is generated via OIDC.
+
+on:
+  push:
+    tags:
+      - "sdk-js-v*"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Run npm publish --dry-run (no upload)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish @cortexops/sdk
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdk-js
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+          cache-dependency-path: sdk-js/package-lock.json
+
+      - name: Check the tag matches package.json
+        if: github.event_name == 'push'
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "sdk-js-v${version}" ]; then
+            echo "::error::Tag $TAG does not match sdk-js/package.json version ${version}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint, test and build
+        run: |
+          npm run lint
+          npm run build
+          npm test
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            npm publish --provenance --access public --dry-run
+          else
+            npm publish --provenance --access public
+          fi

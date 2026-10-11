@@ -1,0 +1,78 @@
+{{- if .Values.ingress.enabled }}
+{{- $fullname := include "cortexops.fullname" . }}
+{{- $apiHost := .Values.ingress.api.host }}
+{{- $dashboardHost := .Values.ingress.dashboard.host }}
+{{- $apiBackend := dict "name" (printf "%s-api" $fullname) "port" .Values.api.service.port }}
+{{- $dashboardBackend := dict "name" (printf "%s-dashboard" $fullname) "port" .Values.dashboard.service.port }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "cortexops.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- range . }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      {{- with .secretName }}
+      secretName: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- if and .Values.dashboard.enabled (eq $apiHost $dashboardHost) }}
+    - host: {{ $apiHost | quote }}
+      http:
+        paths:
+          {{- range list "/v1" "/health" }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $apiBackend.name }}
+                port:
+                  number: {{ $apiBackend.port }}
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $dashboardBackend.name }}
+                port:
+                  number: {{ $dashboardBackend.port }}
+    {{- else }}
+    - host: {{ $apiHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $apiBackend.name }}
+                port:
+                  number: {{ $apiBackend.port }}
+    {{- if .Values.dashboard.enabled }}
+    - host: {{ $dashboardHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $dashboardBackend.name }}
+                port:
+                  number: {{ $dashboardBackend.port }}
+    {{- end }}
+    {{- end }}
+{{- end }}

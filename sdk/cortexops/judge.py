@@ -10,6 +10,8 @@ import os
 import textwrap
 from dataclasses import dataclass, field
 
+from .models import FailureKind
+
 
 @dataclass
 class JudgeRubric:
@@ -360,7 +362,7 @@ class LLMJudgeMetric:
                     rubric="task_completion",
                 )
                 score = result.score * 100.0
-                failed_key = "llm_judge" if not result.passed else None
+                failed_key = FailureKind.UNKNOWN if not result.passed else None
                 return score, failed_key, result.reasoning
             except Exception:
                 pass  # fall through to heuristic
@@ -386,7 +388,7 @@ class LLMJudgeMetric:
         overlap = matched / len(criteria_kw)
         score   = min(100.0, overlap * 150.0)  # generous scaling
         detail  = f"Heuristic: {matched}/{len(criteria_kw)} criteria keywords matched (stem)"
-        failed_key = "llm_judge_heuristic" if score < 50.0 else None
+        failed_key = FailureKind.UNKNOWN if score < 50.0 else None
         return score, failed_key, detail
 
 

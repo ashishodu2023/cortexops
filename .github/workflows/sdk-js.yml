@@ -1,0 +1,107 @@
+name: TypeScript SDK
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "sdk-js/**"
+      - "sdk/cortexops/**"
+      - "backend/app/models/schemas.py"
+      - "examples/langgraph_payments/**"
+      - ".github/workflows/sdk-js.yml"
+  push:
+    branches: [main]
+    paths:
+      - "sdk-js/**"
+      - "sdk/cortexops/**"
+      - "backend/app/models/schemas.py"
+      - "examples/langgraph_payments/**"
+      - ".github/workflows/sdk-js.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-js-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: sdk-js
+
+jobs:
+  test:
+    name: Lint, test, build (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["18", "20", "22"]
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: sdk-js/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint and typecheck
+        run: npm run lint
+
+      # Build before testing so the CLI test also runs the bundled dist/cli.js.
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Eval gate with the built CLI (payments agent)
+        run: >-
+          node dist/cli.js eval run
+          --dataset ../examples/langgraph_payments/golden_v1.yaml
+          --agent ./examples/payments-agent.mjs
+          --fail-on "task_completion < 0.90"
+          --fail-on "tool_accuracy < 0.95"
+          --title "TypeScript SDK eval gate (Node ${{ matrix.node-version }})"
+          --quiet
+
+      - name: Check package contents
+        run: npm pack --dry-run
+
+  parity-fixtures:
+    name: Python parity fixtures up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+
+      - name: Install the Python SDK
+        working-directory: sdk
+        run: pip install -e .
+
+      - name: Regenerate fixtures from the Python SDK
+        run: python scripts/gen_parity_fixtures.py
+
+      - name: Fail if the TypeScript parity fixtures are stale
+        run: |
+          if ! git diff --exit-code -- test/fixtures/python-parity.json; then
+            echo "::error file=sdk-js/test/fixtures/python-parity.json::Python SDK behaviour changed. Run 'python scripts/gen_parity_fixtures.py' in sdk-js/, port the change to the TypeScript SDK, and commit the updated fixture."
+            exit 1
+          fi

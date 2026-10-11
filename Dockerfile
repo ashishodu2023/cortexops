@@ -11,10 +11,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
+# pip is build-time only. Its vendored copies of urllib3, msgpack and
+# setuptools/pkg_resources (declared in pip/_vendor/bom.cdx.json) lag upstream
+# security fixes and are flagged by Trivy, so drop it from the runtime image.
 COPY sdk/ /sdk/
-RUN pip install --no-deps /sdk/
+RUN pip install --no-cache-dir --no-deps /sdk/ \
+    && pip uninstall -y pip
 
 COPY backend/ ./
 COPY start.py ./start.py

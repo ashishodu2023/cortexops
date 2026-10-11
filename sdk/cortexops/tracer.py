@@ -105,6 +105,7 @@ class CortexTracer:
         sample_rate: float | None = None,
         local_store: bool = True,
         sample_errors: bool = True,
+        exporters: list[Any] | None = None,
     ) -> None:
         # Project: arg > env var
         self.project     = project or os.getenv(_ENV_PROJECT) or "default"
@@ -118,6 +119,8 @@ class CortexTracer:
         # Failed runs are captured even when not sampled, so regressions are never dropped
         self.sample_errors = sample_errors
         self.local_store = local_store
+        # Objects with .export(trace), e.g. cortexops.otel.OTelExporter; called for every recorded trace
+        self.exporters: list[Any] = list(exporters or [])
         self._traces: list[Trace] = []
         self._current_trace: Trace | None = None
         self._prompt: tuple[str, str] | None = None
@@ -731,6 +734,7 @@ class CortexTracer:
                 self._traces.append(trace)
                 if self.api_key:
                     self._flush_trace(trace)
+                self._export(trace)
                 raise
 
         trace = self._new_trace(input, sampled=True)
@@ -752,6 +756,7 @@ class CortexTracer:
             self._traces.append(trace)
             if self.api_key:
                 self._flush_trace(trace)
+            self._export(trace)
 
         return result
 
@@ -808,3 +813,11 @@ class CortexTracer:
                 logging.getLogger(__name__).warning("Invalid CortexOps API key. Get a free key at getcortexops.com")
         except Exception:
             pass  # non-blocking — tracing never breaks the agent
+
+    def _export(self, trace: Trace) -> None:
+        for exporter in self.exporters:
+            try:
+                exporter.export(trace)
+            except Exception:
+                import logging
+                logging.getLogger(__name__).debug("CortexTracer: exporter %r failed", exporter, exc_info=True)

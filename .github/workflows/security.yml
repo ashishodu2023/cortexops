@@ -108,16 +108,16 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit
 
+      # `pip-audit -r` resolves the requirements into its own throwaway venv, so
+      # only the shipped dependency tree is audited -- not the runner's global
+      # tooling (setuptools, pip-audit's own deps), which never ships.
       - name: Audit backend dependencies
-        run: |
-          pip install --upgrade pip --quiet
-          pip install -r backend/requirements.txt --quiet
-          pip-audit --desc on
+        run: pip-audit -r backend/requirements.txt --desc on
 
       - name: Audit SDK dependencies
         run: |
-          cd sdk && pip install -e ".[dev]" --quiet
-          pip-audit --desc on
+          echo "${GITHUB_WORKSPACE}/sdk[dev]" > "${RUNNER_TEMP}/sdk-requirements.txt"
+          pip-audit -r "${RUNNER_TEMP}/sdk-requirements.txt" --desc on
 
   # ════════════════════════════════════════════════════════════
   # JOB 5: SECRETS SCAN — Semgrep

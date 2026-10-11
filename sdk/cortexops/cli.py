@@ -17,16 +17,81 @@ import sys
 from pathlib import Path
 
 
+def _split_fail_on(values: list[str] | None) -> list[str]:
+    """Flatten repeated and newline-separated --fail-on values; blank lines and '#' comments are ignored."""
+    conditions = []
+    for value in values or []:
+        for line in value.splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                conditions.append(line)
+    return conditions
+
+
+def _push_results(summary, base_url: str | None) -> None:
+    from cortexops import CortexClient
+    from cortexops.tracer import _DEFAULT_API_URL, _resolve_api_key, _resolve_api_url
+
+    api_key = _resolve_api_key(None)
+    if not api_key:
+        print("Warning: --push given but no CORTEXOPS_API_KEY or saved credentials; skipping upload.", file=sys.stderr)
+        return
+    client = CortexClient(api_key=api_key, base_url=base_url or _resolve_api_url(_DEFAULT_API_URL))
+    try:
+        project = client.project_for_key()
+        if project and project != summary.project:
+            print(f"Note: API key is for project '{project}' (dataset says '{summary.project}')")
+            summary = summary.model_copy(update={"project": project})
+    except Exception:
+        pass
+    try:
+        client.push_eval(summary)
+        print(f"Eval pushed to {client.base_url} (run_id={summary.run_id[:8]})")
+    except Exception as e:
+        print(f"Warning: eval upload failed: {e}", file=sys.stderr)
+
+
 def cmd_eval_run(args: argparse.Namespace) -> int:
-    """cortexops eval run --dataset golden_v1.yaml --project my-agent"""
+    """cortexops eval run --dataset golden_v1.yaml --agent agent:build_agent() --fail-on 'task_completion < 0.9'
+
+    Exit codes: 0 gate passed, 1 gate failed, 2 configuration error.
+    Without --fail-on the gate is 'pass_rate < 1.0', i.e. it fails if any case fails.
+    """
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
     from cortexops import EvalSuite
-    from cortexops.eval import EvalThresholdError
+    from cortexops.report import (
+        DEFAULT_FAIL_ON,
+        append_step_summary,
+        build_report,
+        gate_passed,
+        render_junit,
+        render_markdown,
+    )
 
-    print(f"CortexOps eval\n  dataset : {args.dataset}\n  project : {args.project or 'from dataset'}")
-    if args.fail_on:
-        print(f"  fail-on : {args.fail_on}")
+    conditions = _split_fail_on(args.fail_on)
+    try:
+        for cond in conditions:
+            EvalSuite._parse_threshold(cond)
+        dataset = EvalSuite._load_dataset(args.dataset)
+    except (ValueError, FileNotFoundError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+
+    if args.project:
+        dataset.project = args.project
+    if args.judge:
+        for case in dataset.cases:
+            if case.judge_criteria:
+                case.judge = "llm"
+
+    print(f"CortexOps eval\n  dataset : {args.dataset}\n  project : {dataset.project}")
+    print(f"  agent   : {args.agent or '(none bound; using passthrough placeholder)'}")
+    print(f"  fail-on : {', '.join(conditions) if conditions else DEFAULT_FAIL_ON + ' (default)'}")
+    if args.judge:
+        judged = sum(1 for c in dataset.cases if c.judge == "llm")
+        mode = "LLM" if os.getenv("OPENAI_API_KEY") else "keyword heuristic (OPENAI_API_KEY not set)"
+        print(f"  judge   : {mode} on {judged} case(s) with judge_criteria")
     print()
 
     def passthrough_agent(inp: dict) -> dict:
@@ -35,24 +100,50 @@ def cmd_eval_run(args: argparse.Namespace) -> int:
 
     try:
         agent = _load_agent(args.agent) if args.agent else passthrough_agent
-        summary = EvalSuite.run(
-            dataset=args.dataset,
-            agent=agent,
-            verbose=not args.quiet,
-            fail_on=args.fail_on,
-        )
-    except EvalThresholdError as e:
-        print(f"\nCI gate FAILED: {e}", file=sys.stderr)
-        return 1
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+    except Exception as e:
+        print(f"Error: could not load agent '{args.agent}': {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+    summary = EvalSuite.run(dataset=dataset, agent=agent, verbose=not args.quiet)
+    thresholds = [EvalSuite.evaluate_threshold(summary, c) for c in conditions or [DEFAULT_FAIL_ON]]
+    passed = gate_passed(thresholds)
+
+    print()
+    for t in thresholds:
+        print(f"  {'FAIL' if t.failed else 'ok  '}  {t.expression}  (actual {t.actual:.3f})")
 
     if args.output:
         Path(args.output).write_text(json.dumps(summary.model_dump(mode="json"), indent=2))
         print(f"\nResults written to {args.output}")
+    if args.output_json:
+        report = build_report(summary, thresholds, dataset=args.dataset)
+        Path(args.output_json).write_text(json.dumps(report, indent=2))
+        print(f"JSON report written to {args.output_json}")
 
-    return 0 if summary.failed == 0 else 1
+    if args.junit_xml:
+        Path(args.junit_xml).write_text(render_junit(summary, thresholds))
+        print(f"JUnit XML written to {args.junit_xml}")
+
+    markdown = render_markdown(summary, thresholds, dataset=args.dataset, title=args.title)
+    if args.summary_md:
+        Path(args.summary_md).write_text(markdown)
+        print(f"Markdown summary written to {args.summary_md}")
+    if not args.no_step_summary and append_step_summary(markdown):
+        print("Markdown summary appended to GITHUB_STEP_SUMMARY")
+
+    if args.push:
+        _push_results(summary, args.base_url)
+
+    if not passed:
+        sys.stdout.flush()
+        for t in thresholds:
+            if t.failed:
+                print(
+                    f"\nCI gate FAILED: {t.metric}={t.actual:.3f} {t.op} {t.threshold} (project={summary.project})",
+                    file=sys.stderr,
+                )
+        return 1
+    return 0
 
 
 def cmd_eval_diff(args: argparse.Namespace) -> int:
@@ -210,14 +301,51 @@ def cmd_eval_run_with_judge(args: argparse.Namespace) -> int:
 
 
 def _load_agent(agent_path: str):
-    """Load an agent from a dotted path like 'mymodule:my_agent'."""
-    if ":" not in agent_path:
-        print(f"Error: --agent must be in the format 'module:object', got '{agent_path}'", file=sys.stderr)
-        sys.exit(1)
-    module_path, attr = agent_path.rsplit(":", 1)
+    """Load an agent from 'module:attr' or 'path/to/file.py:attr'.
+
+    The module is imported from the current directory (or PYTHONPATH). `attr` may be a
+    dotted path; a trailing '()' calls it with no arguments, for agent factories such as
+    'agent:build_agent()'.
+    """
     import importlib
-    module = importlib.import_module(module_path)
-    return getattr(module, attr)
+    import importlib.util
+
+    if ":" not in agent_path:
+        raise ValueError(f"--agent must be 'module:attr' or 'file.py:attr', got '{agent_path}'")
+    module_ref, attr = agent_path.rsplit(":", 1)
+    attr = attr.strip()
+    call = attr.endswith("()")
+    if call:
+        attr = attr[:-2]
+    if not module_ref or not attr:
+        raise ValueError(f"--agent must be 'module:attr' or 'file.py:attr', got '{agent_path}'")
+
+    cwd = os.getcwd()
+    if cwd not in sys.path:
+        sys.path.insert(0, cwd)
+
+    if module_ref.endswith(".py"):
+        file_path = Path(module_ref).resolve()
+        if not file_path.exists():
+            raise FileNotFoundError(f"Agent file not found: {module_ref}")
+        sys.path.insert(0, str(file_path.parent))
+        spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot import {module_ref}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[file_path.stem] = module
+        spec.loader.exec_module(module)
+    else:
+        module = importlib.import_module(module_ref)
+
+    obj = module
+    for part in attr.split("."):
+        obj = getattr(obj, part)
+    if call:
+        obj = obj()
+    if not (callable(obj) or hasattr(obj, "invoke")):
+        raise TypeError(f"'{agent_path}' resolved to a non-callable {type(obj).__name__}")
+    return obj
 
 
 
@@ -257,9 +385,31 @@ def main() -> None:
     run_p = eval_sub.add_parser("run", help="Run an eval suite")
     run_p.add_argument("--dataset", "-d", required=True, help="Path to golden dataset YAML")
     run_p.add_argument("--project", "-p", default=None, help="Project name (overrides dataset)")
-    run_p.add_argument("--agent", "-a", default=None, help="Agent to evaluate (module:object)")
-    run_p.add_argument("--fail-on", default=None, help="e.g. 'task_completion < 0.90'")
-    run_p.add_argument("--output", "-o", default=None, help="Save JSON results to file")
+    run_p.add_argument(
+        "--agent", "-a", default=None,
+        help="Agent to evaluate: 'module:attr' or 'file.py:attr', imported from the current directory; "
+             "append '()' to call a factory, e.g. 'agent:build_agent()'",
+    )
+    run_p.add_argument(
+        "--fail-on", action="append", default=None, metavar="EXPR",
+        help="Gate condition, e.g. 'task_completion < 0.90'. Repeatable (or newline-separated); the gate "
+             "fails if any is true. Metrics: task_completion, tool_accuracy, pass_rate (0-1). "
+             "Default: 'pass_rate < 1.0'",
+    )
+    run_p.add_argument("--output", "-o", default=None, help="Save the raw EvalSummary JSON (with traces) to file")
+    run_p.add_argument("--output-json", default=None, metavar="PATH",
+                       help="Save a JSON report (summary, threshold results, gate_passed) to file")
+    run_p.add_argument("--summary-md", default=None, metavar="PATH", help="Save a markdown summary to file")
+    run_p.add_argument("--junit-xml", default=None, metavar="PATH",
+                       help="Save a JUnit XML report (one testcase per eval case and per fail-on condition)")
+    run_p.add_argument("--title", default="CortexOps eval gate", help="Heading for the markdown summary")
+    run_p.add_argument("--no-step-summary", action="store_true",
+                       help="Do not append the markdown summary to $GITHUB_STEP_SUMMARY")
+    run_p.add_argument("--judge", action="store_true",
+                       help="Score cases that define judge_criteria with the LLM judge (needs OPENAI_API_KEY)")
+    run_p.add_argument("--push", action="store_true",
+                       help="Upload results to the CortexOps API (needs CORTEXOPS_API_KEY or `cortexops login`)")
+    run_p.add_argument("--base-url", default=None, help="CortexOps API URL for --push (default: CORTEXOPS_API_URL)")
     run_p.add_argument("--quiet", "-q", action="store_true", help="Suppress per-case output")
 
     diff_p = eval_sub.add_parser("diff", help="Diff two eval runs")

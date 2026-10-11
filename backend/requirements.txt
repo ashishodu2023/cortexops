@@ -27,8 +27,15 @@ asyncpg==0.29.0
 # SDK
 pyyaml==6.0.2
 
+# OTLP/HTTP trace ingest (/v1/otlp/v1/traces). Protobuf is the default and, for the Python
+# HTTP exporter, the only OTLP/HTTP encoding, so JSON-only ingest would reject most exporters.
+opentelemetry-proto==1.45.1
+
 # Observability — structured JSON logging
 python-json-logger==2.0.7
+
+# Security floors for transitive deps (requests <- stripe)
+urllib3>=2.8.0  # CVE-2026-97687, CVE-2026-97689
 
 # Production hardening
 # Checklist item 7 — security

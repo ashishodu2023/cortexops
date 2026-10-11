@@ -1,78 +1,209 @@
-version: "3.11"
+# CortexOps self-hosted stack: Postgres, Redis, API, Celery worker and dashboard.
+#
+#   ./deploy/compose/generate-env.sh   # writes .env with random secrets (once)
+#   docker compose up -d
+#
+# Dashboard: http://localhost:3000   API: http://localhost:8000   Docs: docs/self-hosting.md
+
+x-backend-env: &backend-env
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  DEBUG: ${DEBUG:-false}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cortexops}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-cortexops}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+  JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (see .env.example)}
+  INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY in .env (see .env.example)}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+  # Published ports and a reverse proxy on the host reach the API from Docker's private bridge addresses.
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,::1,fc00::/7}
+  BILLING_ENABLED: ${BILLING_ENABLED:-false}
+  MAX_EVAL_CASES_PER_RUN: ${MAX_EVAL_CASES_PER_RUN:-500}
+  EVAL_TIMEOUT_SECONDS: ${EVAL_TIMEOUT_SECONDS:-300}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+  SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+  EMAIL_FROM: ${EMAIL_FROM:-}
+  EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-}
+  CORTEXOPS_SLACK_WEBHOOK_URL: ${CORTEXOPS_SLACK_WEBHOOK_URL:-}
+  CORTEXOPS_ALERT_CHANNEL: ${CORTEXOPS_ALERT_CHANNEL:-}
+  CORTEXOPS_WEBHOOK_URL: ${CORTEXOPS_WEBHOOK_URL:-}
+  CORTEXOPS_WEBHOOK_SECRET: ${CORTEXOPS_WEBHOOK_SECRET:-}
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+  PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+  PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
+  PAYPAL_PLAN_ID: ${PAYPAL_PLAN_ID:-}
+  PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
+  PAYPAL_BASE_URL: ${PAYPAL_BASE_URL:-https://api-m.paypal.com}
+
+x-api-build: &api-build
+  context: .
+  dockerfile: Dockerfile
+
+x-hardening: &hardening
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
 
 services:
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "127.0.0.1:8000:8000"
+  postgres:
+    <<: *hardening
+    image: postgres:16-alpine
     environment:
-      DATABASE_URL: sqlite+aiosqlite:///./cortexops.db
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      ENVIRONMENT: development
-      DEBUG: "false"
-      JWT_SECRET: dev-only-docker-compose-secret
-      INTERNAL_API_KEY: dev_internal_key
+      POSTGRES_USER: ${POSTGRES_USER:-cortexops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}
+      POSTGRES_DB: ${POSTGRES_DB:-cortexops}
     volumes:
-      - ./backend:/app
-      - ./sdk:/sdk
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 15s
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
       timeout: 5s
-      retries: 3
-
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: celery -A app.worker.celery_app.celery worker --loglevel=info --concurrency=4
-    environment:
-      DATABASE_URL: sqlite+aiosqlite:///./cortexops.db
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      ENVIRONMENT: development
-    volumes:
-      - ./backend:/app
-      - ./sdk:/sdk
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    restart: unless-stopped
+      retries: 10
 
   redis:
+    <<: *hardening
     image: redis:7-alpine
-    expose:
-      - "6379"
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    read_only: true
     volumes:
       - redis_data:/data
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
+
+  api:
+    <<: *hardening
+    image: ${CORTEXOPS_API_IMAGE:-cortexops-api:local}
+    build: *api-build
+    environment:
+      <<: *backend-env
+      PORT: "8000"
+      # Only the API runs migrations (when the image supports them), so workers never race it.
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-1}
+    ports:
+      - "${API_BIND:-127.0.0.1}:${API_PORT:-8000}:8000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  worker:
+    <<: *hardening
+    image: ${CORTEXOPS_API_IMAGE:-cortexops-api:local}
+    build: *api-build
+    command: ["celery", "-A", "app.worker.celery_app.celery", "worker", "--loglevel=info", "--concurrency=${WORKER_CONCURRENCY:-4}"]
+    environment:
+      <<: *backend-env
+    read_only: true
+    tmpfs:
+      - /tmp
+    depends_on:
+      # The API creates the database schema on startup; start the worker once it is healthy.
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.worker.celery_app.celery inspect ping -d celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+  # One-shot: creates the first API key for CORTEXOPS_PROJECT and prints it once
+  # (`docker compose logs bootstrap`). Does nothing if the project already has a key.
+  bootstrap:
+    image: ${CORTEXOPS_API_IMAGE:-cortexops-api:local}
+    build: *api-build
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    environment:
+      BOOTSTRAP_PROJECT: ${CORTEXOPS_PROJECT:-my-agent}
+      BOOTSTRAP_EMAIL: ${BOOTSTRAP_EMAIL:-admin@localhost}
+      BOOTSTRAP_TIER: ${BOOTSTRAP_TIER:-pro}
+      BOOTSTRAP_API_URL: http://api:8000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY in .env (see .env.example)}
+    depends_on:
+      api:
+        condition: service_healthy
+    command:
+      - python
+      - -c
+      - |
+        import json, os, sys, urllib.error, urllib.request
+        api, project, tier = os.environ["BOOTSTRAP_API_URL"], os.environ["BOOTSTRAP_PROJECT"], os.environ["BOOTSTRAP_TIER"]
+
+        def post(path, payload, headers=None):
+            req = urllib.request.Request(
+                api + path, data=json.dumps(payload).encode(), method="POST",
+                headers={"Content-Type": "application/json", **(headers or {})},
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.load(resp)
+
+        try:
+            key = post("/v1/keys/bootstrap", {"project": project, "name": "bootstrap", "email": os.environ["BOOTSTRAP_EMAIL"]})
+        except urllib.error.HTTPError as exc:
+            if exc.code == 409:
+                print(f"Project '{project}' already has an active API key; nothing to do.")
+                sys.exit(0)
+            sys.exit(f"Bootstrap failed: HTTP {exc.code}: {exc.read().decode()[:300]}")
+        if tier != key["tier"]:
+            try:
+                post(f"/v1/admin/keys/{key['id']}/upgrade", {"tier": tier, "scope": "read_write"},
+                     {"X-Internal-Key": os.environ["INTERNAL_API_KEY"]})
+            except urllib.error.HTTPError as exc:
+                print(f"Warning: could not set the key tier to '{tier}': HTTP {exc.code}", file=sys.stderr)
+        print(f"Created the first API key ({tier} tier) for project '{key['project']}'. It is shown only once:")
+        print()
+        print(f"    CORTEXOPS_API_KEY={key['raw_key']}")
+        print()
+        print("Sign in to the dashboard with it and set it in your agent's environment.")
+
+  dashboard:
+    <<: *hardening
+    image: ${CORTEXOPS_DASHBOARD_IMAGE:-cortexops-dashboard:local}
+    build:
+      context: ./frontend-new
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    environment:
+      CORTEXOPS_API_URL: ${CORTEXOPS_API_URL:-http://localhost:8000}
+    ports:
+      - "${DASHBOARD_BIND:-127.0.0.1}:${DASHBOARD_PORT:-3000}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+      # nginx-unprivileged (UID 101) renders its config from templates here at startup.
+      - /etc/nginx/conf.d:uid=101,gid=101
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
 
 volumes:
+  postgres_data:
   redis_data:

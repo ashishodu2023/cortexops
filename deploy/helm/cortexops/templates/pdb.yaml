@@ -1,0 +1,24 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+{{- range $component := list "api" "worker" "dashboard" }}
+{{- $values := index $.Values $component }}
+{{- if or (eq $component "api") (index $values "enabled") }}
+{{- $ctx := dict "ctx" $ "component" $component }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "cortexops.fullname" $ }}-{{ $component }}
+  labels:
+    {{- include "cortexops.componentLabels" $ctx | nindent 4 }}
+spec:
+  {{- if not (kindIs "invalid" $.Values.podDisruptionBudget.maxUnavailable) }}
+  maxUnavailable: {{ $.Values.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: {{ $.Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cortexops.selectorLabels" $ctx | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}

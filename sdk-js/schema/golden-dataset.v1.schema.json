@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/ashishodu2023/cortexops/main/sdk-js/schema/golden-dataset.v1.schema.json",
+  "title": "CortexOps golden dataset (format v1)",
+  "description": "Golden eval dataset read by the Python SDK (EvalSuite / cortexops eval run) and the TypeScript SDK (EvalSuite / cortexops-js eval run). Usually written as YAML; unknown keys are ignored by both SDKs.",
+  "type": "object",
+  "required": ["cases"],
+  "properties": {
+    "version": {
+      "description": "Dataset version, stored as dataset_version on eval runs.",
+      "type": "integer",
+      "default": 1
+    },
+    "project": {
+      "description": "CortexOps project the results belong to.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Dataset name; when set, the CLI uploads a dataset snapshot with --push.",
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "default": ""
+    },
+    "cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "$defs": {
+    "stringList": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "case": {
+      "type": "object",
+      "required": ["id", "input"],
+      "properties": {
+        "id": {
+          "description": "Case identifier (numbers are converted to strings).",
+          "type": ["string", "integer"]
+        },
+        "input": {
+          "description": "Agent input: a string is passed as {\"input\": <string>}, a mapping as-is.",
+          "type": ["string", "object"]
+        },
+        "expected_tool_calls": {
+          "description": "Tool names the agent should call (order-insensitive). Scored by tool_accuracy.",
+          "$ref": "#/$defs/stringList"
+        },
+        "expected_output_contains": {
+          "description": "Case-insensitive substrings the output must contain. Scored by task_completion.",
+          "$ref": "#/$defs/stringList"
+        },
+        "expected_output_not_contains": {
+          "description": "Case-insensitive substrings the output must not contain.",
+          "$ref": "#/$defs/stringList"
+        },
+        "max_latency_ms": {
+          "description": "Latency budget for the case; exceeding it lowers the latency score.",
+          "type": ["number", "null"]
+        },
+        "judge": {
+          "description": "\"llm\" adds the LLM-judge metric (offline heuristic in the TypeScript SDK).",
+          "enum": ["rule", "llm"],
+          "default": "rule"
+        },
+        "judge_criteria": {
+          "type": ["string", "null"]
+        },
+        "tags": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    }
+  }
+}

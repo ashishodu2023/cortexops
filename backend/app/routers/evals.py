@@ -268,7 +268,9 @@ async def get_eval_run(
 
 
 async def _get_run_or_404(db: AsyncSession, run_id: str) -> EvalRun:
-    result = await db.execute(select(EvalRun).where(EvalRun.id == run_id))
+    result = await db.execute(
+        select(EvalRun).options(selectinload(EvalRun.case_results)).where(EvalRun.id == run_id)
+    )
     run = result.scalar_one_or_none()
     if not run:
         raise HTTPException(status_code=404, detail=f"Eval run {run_id} not found")

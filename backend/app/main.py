@@ -11,7 +11,7 @@ from .config import get_settings
 from .db import get_db, init_db
 from .observability import configure_logging, health_aggregator
 from .resilience import openai_circuit, slack_circuit, stripe_circuit
-from .routers import admin, billing, eval_api, evals, jwt_auth, keys, prompts, traces
+from .routers import admin, billing, eval_api, evals, jwt_auth, keys, otlp, prompts, traces
 from .security import RateLimitMiddleware, RequestIDMiddleware
 
 settings = get_settings()
@@ -30,6 +30,8 @@ async def _check_db():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Starlette ignores @app.on_event handlers once a lifespan is set, so validate here.
+    await validate_secrets()
     await init_db()
     # Register health checks
     health_aggregator.register("database", _check_db)
@@ -87,7 +89,6 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
-@app.on_event("startup")
 async def validate_secrets():
     """Fail fast on startup if critical secrets are missing or default."""
     import os
@@ -115,9 +116,14 @@ def _collect_secret_issues(env: dict) -> list[str]:
         issues.append("JWT_SECRET not set or uses default")
     if not internal_key or internal_key == "dev_internal_key":
         issues.append("INTERNAL_API_KEY not set or uses default")
-    if not paypal_webhook_id:
-        issues.append("PAYPAL_WEBHOOK_ID not set")
+    if not paypal_webhook_id and _billing_enabled(env):
+        issues.append("PAYPAL_WEBHOOK_ID not set (set BILLING_ENABLED=false to run without billing)")
     return issues
+
+
+def _billing_enabled(env: dict) -> bool:
+    # Billing defaults to on so hosted deployments keep requiring billing secrets.
+    return env.get("BILLING_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
 # ── Routers ───────────────────────────────────────────────────────────────
@@ -127,6 +133,7 @@ app.include_router(billing.router)
 app.include_router(evals.router)
 app.include_router(eval_api.router)
 app.include_router(traces.router)
+app.include_router(otlp.router)
 app.include_router(prompts.router)
 app.include_router(keys.router)
 

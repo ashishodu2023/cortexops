@@ -1,0 +1,315 @@
+name: CortexOps Eval Gate
+description: "Gate pull requests on CortexOps AI agent evals: run a golden dataset, comment the results, fail on regressions."
+author: Ashish Verma
+branding:
+  icon: check-circle
+  color: purple
+
+inputs:
+  dataset:
+    description: Path to the golden dataset YAML, relative to working-directory. Required unless command is set.
+    required: false
+    default: ""
+  agent:
+    description: >-
+      Agent to evaluate: 'module:attr' or 'path/to/file.py:attr', imported from working-directory.
+      Append '()' to call a factory, e.g. 'agent:build_agent()'.
+    required: false
+    default: ""
+  command:
+    description: >-
+      Custom command to run instead of 'cortexops eval run'. Its exit code decides the gate. To get
+      outputs and a PR comment, write the JSON report to $CORTEXOPS_REPORT_JSON, the markdown
+      summary to $CORTEXOPS_SUMMARY_MD and, optionally, JUnit XML to $CORTEXOPS_JUNIT_XML.
+    required: false
+    default: ""
+  fail-on:
+    description: >-
+      Gate conditions, one per line; the gate fails if any is true. Metrics (0-1 scale):
+      task_completion, tool_accuracy, pass_rate. Default: 'pass_rate < 1.0' (fail if any case fails).
+    required: false
+    default: ""
+  working-directory:
+    description: Directory the eval runs in (dataset and agent paths are relative to it).
+    required: false
+    default: "."
+  python-version:
+    description: Python version for actions/setup-python. Set to an empty string to use the Python already on PATH.
+    required: false
+    default: "3.11"
+  cortexops-version:
+    description: >-
+      cortexops to install (0.6.0 or newer): a pip specifier such as '>=0.6.0,<0.7' (the default),
+      a version such as '0.6.0', 'latest' (newest PyPI release), a pip requirement such as
+      'git+https://github.com/ashishodu2023/cortexops@<ref>#subdirectory=sdk', a local path such as './sdk',
+      or 'none' to skip installation.
+    required: false
+    default: ">=0.6.0,<0.7"
+  install:
+    description: Extra pip requirements for your agent, one per line or space-separated (e.g. '-r requirements.txt' or '.').
+    required: false
+    default: ""
+  judge:
+    description: Score cases that define judge_criteria with the LLM judge. Set openai-api-key, or a keyword heuristic is used.
+    required: false
+    default: "false"
+  openai-api-key:
+    description: OpenAI API key for the LLM judge.
+    required: false
+    default: ""
+  title:
+    description: Heading of the job summary and PR comment.
+    required: false
+    default: CortexOps eval gate
+  extra-args:
+    description: Extra arguments appended to 'cortexops eval run' (whitespace-separated).
+    required: false
+    default: ""
+  comment-on-pr:
+    description: Create or update a single sticky comment with the summary on pull_request events.
+    required: false
+    default: "true"
+  comment-tag:
+    description: Identifies the sticky comment; set different values to run several gates in one PR. Defaults to the dataset path.
+    required: false
+    default: ""
+  github-token:
+    description: "Token used to comment on the PR. Needs 'pull-requests: write'."
+    required: false
+    default: ${{ github.token }}
+  api-key:
+    description: Optional CORTEXOPS_API_KEY; when set, results are also pushed to the CortexOps dashboard.
+    required: false
+    default: ""
+  api-url:
+    description: CortexOps API URL for api-key uploads (defaults to the hosted API).
+    required: false
+    default: ""
+  fail-job:
+    description: Fail the job when the gate fails. Set to 'false' to only report.
+    required: false
+    default: "true"
+
+outputs:
+  passed:
+    description: "'true' if the gate passed, 'false' otherwise."
+    value: ${{ steps.run.outputs.passed }}
+  exit-code:
+    description: Exit code of the eval (0 passed, 1 gate failed, 2 configuration error).
+    value: ${{ steps.run.outputs.exit-code }}
+  task-completion:
+    description: Task completion rate (0-1).
+    value: ${{ steps.run.outputs.task-completion }}
+  pass-rate:
+    description: Fraction of cases that passed (0-1).
+    value: ${{ steps.run.outputs.pass-rate }}
+  tool-accuracy:
+    description: Tool accuracy (0-1).
+    value: ${{ steps.run.outputs.tool-accuracy }}
+  mean-score:
+    description: Mean case score (0-100).
+    value: ${{ steps.run.outputs.mean-score }}
+  failed:
+    description: Number of failed cases.
+    value: ${{ steps.run.outputs.failed }}
+  summary-path:
+    description: Path to the markdown summary.
+    value: ${{ steps.run.outputs.summary-path }}
+  report-path:
+    description: Path to the JSON report (summary, thresholds, case results).
+    value: ${{ steps.run.outputs.report-path }}
+  junit-path:
+    description: Path to the JUnit XML report (one testcase per eval case and per fail-on condition).
+    value: ${{ steps.run.outputs.junit-path }}
+  comment-url:
+    description: URL of the sticky PR comment, if one was written.
+    value: ${{ steps.comment.outputs.comment-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      if: inputs.python-version != ''
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install cortexops
+      shell: bash
+      env:
+        CORTEXOPS_VERSION: ${{ inputs.cortexops-version }}
+        EXTRA_INSTALL: ${{ inputs.install }}
+        WORKDIR: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+        PY="$(command -v python || command -v python3)"
+        echo "CORTEXOPS_PYTHON=$PY" >> "$GITHUB_ENV"
+        case "$CORTEXOPS_VERSION" in
+          none) spec="" ;;
+          ""|latest) spec="cortexops" ;;
+          bundled)
+            echo "::error title=CortexOps eval gate::cortexops-version 'bundled' is not supported by this action;" \
+                 "use a version, 'latest', a local path such as './sdk', or" \
+                 "'git+https://github.com/ashishodu2023/cortexops@<ref>#subdirectory=sdk'."
+            exit 2
+            ;;
+          [0-9]*) spec="cortexops==$CORTEXOPS_VERSION" ;;
+          "<"*|">"*|"="*|"~"*|"!"*) spec="cortexops$CORTEXOPS_VERSION" ;;
+          *) spec="$CORTEXOPS_VERSION" ;;
+        esac
+        if [ -n "$spec" ]; then
+          echo "Installing $spec"
+          "$PY" -m pip install --disable-pip-version-check -q "$spec"
+        fi
+        if [ -n "$EXTRA_INSTALL" ]; then
+          set -f
+          # shellcheck disable=SC2086
+          (cd "$WORKDIR" && "$PY" -m pip install --disable-pip-version-check -q $EXTRA_INSTALL)
+          set +f
+        fi
+        if ! "$PY" -m cortexops.cli eval run --help | grep -q -- '--junit-xml'; then
+          installed="$("$PY" -m pip show cortexops 2>/dev/null | sed -n 's/^Version: //p')"
+          echo "::error title=CortexOps eval gate::cortexops ${installed:-(not installed)} is too old for this action;" \
+               "it needs cortexops>=0.6.0 ('eval run --junit-xml'). Use cortexops-version: '>=0.6.0,<0.7' or latest."
+          exit 2
+        fi
+        "$PY" -m cortexops.cli version
+
+    - name: Run eval gate
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_DATASET: ${{ inputs.dataset }}
+        INPUT_AGENT: ${{ inputs.agent }}
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_JUDGE: ${{ inputs.judge }}
+        INPUT_TITLE: ${{ inputs.title }}
+        INPUT_EXTRA_ARGS: ${{ inputs.extra-args }}
+        INPUT_API_URL: ${{ inputs.api-url }}
+        CORTEXOPS_API_KEY: ${{ inputs.api-key }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+      run: |
+        set -uo pipefail
+        PY="${CORTEXOPS_PYTHON:-python}"
+        out_dir="$(mktemp -d "${RUNNER_TEMP:-/tmp}/cortexops-eval-XXXXXX")"
+        export CORTEXOPS_REPORT_JSON="$out_dir/report.json"
+        export CORTEXOPS_SUMMARY_MD="$out_dir/summary.md"
+        export CORTEXOPS_JUNIT_XML="$out_dir/junit.xml"
+        [ -n "$OPENAI_API_KEY" ] || unset OPENAI_API_KEY
+        [ -n "$CORTEXOPS_API_KEY" ] || unset CORTEXOPS_API_KEY
+
+        code=0
+        if [ -n "$INPUT_COMMAND" ]; then
+          echo "Running custom command: $INPUT_COMMAND"
+          bash -c "$INPUT_COMMAND" || code=$?
+        elif [ -z "$INPUT_DATASET" ]; then
+          echo "::error title=CortexOps eval gate::Either 'dataset' or 'command' must be set."
+          code=2
+        else
+          args=(eval run --dataset "$INPUT_DATASET" --quiet
+                --output-json "$CORTEXOPS_REPORT_JSON" --summary-md "$CORTEXOPS_SUMMARY_MD"
+                --junit-xml "$CORTEXOPS_JUNIT_XML" --title "$INPUT_TITLE")
+          [ -n "$INPUT_AGENT" ] && args+=(--agent "$INPUT_AGENT")
+          [ -n "$INPUT_FAIL_ON" ] && args+=(--fail-on "$INPUT_FAIL_ON")
+          [ "$INPUT_JUDGE" = "true" ] && args+=(--judge)
+          [ -n "${CORTEXOPS_API_KEY:-}" ] && args+=(--push)
+          [ -n "$INPUT_API_URL" ] && args+=(--base-url "$INPUT_API_URL")
+          if [ -n "$INPUT_EXTRA_ARGS" ]; then
+            set -f
+            # shellcheck disable=SC2206
+            args+=($INPUT_EXTRA_ARGS)
+            set +f
+          fi
+          "$PY" -m cortexops.cli "${args[@]}" || code=$?
+        fi
+
+        {
+          echo "exit-code=$code"
+          if [ "$code" -eq 0 ]; then echo "passed=true"; else echo "passed=false"; fi
+          [ -f "$CORTEXOPS_SUMMARY_MD" ] && echo "summary-path=$CORTEXOPS_SUMMARY_MD"
+          [ -f "$CORTEXOPS_JUNIT_XML" ] && echo "junit-path=$CORTEXOPS_JUNIT_XML"
+          if [ -f "$CORTEXOPS_REPORT_JSON" ]; then
+            echo "report-path=$CORTEXOPS_REPORT_JSON"
+            "$PY" - "$CORTEXOPS_REPORT_JSON" <<'PY'
+        import json
+        import sys
+
+        r = json.load(open(sys.argv[1]))
+        print(f"task-completion={r['task_completion_rate']:.4f}")
+        print(f"pass-rate={r['pass_rate']:.4f}")
+        print(f"tool-accuracy={r['tool_accuracy'] / 100:.4f}")
+        print(f"mean-score={r['mean_score']:.1f}")
+        print(f"failed={r['failed']}")
+        PY
+          fi
+        } >> "$GITHUB_OUTPUT"
+        exit 0
+
+    - name: Comment on pull request
+      id: comment
+      if: >-
+        inputs.comment-on-pr == 'true' && steps.run.outputs.summary-path != '' &&
+        (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0 (node24)
+      env:
+        SUMMARY_PATH: ${{ steps.run.outputs.summary-path }}
+        COMMENT_TAG: ${{ inputs.comment-tag || inputs.dataset || 'default' }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+          const marker = `<!-- cortexops-eval-gate: ${process.env.COMMENT_TAG} -->`;
+          let body = fs.readFileSync(process.env.SUMMARY_PATH, 'utf8');
+          const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+          const pr = context.payload.pull_request;
+          const sha = (pr ? pr.head.sha : context.sha).slice(0, 7);
+          body = `${marker}\n${body}\n<sub>[Workflow run](${run}) for ${sha}</sub>\n`;
+          if (body.length > 65000) {
+            body = body.slice(0, 64000) + `\n\n_Summary truncated; see the [workflow run](${run})._\n`;
+          }
+          const issue_number = pr ? pr.number : context.issue.number;
+          const { owner, repo } = context.repo;
+          try {
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find((c) => c.body && c.body.startsWith(marker));
+            let res;
+            if (existing) {
+              res = await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              core.info(`Updated eval gate comment ${res.data.html_url}`);
+            } else {
+              res = await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              core.info(`Created eval gate comment ${res.data.html_url}`);
+            }
+            core.setOutput('comment-url', res.data.html_url);
+          } catch (err) {
+            if (err.status === 403 || err.status === 404) {
+              core.warning(
+                'Could not write the eval gate PR comment (the token is read-only, e.g. on pull requests from forks, ' +
+                "or lacks 'pull-requests: write'). The job summary still has the results.",
+              );
+            } else {
+              throw err;
+            }
+          }
+
+    - name: Enforce gate
+      if: steps.run.outputs.exit-code != '0'
+      shell: bash
+      env:
+        EXIT_CODE: ${{ steps.run.outputs.exit-code }}
+        FAIL_JOB: ${{ inputs.fail-job }}
+      run: |
+        if [ "$EXIT_CODE" = "2" ]; then
+          msg="CortexOps eval could not run (configuration error); see the 'Run eval gate' step log."
+        else
+          msg="CortexOps eval gate failed; see the job summary for metrics and failed cases."
+        fi
+        if [ "$FAIL_JOB" = "true" ]; then
+          echo "::error title=CortexOps eval gate::$msg"
+          exit "$EXIT_CODE"
+        fi
+        echo "::warning title=CortexOps eval gate::$msg (fail-job is false)"

@@ -366,6 +366,8 @@ const FAILURE_KIND_COLORS={
   plan_deviation:M.pink,
   context_overflow:M.red,
   tool_error:M.red,
+  prompt_injection:M.red,
+  tool_misuse:M.red,
   unknown:M.gray500,
 };
 

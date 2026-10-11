@@ -1,0 +1,97 @@
+{
+  "orders": {
+    "A1001": {
+      "status": "delivered",
+      "days_since_delivery": 5,
+      "items": [{"sku": "BL-200", "name": "PowerBlend 200 blender", "price": 89.99, "final_sale": false}],
+      "total": 89.99,
+      "customer_email": "maria.gomez@example.com",
+      "card_last4": "4242",
+      "shipping_address": "221 Pine St, Austin, TX"
+    },
+    "A1002": {
+      "status": "shipped",
+      "tracking_id": "1Z-ACM-77310",
+      "items": [{"sku": "MG-4", "name": "Ceramic mug set (4)", "price": 34.50, "final_sale": false}],
+      "total": 34.50,
+      "customer_email": "dev.patel@example.com",
+      "card_last4": "5100",
+      "shipping_address": "9 Harbor Rd, Boston, MA"
+    },
+    "A1003": {
+      "status": "delivered",
+      "days_since_delivery": 47,
+      "items": [{"sku": "ES-90", "name": "Barista espresso machine", "price": 249.00, "final_sale": false}],
+      "total": 249.00,
+      "customer_email": "lena.fischer@example.com",
+      "card_last4": "0005",
+      "shipping_address": "77 Lake Dr, Madison, WI"
+    },
+    "A1004": {
+      "status": "processing",
+      "items": [{"sku": "KN-8", "name": "8-inch chef knife", "price": 59.00, "final_sale": false}],
+      "total": 59.00,
+      "customer_email": "sam.okafor@example.com",
+      "card_last4": "3782",
+      "shipping_address": "48 Oak Ave, Portland, OR"
+    },
+    "A1005": {
+      "status": "shipped",
+      "tracking_id": "1Z-ACM-55120",
+      "items": [{"sku": "AF-5", "name": "Air fryer XL", "price": 119.00, "final_sale": false}],
+      "total": 119.00,
+      "customer_email": "priya.nair@example.com",
+      "card_last4": "6011",
+      "shipping_address": "3 Birch Ln, Denver, CO"
+    },
+    "A1006": {
+      "status": "delivered",
+      "days_since_delivery": 3,
+      "items": [{"sku": "SM-1", "name": "Clearance stand mixer", "price": 129.00, "final_sale": true}],
+      "total": 129.00,
+      "customer_email": "tom.berg@example.com",
+      "card_last4": "4000",
+      "shipping_address": "15 Cedar Ct, Raleigh, NC"
+    },
+    "A1007": {
+      "status": "cancelled",
+      "refund_id": "RF-70071",
+      "items": [{"sku": "TP-2", "name": "Teapot", "price": 24.00, "final_sale": false}],
+      "total": 24.00,
+      "customer_email": "ana.silva@example.com",
+      "card_last4": "2223",
+      "shipping_address": "60 Elm St, Tampa, FL"
+    },
+    "A1008": {
+      "status": "delivered",
+      "days_since_delivery": 10,
+      "items": [{"sku": "TO-3", "name": "4-slice toaster", "price": 45.00, "final_sale": false}],
+      "total": 45.00,
+      "customer_email": "james.wu@example.com",
+      "card_last4": "1881",
+      "shipping_address": "502 Maple Ave, Seattle, WA"
+    }
+  },
+  "shipments": {
+    "1Z-ACM-77310": {"carrier": "UPS", "last_scan": "Memphis, TN hub", "days_since_last_scan": 1, "eta": "2 business days"},
+    "1Z-ACM-55120": {"carrier": "UPS", "last_scan": "Louisville, KY hub", "days_since_last_scan": 11, "eta": "unknown"}
+  },
+  "kb_articles": {
+    "returns": {
+      "keywords": ["return", "returns", "refund", "policy", "exchange"],
+      "text": "Items can be returned within 30 days of delivery for a full refund. Final sale items cannot be returned or refunded. Refunds go back to the original payment method within 5-7 business days."
+    },
+    "shipping": {
+      "keywords": ["shipping", "ship", "delivery", "deliver", "long", "express", "standard"],
+      "text": "Standard shipping takes 3-5 business days and is free on orders over $50. Express shipping takes 1-2 business days and costs $14.99."
+    },
+    "warranty": {
+      "keywords": ["warranty", "guarantee", "defect", "defective"],
+      "text": "Small appliances carry a 1-year limited warranty that covers manufacturing defects."
+    },
+    "payments": {
+      "keywords": ["payment", "pay", "card", "paypal", "methods", "accept"],
+      "text": "We accept Visa, Mastercard, American Express, PayPal, and Acme gift cards."
+    }
+  }
+}

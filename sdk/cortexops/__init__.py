@@ -18,8 +18,10 @@ from .metrics import (
     HallucinationMetric,
     LatencyMetric,
     Metric,
+    PromptInjectionMetric,
     TaskCompletionMetric,
     ToolAccuracyMetric,
+    ToolMisuseMetric,
 )
 from .models import (
     CaseResult,
@@ -28,6 +30,7 @@ from .models import (
     EvalSummary,
     FailureKind,
     RunStatus,
+    ThresholdResult,
     ToolCall,
     Trace,
     TraceNode,
@@ -35,7 +38,7 @@ from .models import (
 from .pytest_plugin import eval_gate
 from .tracer import CortexTracer
 
-__version__ = "0.5.1"
+__version__ = "0.6.0"
 
 __all__ = [
     "CortexTracer",
@@ -49,6 +52,8 @@ __all__ = [
     "LatencyMetric",
     "HallucinationMetric",
     "LLMJudgeMetric",
+    "PromptInjectionMetric",
+    "ToolMisuseMetric",
     "Trace",
     "TraceNode",
     "ToolCall",
@@ -58,6 +63,7 @@ __all__ = [
     "CaseResult",
     "FailureKind",
     "RunStatus",
+    "ThresholdResult",
     "cmd_login",
     "cmd_logout",
     "cmd_whoami",
