@@ -27,6 +27,8 @@ class Settings(BaseSettings):
 
     # Database — MUST be set to PostgreSQL in production
     database_url: str = "sqlite+aiosqlite:///./cortexops.db"
+    # Apply Alembic migrations on startup (see docs/migrations.md)
+    run_migrations: bool = False
 
     @property
     def is_sqlite(self) -> bool:

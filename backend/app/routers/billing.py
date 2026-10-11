@@ -408,8 +408,12 @@ async def paypal_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             (resource.get("subscriber") or {}).get("email_address")
             or resource.get("custom", "")
         )
+        # Retries resend the same webhook event id; a later re-activation of the same
+        # subscription is a new event and may legitimately mint a new key.
+        event_id = payload.get("id") or subscription_id
         result = await provision_pro_key(
             db, project=project, email=subscriber_email, source="paypal", ref=subscription_id,
+            provision_ref=f"paypal:{event_id}",
         )
         if result.status == "already_provisioned":
             return {"status": "already_provisioned"}

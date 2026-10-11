@@ -7,6 +7,7 @@ import { computeCaseResult, type Metric } from "./metrics.js";
 import {
   FailureKind,
   RunStatus,
+  aggregateJudgeUsage,
   createNode,
   createTrace,
   formatSummary,
@@ -305,6 +306,7 @@ export function summarize(dataset: EvalDataset, results: CaseResult[], project?:
     baseline_run_id: null,
     case_results: results,
     timestamp: new Date().toISOString(),
+    ...aggregateJudgeUsage(results),
   };
 }
 

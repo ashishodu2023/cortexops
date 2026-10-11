@@ -13,7 +13,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select, update
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..audit import record_auth_event
@@ -175,6 +175,7 @@ async def admin_revoke_key(
 @router.post("/keys/{key_id}/upgrade", status_code=200, responses={
     401: {"description": "Missing or invalid X-Internal-Key header"},
     403: {"description": "Forbidden"},
+    409: {"description": "Project already has an active billing-provisioned Pro key"},
     500: {"description": "Internal server error"},
 })
 async def admin_upgrade_key(
@@ -206,6 +207,7 @@ async def admin_upgrade_key(
         raise HTTPException(403, "Forbidden")
 
     old_tier = key.tier
+    project = key.project
     key.tier  = body.tier
 
     # Set scope if column exists
@@ -214,12 +216,18 @@ async def admin_upgrade_key(
     except AttributeError:
         pass
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            409, f"Project {project} already has an active billing-provisioned Pro key",
+        ) from None
 
     return {
         "upgraded": True,
         "key_id": key_id,
-        "project": key.project,
+        "project": project,
         "old_tier": old_tier,
         "new_tier": body.tier,
         "scope": body.scope,

@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 
+from .judge import aggregate_usage
 from .metrics import compute_case_result
 from .models import (
     EvalCase,
@@ -69,6 +70,9 @@ class EvalSuite:
         latencies = [r.latency_ms for r in case_results]
         latencies_sorted = sorted(latencies)
         n = len(latencies_sorted)
+        judge_tokens_in, judge_tokens_out, judge_cost = aggregate_usage(
+            (r.judge_tokens_in, r.judge_tokens_out, r.judge_cost_usd) for r in case_results
+        )
 
         summary = EvalSummary(
             project=ds.project,
@@ -82,6 +86,9 @@ class EvalSuite:
             latency_p50_ms=latencies_sorted[int(n * 0.50) - 1] if n else 0.0,
             latency_p95_ms=latencies_sorted[int(n * 0.95) - 1] if n else 0.0,
             case_results=case_results,
+            judge_cost_usd=judge_cost,
+            judge_tokens_in=judge_tokens_in,
+            judge_tokens_out=judge_tokens_out,
         )
 
         if verbose:

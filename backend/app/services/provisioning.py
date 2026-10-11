@@ -1,23 +1,23 @@
 """Pro API key provisioning shared by the Stripe and PayPal webhooks."""
 from __future__ import annotations
 
-import asyncio
 import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..audit import record_auth_event
 from ..auth import generate_api_key
+from ..db import retry_on_integrity_error
 from ..models.records import ApiKey, Project
 from .email import email_configured, pro_key_email, send_email
 
 logger = logging.getLogger(__name__)
 
-_provision_lock = asyncio.Lock()
+_PROVISION_ATTEMPTS = 3
 
 
 @dataclass
@@ -78,27 +78,45 @@ async def provision_pro_key(
     email: str | None,
     source: str,
     ref: str,
+    provision_ref: str | None = None,
 ) -> ProvisionResult:
-    """Create a Pro key for `project` (idempotent per project) and email it to the customer.
+    """Create a Pro key for `project` (idempotent per payment event and per project) and email it.
 
-    Webhooks are retried by Stripe/PayPal, so a second delivery for a project that
-    already has an active, unexpired Pro key is a no-op.
+    Webhooks are retried by Stripe/PayPal and may reach several replicas at once. A delivery is a
+    no-op when its `provision_ref` (default "<source>:<ref>") already minted a key, or when the
+    project already has an active, unexpired Pro key. Concurrent deliveries are settled by the
+    unique indexes on api_keys.provision_ref and on active provisioned Pro keys per project: the
+    loser's insert fails, it rolls back and re-reads the winner's key.
     """
-    # Serializes overlapping webhook deliveries within this process (the API runs as a
-    # single replica). Cross-process safety needs a unique index on active Pro keys.
-    async with _provision_lock:
-        existing = await db.scalar(
-            select(ApiKey).where(
+    provision_ref = (provision_ref or (f"{source}:{ref}" if ref else f"{source}:{uuid.uuid4()}"))[:255]
+
+    async def _attempt() -> ProvisionResult | tuple[str, str]:
+        existing = await db.scalar(select(ApiKey).where(ApiKey.provision_ref == provision_ref))
+        if existing is None:
+            existing = await db.scalar(
+                select(ApiKey).where(
+                    ApiKey.project == project,
+                    ApiKey.tier == "pro",
+                    ApiKey.is_active,
+                    or_(ApiKey.expires_at.is_(None), ApiKey.expires_at > datetime.utcnow()),
+                )
+            )
+        if existing:
+            logger.info("Pro key already exists for project=%s, skipping provision (source=%s)", project, source)
+            return ProvisionResult(status="already_provisioned", key_id=existing.id)
+
+        # Expired keys cannot authenticate; retire them so the one-active-provisioned-key index admits the new one.
+        await db.execute(
+            update(ApiKey)
+            .where(
                 ApiKey.project == project,
                 ApiKey.tier == "pro",
                 ApiKey.is_active,
-                or_(ApiKey.expires_at.is_(None), ApiKey.expires_at > datetime.utcnow()),
+                ApiKey.provision_ref.is_not(None),
+                ApiKey.expires_at <= datetime.utcnow(),
             )
+            .values(is_active=False)
         )
-        if existing:
-            logger.info("Pro key already exists for project=%s — skipping provision (source=%s)", project, source)
-            return ProvisionResult(status="already_provisioned", key_id=existing.id)
-
         if not await db.scalar(select(Project).where(Project.name == project)):
             db.add(Project(name=project, description=f"{source} {ref}"))
             await db.flush()
@@ -112,6 +130,7 @@ async def provision_pro_key(
             scope="read_write",
             key_hash=hashed,
             is_active=True,
+            provision_ref=provision_ref,
         )
         db.add(key)
         await record_auth_event(
@@ -119,12 +138,20 @@ async def provision_pro_key(
             detail=f"source={source} ref={ref[:64]}",
         )
         await db.commit()
-    logger.info("Provisioned Pro key project=%s key_id=%s source=%s", project, key.id, source)
+        return key.id, raw_key
+
+    outcome = await retry_on_integrity_error(
+        db, _attempt, attempts=_PROVISION_ATTEMPTS, what=f"pro key provisioning project={project}",
+    )
+    if isinstance(outcome, ProvisionResult):
+        return outcome
+    key_id, raw_key = outcome
+    logger.info("Provisioned Pro key project=%s key_id=%s source=%s", project, key_id, source)
 
     email_status, provider = await deliver_pro_key(
-        db, email=email, project=project, key_id=key.id, raw_key=raw_key,
+        db, email=email, project=project, key_id=key_id, raw_key=raw_key,
     )
     await db.commit()
     return ProvisionResult(
-        status="provisioned", key_id=key.id, email_status=email_status, email_provider=provider,
+        status="provisioned", key_id=key_id, email_status=email_status, email_provider=provider,
     )

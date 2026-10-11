@@ -6,14 +6,17 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_key_info
-from ..db import get_db
+from ..db import get_db, retry_on_integrity_error
 from ..models.records import Project, PromptVersion
 from ..tiers import TierInfo, require_scope
 
 router = APIRouter(prefix="/v1/prompts", tags=["prompts"])
+
+PROMPT_VERSION_ATTEMPTS = 5
 
 
 class PromptCreate(BaseModel):
@@ -61,42 +64,59 @@ async def _ensure_project(db: AsyncSession, name: str) -> Project:
     return project
 
 
-@router.post("", response_model=PromptResponse, status_code=201)
+async def latest_prompt_version(db: AsyncSession, project: str, prompt_name: str) -> PromptVersion | None:
+    result = await db.execute(
+        select(PromptVersion)
+        .where(PromptVersion.project == project, PromptVersion.prompt_name == prompt_name)
+        .order_by(PromptVersion.version.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+@router.post("", response_model=PromptResponse, status_code=201, responses={
+    409: {"description": "Concurrent commits to the same prompt kept conflicting — retry"},
+})
 async def create_prompt_version(
     body: PromptCreate,
     db: AsyncSession = Depends(get_db),
     tier_info: TierInfo = Depends(get_current_key_info),
 ):
-    """Commit a new version of a prompt."""
+    """Commit a new version of a prompt.
+
+    Version numbers are allocated as latest + 1 and guarded by a unique index on
+    (project, prompt_name, version); a concurrent commit that takes the number first makes
+    this one retry with the next number.
+    """
     require_scope(tier_info, "read_write")
     if tier_info.project != body.project and tier_info.project != "__dev__":
         raise HTTPException(403, "You can only commit prompts for your own project.")
-    await _ensure_project(db, body.project)
 
-    result = await db.execute(
-        select(PromptVersion)
-        .where(PromptVersion.project == body.project, PromptVersion.prompt_name == body.prompt_name)
-        .order_by(PromptVersion.version.desc())
-        .limit(1)
-    )
-    latest = result.scalar_one_or_none()
-    next_version = (latest.version + 1) if latest else 1
+    async def _attempt() -> PromptVersion:
+        await _ensure_project(db, body.project)
+        latest = await latest_prompt_version(db, body.project, body.prompt_name)
+        pv = PromptVersion(
+            project=body.project,
+            prompt_name=body.prompt_name,
+            version=(latest.version + 1) if latest else 1,
+            content=body.content,
+            model=body.model,
+            temperature=body.temperature,
+            parent_version_id=latest.id if latest else None,
+            commit_message=body.commit_message,
+            author=body.author,
+        )
+        db.add(pv)
+        await db.flush()
+        await db.refresh(pv)
+        return pv
 
-    pv = PromptVersion(
-        project=body.project,
-        prompt_name=body.prompt_name,
-        version=next_version,
-        content=body.content,
-        model=body.model,
-        temperature=body.temperature,
-        parent_version_id=latest.id if latest else None,
-        commit_message=body.commit_message,
-        author=body.author,
-    )
-    db.add(pv)
-    await db.flush()
-    await db.refresh(pv)
-    return pv
+    try:
+        return await retry_on_integrity_error(
+            db, _attempt, attempts=PROMPT_VERSION_ATTEMPTS, what=f"prompt version {body.project}/{body.prompt_name}",
+        )
+    except IntegrityError:
+        raise HTTPException(409, "Concurrent commits to this prompt kept conflicting — retry the request.") from None
 
 
 @router.get("/catalog", response_model=list[PromptResponse])

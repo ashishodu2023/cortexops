@@ -25,6 +25,7 @@ import yaml  # noqa: E402
 
 from cortexops import EvalSuite  # noqa: E402
 from cortexops.eval import EvalThresholdError  # noqa: E402
+from cortexops.judge import LLMJudgeMetric, aggregate_usage, format_judge_cost  # noqa: E402
 from cortexops.metrics import (  # noqa: E402
     HallucinationMetric,
     LatencyMetric,
@@ -32,7 +33,6 @@ from cortexops.metrics import (  # noqa: E402
     ToolAccuracyMetric,
     compute_case_result,
 )
-from cortexops.judge import LLMJudgeMetric  # noqa: E402
 from cortexops.models import EvalCase, EvalSummary, ToolCall, Trace, TraceNode  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[1] / "test" / "fixtures" / "python-parity.json"
@@ -48,6 +48,9 @@ def case_result_fields(r) -> dict:
         "latency_ok": r.latency_ok,
         "failure_kind": r.failure_kind.value if hasattr(r.failure_kind, "value") else r.failure_kind,
         "failure_detail": r.failure_detail,
+        "judge_cost_usd": r.judge_cost_usd,
+        "judge_tokens_in": r.judge_tokens_in,
+        "judge_tokens_out": r.judge_tokens_out,
     }
 
 
@@ -234,6 +237,41 @@ def summary_text() -> dict:
     return {"summary": json.loads(summary.model_dump_json(exclude={"case_results": {"__all__": {"trace"}}})), "text": summary.summary()}
 
 
+# per-case (tokens_in, tokens_out, cost_usd) as reported by the Python LLM judge
+JUDGE_USAGES = [
+    [],
+    [(None, None, None)],
+    [(1200, 300, 0.00036)],
+    [(1200, 300, 0.00036), (None, None, None), (800, 150, 0.00021)],
+    [(1200, 300, 0.00036), (900, 100, None)],
+    [(5, None, None)],
+    [(0, 0, 0.0)],
+    [(1_234_567, 89_012, 0.1), (1, 2, 0.2)],
+]
+JUDGE_COST_TEXTS = [
+    (None, 1200, 300),
+    (None, None, 5),
+    (0.0, 0, 0),
+    (0.00036, 1200, 300),
+    (0.005, 3, 4),
+    (0.0099999, 10, 1),
+    (0.01, 1_234_567, 89_012),
+    (12.3456789, 1_000_000, 0),
+]
+
+
+def judge_cost() -> dict:
+    summary = make_summary(9, 10, 0.9, 87.5)
+    summary.judge_tokens_in, summary.judge_tokens_out, summary.judge_cost_usd = 2_000, 450, 0.00057
+    unpriced = make_summary(9, 10, 0.9, 87.5)
+    unpriced.judge_tokens_in, unpriced.judge_tokens_out = 2_000, 450
+    return {
+        "aggregate": [{"usages": [list(u) for u in us], "total": list(aggregate_usage(us))} for us in JUDGE_USAGES],
+        "format": [{"args": list(args), "text": format_judge_cost(*args)} for args in JUDGE_COST_TEXTS],
+        "summaries": [{"summary": json.loads(s.model_dump_json()), "text": s.summary()} for s in (summary, unpriced)],
+    }
+
+
 def schemas() -> dict:
     sys.path.insert(0, str(ROOT / "backend"))
     from app.models.schemas import CaseResultIngest, EvalSummaryIngest, TraceIngest
@@ -260,6 +298,7 @@ def main() -> None:
         "gates": gates(),
         "percentiles": percentiles(),
         "summary_text": summary_text(),
+        "judge_cost": judge_cost(),
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")

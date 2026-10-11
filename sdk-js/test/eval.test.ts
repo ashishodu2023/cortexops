@@ -7,9 +7,11 @@ import {
   CortexTracer,
   EvalSuite,
   EvalThresholdError,
+  aggregateJudgeUsage,
   checkThresholds,
   evalGate,
   createEvalCase,
+  formatJudgeCost,
   formatSummary,
   loadDataset,
   normalizeAgentOutput,
@@ -214,6 +216,62 @@ describe("summary arithmetic", () => {
     const s: EvalSummary = { ...summary, case_results: summary.case_results.map((r: any) => ({ ...r, trace: null })) };
     // Python renders the enum as "FailureKind.UNKNOWN"; the JS SDK prints the value.
     expect(formatSummary(s)).toBe(text.replace("FailureKind.UNKNOWN", "unknown"));
+  });
+});
+
+describe("judge cost", () => {
+  const usage = ([tokensIn, tokensOut, cost]: Array<number | null>) => ({
+    judge_tokens_in: tokensIn!,
+    judge_tokens_out: tokensOut!,
+    judge_cost_usd: cost!,
+  });
+
+  for (const a of parity.judge_cost.aggregate) {
+    it(`aggregates ${JSON.stringify(a.usages)} like Python aggregate_usage`, () => {
+      const total = aggregateJudgeUsage(a.usages.map(usage));
+      expect([total.judge_tokens_in, total.judge_tokens_out, total.judge_cost_usd]).toEqual(a.total);
+    });
+  }
+
+  for (const f of parity.judge_cost.format) {
+    it(`formats ${JSON.stringify(f.args)} like Python format_judge_cost`, () => {
+      expect(formatJudgeCost(f.args[0], f.args[1], f.args[2])).toBe(f.text);
+    });
+  }
+
+  it("adds the judge cost line to the summary like Python EvalSummary.summary()", () => {
+    for (const { summary, text } of parity.judge_cost.summaries) {
+      expect(formatSummary(summary)).toBe(text);
+    }
+  });
+
+  it("reports no judge usage for heuristic-scored runs (null, never 0)", async () => {
+    const ds = parseDataset({
+      project: "p",
+      cases: [{ id: "c", input: "x", judge: "llm", judge_criteria: "confirm the refund" }],
+    });
+    const s = await EvalSuite.run(ds, () => "Refund confirmed", { verbose: false });
+    expect(s).toMatchObject({ judge_cost_usd: null, judge_tokens_in: null, judge_tokens_out: null });
+    expect(s.case_results[0]).toMatchObject({ judge_cost_usd: null, judge_tokens_in: null, judge_tokens_out: null });
+    expect(formatSummary(s)).not.toContain("Judge cost");
+  });
+
+  it("totals judge usage reported on case results", () => {
+    const base: CaseResult = {
+      case_id: "c",
+      passed: true,
+      score: 100,
+      task_completion: true,
+      tool_accuracy: 100,
+      latency_ms: 1,
+      latency_ok: true,
+      failure_kind: null,
+      failure_detail: null,
+      trace: null,
+    };
+    const ds: EvalDataset = { version: 1, project: "p", description: "", cases: [] };
+    const s = summarize(ds, [{ ...base, ...usage([1200, 300, 0.00036]) }, base, { ...base, ...usage([800, 150, 0.00021]) }]);
+    expect(s).toMatchObject({ judge_tokens_in: 2000, judge_tokens_out: 450, judge_cost_usd: 0.00057 });
   });
 });
 

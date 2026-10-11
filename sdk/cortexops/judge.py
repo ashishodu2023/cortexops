@@ -8,9 +8,90 @@ from __future__ import annotations
 import json
 import os
 import textwrap
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
 from .models import FailureKind
+
+# Judge model prices in USD per 1M tokens: (input, output). OpenAI list prices at the time of
+# writing; verify against https://openai.com/api/pricing. Override per judge with
+# LLMJudge(prices={...}) or globally with register_model_price(). Dated snapshots resolve to
+# their base model ("gpt-4o-mini-2024-07-18" -> "gpt-4o-mini"). Models missing from the table
+# report cost None (unknown), never 0.
+MODEL_PRICES: dict[str, tuple[float, float]] = {
+    "gpt-4o-mini": (0.15, 0.60),
+    "gpt-4o": (2.50, 10.00),
+    "gpt-4.1": (2.00, 8.00),
+    "gpt-4.1-mini": (0.40, 1.60),
+    "gpt-4.1-nano": (0.10, 0.40),
+    "gpt-5": (1.25, 10.00),
+    "gpt-5-mini": (0.25, 2.00),
+    "gpt-5-nano": (0.05, 0.40),
+    "o3-mini": (1.10, 4.40),
+    "o4-mini": (1.10, 4.40),
+}
+
+
+def register_model_price(model: str, input_per_1m: float, output_per_1m: float) -> None:
+    """Add or override the USD price per 1M input/output tokens for a judge model."""
+    MODEL_PRICES[model] = (float(input_per_1m), float(output_per_1m))
+
+
+def model_price(
+    model: str | None,
+    prices: Mapping[str, tuple[float, float]] | None = None,
+) -> tuple[float, float] | None:
+    """Price for `model` from `prices` (default MODEL_PRICES): exact match, else longest `<base>-` prefix."""
+    if not model:
+        return None
+    table = MODEL_PRICES if prices is None else prices
+    if model in table:
+        return table[model]
+    bases = [base for base in table if model.startswith(base + "-")]
+    return table[max(bases, key=len)] if bases else None
+
+
+def estimate_cost_usd(
+    model: str | None,
+    tokens_in: int | None,
+    tokens_out: int | None,
+    prices: Mapping[str, tuple[float, float]] | None = None,
+) -> float | None:
+    """USD cost of one call, or None when token counts or the model's price are unknown."""
+    price = model_price(model, prices)
+    if price is None or tokens_in is None or tokens_out is None:
+        return None
+    return round((tokens_in * price[0] + tokens_out * price[1]) / 1_000_000, 8)
+
+
+def aggregate_usage(
+    usages: Iterable[tuple[int | None, int | None, float | None]],
+) -> tuple[int | None, int | None, float | None]:
+    """Sum (tokens_in, tokens_out, cost_usd) over judge calls.
+
+    Entries without token counts (no judge call) are skipped. Totals are None when nothing was
+    judged; the cost is also None when any judged entry has an unknown cost, so a partial sum is
+    never reported as the total.
+    """
+    judged = [u for u in usages if u[0] is not None or u[1] is not None]
+    if not judged:
+        return None, None, None
+    tokens_in = sum(u[0] or 0 for u in judged)
+    tokens_out = sum(u[1] or 0 for u in judged)
+    costs = [u[2] for u in judged]
+    cost = None if any(c is None for c in costs) else round(sum(costs), 8)
+    return tokens_in, tokens_out, cost
+
+
+def _usage_tokens(usage: Mapping) -> tuple[int | None, int | None]:
+    """(input, output) token counts from an OpenAI-style `usage` block; None when not reported."""
+    def _count(*keys: str) -> int | None:
+        for key in keys:
+            value = usage.get(key)
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                return value
+        return None
+    return _count("prompt_tokens", "input_tokens"), _count("completion_tokens", "output_tokens")
 
 
 @dataclass
@@ -35,6 +116,16 @@ class JudgeResult:
     criteria_scores: dict[str, int] = field(default_factory=dict)
     model: str = "gpt-4o-mini"
     latency_ms: int = 0
+    tokens_in: int | None = None      # prompt tokens reported by the judge API
+    tokens_out: int | None = None     # completion tokens reported by the judge API
+    cost_usd: float | None = None     # None when the model has no known price
+
+
+def format_judge_cost(cost_usd: float | None, tokens_in: int | None, tokens_out: int | None) -> str:
+    tokens = f"{tokens_in or 0:,} in / {tokens_out or 0:,} out tokens"
+    if cost_usd is None:
+        return f"unknown, no price for the judge model ({tokens})"
+    return f"${cost_usd:.{4 if cost_usd >= 0.01 else 6}f} ({tokens})"
 
 
 @dataclass
@@ -46,14 +137,21 @@ class JudgeSummary:
     mean_score: float
     pass_rate: float
     results: list[JudgeResult]
+    total_tokens_in: int | None = None
+    total_tokens_out: int | None = None
+    total_judge_cost_usd: float | None = None
 
     def summary_str(self) -> str:
         bar = "█" * int(self.pass_rate * 20) + "░" * (20 - int(self.pass_rate * 20))
-        return (
+        text = (
             f"LLM-as-Judge Results\n"
             f"  {bar} {self.pass_rate:.1%} pass rate\n"
             f"  {self.passed}/{self.total} cases passed  |  mean score: {self.mean_score:.2f}\n"
         )
+        if self.total_tokens_in is not None:
+            cost = format_judge_cost(self.total_judge_cost_usd, self.total_tokens_in, self.total_tokens_out)
+            text += f"  judge cost: {cost}\n"
+        return text
 
 
 # Built-in rubrics for common agent evaluation scenarios
@@ -130,11 +228,14 @@ class LLMJudge:
         model: str = "gpt-4o-mini",
         base_url: str = "https://api.openai.com/v1",
         timeout: float = 30.0,
+        prices: Mapping[str, tuple[float, float]] | None = None,
     ):
         self.api_key  = api_key or os.getenv("OPENAI_API_KEY", "")
         self.model    = model
         self.base_url = base_url
         self.timeout  = timeout
+        # USD per 1M (input, output) tokens; merged over MODEL_PRICES
+        self.prices   = {**MODEL_PRICES, **(prices or {})}
 
         if not self.api_key:
             raise ValueError(
@@ -162,10 +263,15 @@ class LLMJudge:
         prompt = self._build_prompt(input, output, rubric, context, expected)
         t0 = _time.monotonic()
 
-        response = self._call_model(prompt)
+        response, usage = self._request(prompt)
         latency_ms = int((_time.monotonic() - t0) * 1000)
 
-        return self._parse_response(case_id, response, rubric, latency_ms)
+        result = self._parse_response(case_id, response, rubric, latency_ms)
+        result.tokens_in, result.tokens_out = _usage_tokens(usage)
+        result.cost_usd = estimate_cost_usd(self.model, result.tokens_in, result.tokens_out, self.prices)
+        if result.cost_usd is None and usage.get("model"):
+            result.cost_usd = estimate_cost_usd(usage["model"], result.tokens_in, result.tokens_out, self.prices)
+        return result
 
     def evaluate_batch(
         self,
@@ -193,6 +299,7 @@ class LLMJudge:
 
         passed    = sum(1 for r in results if r.passed)
         mean_score = sum(r.score for r in results) / len(results) if results else 0.0
+        tokens_in, tokens_out, cost = aggregate_usage((r.tokens_in, r.tokens_out, r.cost_usd) for r in results)
 
         return JudgeSummary(
             total=len(results),
@@ -201,6 +308,9 @@ class LLMJudge:
             mean_score=mean_score,
             pass_rate=passed / len(results) if results else 0.0,
             results=results,
+            total_tokens_in=tokens_in,
+            total_tokens_out=tokens_out,
+            total_judge_cost_usd=cost,
         )
 
     def _build_prompt(
@@ -245,6 +355,10 @@ class LLMJudge:
         """).strip()
 
     def _call_model(self, prompt: str) -> str:
+        return self._request(prompt)[0]
+
+    def _request(self, prompt: str) -> tuple[str, dict]:
+        """Call the judge model. Returns (message content, usage dict incl. the resolved "model")."""
         try:
             import httpx
         except ImportError as exc:
@@ -270,7 +384,11 @@ class LLMJudge:
         if response.status_code != 200:
             raise RuntimeError(f"LLM judge API error {response.status_code}: {response.text[:200]}")
 
-        return response.json()["choices"][0]["message"]["content"]
+        body = response.json()
+        usage = dict(body.get("usage") or {})
+        if body.get("model"):
+            usage["model"] = body["model"]
+        return body["choices"][0]["message"]["content"], usage
 
     def _parse_response(
         self,
@@ -323,9 +441,18 @@ class LLMJudgeMetric:
       - llm with criteria: call LLM judge (or heuristic fallback if no valid key)
     """
 
-    def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini"):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str = "gpt-4o-mini",
+        prices: Mapping[str, tuple[float, float]] | None = None,
+    ):
         self._api_key = api_key
         self._model   = model
+        self._prices  = prices
+        # Result of the most recent successful LLM call (None for skipped / heuristic scoring);
+        # compute_case_result reads its token usage and cost.
+        self.last_result: JudgeResult | None = None
         # No key validation at init — validated lazily when judge is called
 
     def score(self, case, trace) -> tuple:
@@ -336,6 +463,7 @@ class LLMJudgeMetric:
             (score: float, failed_key: str|None, detail: str|None)
             score: 0.0-100.0
         """
+        self.last_result = None
         judge_mode = getattr(case, "judge", "rule")
         criteria   = getattr(case, "judge_criteria", None)
 
@@ -354,13 +482,14 @@ class LLMJudgeMetric:
         api_key = self._api_key or __import__("os").getenv("OPENAI_API_KEY", "")
         if api_key and api_key not in ("placeholder", "test", ""):
             try:
-                judge = LLMJudge(api_key=api_key, model=self._model)
+                judge = LLMJudge(api_key=api_key, model=self._model, prices=self._prices)
                 result = judge.evaluate(
                     case_id=getattr(case, "id", "eval"),
                     input=str(getattr(case, "input", "")),
                     output=output,
                     rubric="task_completion",
                 )
+                self.last_result = result
                 score = result.score * 100.0
                 failed_key = FailureKind.UNKNOWN if not result.passed else None
                 return score, failed_key, result.reasoning

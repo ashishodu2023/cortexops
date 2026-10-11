@@ -1,6 +1,6 @@
 import { resolveApiKey, resolveApiUrl } from "./config.js";
 import { toJsonSafe } from "./json.js";
-import type { EvalSummary, Trace } from "./models.js";
+import { judgeUsage, type EvalSummary, type Trace } from "./models.js";
 import type { FetchLike } from "./tracer.js";
 import { USER_AGENT } from "./version.js";
 
@@ -54,6 +54,10 @@ export interface EvalRunRecord {
   case_results: Array<Record<string, unknown>>;
   created_at: string;
   completed_at: string | null;
+  /** LLM-as-judge spend; null when no judge ran or its model has no known price. */
+  judge_cost_usd?: number | null;
+  judge_tokens_in?: number | null;
+  judge_tokens_out?: number | null;
 }
 
 export interface ListTracesOptions {
@@ -99,10 +103,10 @@ export function evalIngestPayload(
   summary: EvalSummary,
   extras: { dataset?: DatasetSnapshot; prompt?: PromptSnapshot } = {},
 ): Record<string, unknown> {
-  const data = toJsonSafe(summary) as Record<string, unknown>;
+  const data = toJsonSafe({ ...summary, ...judgeUsage(summary) }) as Record<string, unknown>;
   data.case_results = summary.case_results.map((cr) => {
     const { trace: _trace, ...rest } = cr;
-    return toJsonSafe(rest);
+    return toJsonSafe({ ...rest, ...judgeUsage(rest) });
   });
   if (extras.dataset) data.dataset = toJsonSafe(extras.dataset);
   if (extras.prompt) data.prompt = toJsonSafe(extras.prompt);
