@@ -124,6 +124,7 @@ class CortexTracer:
         self._traces: list[Trace] = []
         self._current_trace: Trace | None = None
         self._prompt: tuple[str, str] | None = None
+        self._auth_warned = False
 
         # Inform user where key came from — only in development
         if self.environment == "development" and self.api_key:
@@ -809,8 +810,12 @@ class CortexTracer:
                 headers={"X-API-Key": self.api_key},
                 timeout=2.0,
             )
-            if response.status_code == 401:
-                logging.getLogger(__name__).warning("Invalid CortexOps API key. Get a free key at getcortexops.com")
+            if response.status_code == 401 and not self._auth_warned:
+                self._auth_warned = True
+                logging.getLogger(__name__).warning(
+                    "Invalid CortexOps API key. Get a free key at getcortexops.com "
+                    "(then set CORTEXOPS_API_KEY or run `cortexops login`). Traces are not being uploaded."
+                )
         except Exception:
             pass  # non-blocking — tracing never breaks the agent
 
