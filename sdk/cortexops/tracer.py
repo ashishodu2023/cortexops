@@ -123,7 +123,13 @@ class CortexTracer:
         # Objects with .export(trace), e.g. cortexops.otel.OTelExporter; called for every recorded trace
         self.exporters: list[Any] = list(exporters or [])
         self._traces: list[Trace] = []
-        self._current_trace: Trace | None = None
+        # Context-local active trace. _run_traced / _arun_traced / _trace_stream
+        # set this with a token and reset it in finally, so concurrent asyncio
+        # runs on one tracer each see only their own trace (same treatment as
+        # the prompt). Read via the _current_trace property below.
+        self._current_trace_ctx: contextvars.ContextVar[Trace | None] = contextvars.ContextVar(
+            "cortexops_current_trace", default=None
+        )
         self._prompt_default: tuple[str, str] | None = None
         # Context-local prompt override. use_prompt() sets this; concurrent
         # asyncio tasks (which inherit the context at creation) and threads
@@ -183,6 +189,15 @@ class CortexTracer:
     def clear_prompt(self) -> None:
         """Stop tagging traces with a prompt version."""
         self._prompt_default = None
+
+    @property
+    def _current_trace(self) -> Trace | None:
+        """The trace for the current async task / thread, or None."""
+        return self._current_trace_ctx.get()
+
+    @_current_trace.setter
+    def _current_trace(self, value: Trace | None) -> None:
+        self._current_trace_ctx.set(value)
 
     @property
     def prompt(self) -> tuple[str, str] | None:
@@ -445,22 +460,28 @@ class CortexTracer:
         tracer = self
 
         class InstrumentedPydanticAgent:
-            def run_sync(self_, prompt: str, **kwargs) -> Any:
+            def run_sync(self_, prompt: str | None = None, user_prompt: str | None = None, **kwargs) -> Any:
+                # PydanticAI's own parameter is user_prompt; accept it so
+                # wrapped.run_sync(user_prompt="...") does not TypeError.
+                # An explicit user_prompt wins when both are given.
+                prompt = user_prompt if user_prompt is not None else prompt
                 return tracer._run_traced(
                     fn=lambda: agent.run_sync(prompt, **kwargs),
                     input={"prompt": prompt},
                     framework="pydantic_ai",
                 )
 
-            async def run(self_, prompt: str, **kwargs) -> Any:
+            async def run(self_, prompt: str | None = None, user_prompt: str | None = None, **kwargs) -> Any:
+                prompt = user_prompt if user_prompt is not None else prompt
                 return await tracer._arun_traced(
                     fn=lambda: agent.run(prompt, **kwargs),
                     input={"prompt": prompt},
                     framework="pydantic_ai",
                 )
 
-            def run_stream(self_, prompt: str, **kwargs) -> Any:
+            def run_stream(self_, prompt: str | None = None, user_prompt: str | None = None, **kwargs) -> Any:
                 """Stream a run. The trace closes when the stream completes."""
+                prompt = user_prompt if user_prompt is not None else prompt
                 return tracer._trace_stream(
                     agent.run_stream(prompt, **kwargs),
                     input={"prompt": prompt},
@@ -775,7 +796,7 @@ class CortexTracer:
                 raise
 
         trace = self._new_trace(input, sampled=True)
-        self._current_trace = trace
+        token = self._current_trace_ctx.set(trace)
         t0 = time.perf_counter()
 
         try:
@@ -790,6 +811,7 @@ class CortexTracer:
             trace.failure_detail = str(exc)
             raise
         finally:
+            self._current_trace_ctx.reset(token)
             self._traces.append(trace)
             if self.api_key:
                 self._flush_trace(trace)
@@ -829,7 +851,7 @@ class CortexTracer:
                 raise
 
         trace = self._new_trace(input, sampled=True)
-        self._current_trace = trace
+        token = self._current_trace_ctx.set(trace)
         t0 = time.perf_counter()
 
         try:
@@ -844,6 +866,7 @@ class CortexTracer:
             trace.failure_detail = str(exc)
             raise
         finally:
+            self._current_trace_ctx.reset(token)
             self._traces.append(trace)
             if self.api_key:
                 self._flush_trace(trace)
@@ -864,9 +887,24 @@ class CortexTracer:
         class _TracedStream:
             async def __aenter__(s) -> Any:
                 s._trace = tracer._new_trace(input, sampled=True)
-                tracer._current_trace = s._trace
+                s._token = tracer._current_trace_ctx.set(s._trace)
                 s._t0 = time.perf_counter()
-                s._stream = await stream_cm.__aenter__()
+                try:
+                    s._stream = await stream_cm.__aenter__()
+                except Exception as exc:
+                    # __aexit__ never runs when entry fails, so finalize
+                    # here: the failed startup still gets a trace.
+                    trace = s._trace
+                    trace.total_latency_ms = (time.perf_counter() - s._t0) * 1000
+                    trace.status = RunStatus.FAILED
+                    trace.failure_kind = FailureKind.UNKNOWN
+                    trace.failure_detail = str(exc)
+                    tracer._traces.append(trace)
+                    if tracer.api_key:
+                        tracer._flush_trace(trace)
+                    tracer._export(trace)
+                    tracer._current_trace_ctx.reset(s._token)
+                    raise
                 return s._stream
 
             async def __aexit__(s, exc_type: Any, exc: Any, tb: Any) -> Any:
@@ -891,6 +929,9 @@ class CortexTracer:
                     if tracer.api_key:
                         tracer._flush_trace(trace)
                     tracer._export(trace)
+                    token = getattr(s, "_token", None)
+                    if token is not None:
+                        tracer._current_trace_ctx.reset(token)
 
         return _TracedStream()
 
