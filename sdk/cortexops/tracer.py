@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextvars
 import logging
 import os
 import random as _random
@@ -122,8 +123,21 @@ class CortexTracer:
         # Objects with .export(trace), e.g. cortexops.otel.OTelExporter; called for every recorded trace
         self.exporters: list[Any] = list(exporters or [])
         self._traces: list[Trace] = []
-        self._current_trace: Trace | None = None
-        self._prompt: tuple[str, str] | None = None
+        # Context-local active trace. _run_traced / _arun_traced / _trace_stream
+        # set this with a token and reset it in finally, so concurrent asyncio
+        # runs on one tracer each see only their own trace (same treatment as
+        # the prompt). Read via the _current_trace property below.
+        self._current_trace_ctx: contextvars.ContextVar[Trace | None] = contextvars.ContextVar(
+            "cortexops_current_trace", default=None
+        )
+        self._prompt_default: tuple[str, str] | None = None
+        # Context-local prompt override. use_prompt() sets this; concurrent
+        # asyncio tasks (which inherit the context at creation) and threads
+        # entered via copy_context each see only their own label, while
+        # set_prompt() stays a tracer-wide default for everything else.
+        self._prompt_ctx: contextvars.ContextVar[tuple[str, str] | None] = contextvars.ContextVar(
+            "cortexops_prompt", default=None
+        )
         self._auth_warned = False
 
         # Inform user where key came from — only in development
@@ -146,16 +160,8 @@ class CortexTracer:
 
     # ── Prompt version tracking ─────────────────────────────────────────
 
-    def set_prompt(self, name: str, version: str | int) -> None:
-        """Tag every subsequent trace with a prompt name and version.
-
-        Usage:
-            tracer.set_prompt("refund-system", "v3")
-            graph.invoke(...)   # trace carries prompt_name / prompt_version
-
-        Pair with `CortexClient.commit_prompt()` to keep the prompt content
-        versioned in the hosted prompt registry.
-        """
+    @staticmethod
+    def _clean_prompt(name: str, version: str | int) -> tuple[str, str]:
         name = str(name).strip()
         version = str(version).strip()
         if not name:
@@ -166,26 +172,53 @@ class CortexTracer:
             raise ValueError(f"prompt name must be at most {_MAX_PROMPT_NAME} characters")
         if len(version) > _MAX_PROMPT_VERSION:
             raise ValueError(f"prompt version must be at most {_MAX_PROMPT_VERSION} characters")
-        self._prompt = (name, version)
+        return name, version
+
+    def set_prompt(self, name: str, version: str | int) -> None:
+        """Tag every subsequent trace with a prompt name and version.
+
+        Usage:
+            tracer.set_prompt("refund-system", "v3")
+            graph.invoke(...)   # trace carries prompt_name / prompt_version
+
+        Pair with `CortexClient.commit_prompt()` to keep the prompt content
+        versioned in the hosted prompt registry.
+        """
+        self._prompt_default = self._clean_prompt(name, version)
 
     def clear_prompt(self) -> None:
         """Stop tagging traces with a prompt version."""
-        self._prompt = None
+        self._prompt_default = None
+
+    @property
+    def _current_trace(self) -> Trace | None:
+        """The trace for the current async task / thread, or None."""
+        return self._current_trace_ctx.get()
+
+    @_current_trace.setter
+    def _current_trace(self, value: Trace | None) -> None:
+        self._current_trace_ctx.set(value)
 
     @property
     def prompt(self) -> tuple[str, str] | None:
         """The active (prompt_name, prompt_version), or None."""
-        return self._prompt
+        override = self._prompt_ctx.get()
+        return override if override is not None else self._prompt_default
 
     @contextmanager
     def use_prompt(self, name: str, version: str | int):
-        """Temporarily tag traces with a prompt version, restoring the previous one on exit."""
-        previous = self._prompt
-        self.set_prompt(name, version)
+        """Temporarily tag traces with a prompt version.
+
+        The override is context-local: concurrent asyncio tasks (created inside
+        the block inherit it) and threads entered via contextvars.copy_context
+        each see only their own label. The previous value is restored on exit,
+        so nesting works and no stale label can leak out.
+        """
+        token = self._prompt_ctx.set(self._clean_prompt(name, version))
         try:
             yield self
         finally:
-            self._prompt = previous
+            self._prompt_ctx.reset(token)
 
     def _new_trace(self, input: dict, *, sampled: bool) -> Trace:
         trace = Trace(
@@ -194,8 +227,9 @@ class CortexTracer:
             environment=self.environment,
             metadata={"sample_rate": self.sample_rate, "sampled": sampled},
         )
-        if self._prompt:
-            trace.prompt_name, trace.prompt_version = self._prompt
+        prompt = self.prompt
+        if prompt:
+            trace.prompt_name, trace.prompt_version = prompt
         return trace
 
     # ── Framework detection helpers ─────────────────────────────────────
@@ -295,8 +329,10 @@ class CortexTracer:
 
             async def ainvoke(self_, input: dict, config: dict | None = None, **kwargs) -> dict:
                 import asyncio
+                ctx = contextvars.copy_context()
                 return await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: tracer._run_traced(
+                    None, lambda: ctx.run(
+                        tracer._run_traced,
                         fn=lambda: graph.invoke(input, config, **kwargs),
                         input=input, framework="langgraph",
                     )
@@ -390,8 +426,10 @@ class CortexTracer:
                 except ImportError as e:
                     raise ImportError("pip install openai-agents") from e
                 import asyncio
+                ctx = contextvars.copy_context()
                 return await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: tracer._run_traced(
+                    None, lambda: ctx.run(
+                        tracer._run_traced,
                         fn=lambda: Runner.run_sync(agent, prompt, **kwargs),
                         input={"prompt": prompt},
                         framework="openai_agents",
@@ -422,15 +460,32 @@ class CortexTracer:
         tracer = self
 
         class InstrumentedPydanticAgent:
-            def run_sync(self_, prompt: str, **kwargs) -> Any:
+            def run_sync(self_, prompt: str | None = None, user_prompt: str | None = None, **kwargs) -> Any:
+                # PydanticAI's own parameter is user_prompt; accept it so
+                # wrapped.run_sync(user_prompt="...") does not TypeError.
+                # An explicit user_prompt wins when both are given.
+                prompt = user_prompt if user_prompt is not None else prompt
                 return tracer._run_traced(
                     fn=lambda: agent.run_sync(prompt, **kwargs),
                     input={"prompt": prompt},
                     framework="pydantic_ai",
                 )
 
-            async def run(self_, prompt: str, **kwargs) -> Any:
-                return await agent.run(prompt, **kwargs)
+            async def run(self_, prompt: str | None = None, user_prompt: str | None = None, **kwargs) -> Any:
+                prompt = user_prompt if user_prompt is not None else prompt
+                return await tracer._arun_traced(
+                    fn=lambda: agent.run(prompt, **kwargs),
+                    input={"prompt": prompt},
+                    framework="pydantic_ai",
+                )
+
+            def run_stream(self_, prompt: str | None = None, user_prompt: str | None = None, **kwargs) -> Any:
+                """Stream a run. The trace closes when the stream completes."""
+                prompt = user_prompt if user_prompt is not None else prompt
+                return tracer._trace_stream(
+                    agent.run_stream(prompt, **kwargs),
+                    input={"prompt": prompt},
+                )
 
             def __getattr__(self_, name: str) -> Any:
                 return getattr(agent, name)
@@ -472,8 +527,10 @@ class CortexTracer:
 
             async def arun(self_, message: str, **kwargs) -> Any:
                 import asyncio
+                ctx = contextvars.copy_context()
                 return await asyncio.get_event_loop().run_in_executor(
-                    None, lambda: tracer._run_traced(
+                    None, lambda: ctx.run(
+                        tracer._run_traced,
                         fn=lambda: agent.run(message, **kwargs),
                         input={"message": message},
                         framework="agno",
@@ -739,7 +796,7 @@ class CortexTracer:
                 raise
 
         trace = self._new_trace(input, sampled=True)
-        self._current_trace = trace
+        token = self._current_trace_ctx.set(trace)
         t0 = time.perf_counter()
 
         try:
@@ -754,12 +811,129 @@ class CortexTracer:
             trace.failure_detail = str(exc)
             raise
         finally:
+            self._current_trace_ctx.reset(token)
             self._traces.append(trace)
             if self.api_key:
                 self._flush_trace(trace)
             self._export(trace)
 
         return result
+
+    async def _arun_traced(self, fn: Callable, input: dict, framework: str) -> Any:
+        """Async twin of _run_traced. fn is a zero-arg callable returning an awaitable."""
+        # Head-based sampling: decide whether to trace this run.
+        # Errors are always traced (if sample_errors=True) so you never
+        # miss a failure even at low sample rates.
+        sampled = self.sample_rate >= 1.0 or _random.random() < self.sample_rate
+
+        if not sampled and not self.sample_errors:
+            # Not sampled and not capturing errors — run untraced
+            return await fn()
+
+        if not sampled and self.sample_errors:
+            # Not sampled, but we still want to catch errors.
+            # Run with lightweight error-only capture.
+            t0 = time.perf_counter()
+            try:
+                return await fn()
+            except Exception as exc:
+                # An error occurred — capture it even though not sampled
+                trace = self._new_trace(input, sampled=False)
+                trace.total_latency_ms = (time.perf_counter() - t0) * 1000
+                trace.status = RunStatus.FAILED
+                trace.failure_kind = FailureKind.UNKNOWN
+                trace.failure_detail = str(exc)
+                trace.metadata["captured_reason"] = "error"
+                self._traces.append(trace)
+                if self.api_key:
+                    self._flush_trace(trace)
+                self._export(trace)
+                raise
+
+        trace = self._new_trace(input, sampled=True)
+        token = self._current_trace_ctx.set(trace)
+        t0 = time.perf_counter()
+
+        try:
+            result = await fn()
+            trace.total_latency_ms = (time.perf_counter() - t0) * 1000
+            trace.status = RunStatus.COMPLETED
+            trace.output = result if isinstance(result, dict) else {"result": str(result)}
+        except Exception as exc:
+            trace.total_latency_ms = (time.perf_counter() - t0) * 1000
+            trace.status = RunStatus.FAILED
+            trace.failure_kind = FailureKind.UNKNOWN
+            trace.failure_detail = str(exc)
+            raise
+        finally:
+            self._current_trace_ctx.reset(token)
+            self._traces.append(trace)
+            if self.api_key:
+                self._flush_trace(trace)
+            self._export(trace)
+
+        return result
+
+    def _trace_stream(self, stream_cm: Any, input: dict) -> Any:
+        """Wrap an async-context-manager stream so a trace closes when the stream completes.
+
+        Unsampled streams pass through untouched.
+        """
+        tracer = self
+        sampled = self.sample_rate >= 1.0 or _random.random() < self.sample_rate
+        if not sampled:
+            return stream_cm
+
+        class _TracedStream:
+            async def __aenter__(s) -> Any:
+                s._trace = tracer._new_trace(input, sampled=True)
+                s._token = tracer._current_trace_ctx.set(s._trace)
+                s._t0 = time.perf_counter()
+                try:
+                    s._stream = await stream_cm.__aenter__()
+                except Exception as exc:
+                    # __aexit__ never runs when entry fails, so finalize
+                    # here: the failed startup still gets a trace.
+                    trace = s._trace
+                    trace.total_latency_ms = (time.perf_counter() - s._t0) * 1000
+                    trace.status = RunStatus.FAILED
+                    trace.failure_kind = FailureKind.UNKNOWN
+                    trace.failure_detail = str(exc)
+                    tracer._traces.append(trace)
+                    if tracer.api_key:
+                        tracer._flush_trace(trace)
+                    tracer._export(trace)
+                    tracer._current_trace_ctx.reset(s._token)
+                    raise
+                return s._stream
+
+            async def __aexit__(s, exc_type: Any, exc: Any, tb: Any) -> Any:
+                failed = exc_type is not None
+                detail = str(exc) if exc else ""
+                try:
+                    return await stream_cm.__aexit__(exc_type, exc, tb)
+                except Exception as close_exc:
+                    failed = True
+                    detail = str(close_exc)
+                    raise
+                finally:
+                    trace = s._trace
+                    trace.total_latency_ms = (time.perf_counter() - s._t0) * 1000
+                    if not failed:
+                        trace.status = RunStatus.COMPLETED
+                    else:
+                        trace.status = RunStatus.FAILED
+                        trace.failure_kind = FailureKind.UNKNOWN
+                        trace.failure_detail = detail
+                    tracer._traces.append(trace)
+                    if tracer.api_key:
+                        tracer._flush_trace(trace)
+                    tracer._export(trace)
+                    token = getattr(s, "_token", None)
+                    if token is not None:
+                        tracer._current_trace_ctx.reset(token)
+
+        return _TracedStream()
 
     @contextmanager
     def trace_node(self, node_name: str):
